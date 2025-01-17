@@ -2,11 +2,10 @@ import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import WaveSurfer from 'wavesurfer.js';
 
 @Component({
-  selector: 'plc-wavesurfer-wrapper',
-  standalone: true,
-  imports: [],
-  templateUrl: './wavesurfer-wrapper.component.html',
-  styleUrl: './wavesurfer-wrapper.component.scss',
+    selector: 'plc-wavesurfer-wrapper',
+    imports: [],
+    templateUrl: './wavesurfer-wrapper.component.html',
+    styleUrl: './wavesurfer-wrapper.component.scss'
 })
 export class WavesurferWrapperComponent {
   @ViewChild('waveform', { static: false })
