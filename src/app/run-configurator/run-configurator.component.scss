@@ -1,0 +1,17 @@
+:host::ng-deep {
+  p-listbox {
+    & > div {
+      border-radius: 0px;
+      border: none !important;
+    }
+  }
+}
+
+:host::ng-deep {
+  p-multiselect {
+    border-radius: 0px;
+    border-top-left-radius: var(--p-multiselect-border-radius);
+    border: none;
+    border-bottom: 1px solid var(--p-multiselect-border-color) !important;
+  }
+}

@@ -1,66 +1,37 @@
-<p-stepper [value]="1">
-  <p-step-item [value]="1">
-    <p-step>Header I</p-step>
-    <p-step-panel>
-      <ng-template #content let-activateCallback="activateCallback">
-        <div class="flex flex-col h-48">
-          <p-splitter [panelSizes]="[25, 75]" [style]="{ height: '300px' }" styleClass="mb-8">
-            <ng-template #panel>
-              <p-splitter [style]="{ height: '300px' }" styleClass="mb-8" layout="vertical">
-                <ng-template #panel>
-                  <div class="flex items-center justify-center h-full">Panel 1</div>
-                </ng-template>
-                <ng-template #panel>
-                  <div class="flex items-center justify-center h-full">Panel 2</div>
-                </ng-template>
-              </p-splitter>
-            </ng-template>
-            <ng-template #panel>
-              <div class="flex items-center justify-center h-full">Panel 2</div>
-            </ng-template>
-          </p-splitter>
-        </div>
-        <div class="py-6">
-          <p-button label="Next" (onClick)="activateCallback(2)" />
-        </div>
+<p-splitter styleClass="min-h-48 mb-8" [panelSizes]="[20, 80]">
+  <ng-template #panel>
+    <div class="flex-col w-full h-full">
+      <p-multiselect
+        [options]="availableModules"
+        display="chip"
+        styleClass="!h-12 !w-full "
+        appendTo="body"
+        [(ngModel)]="modulesSelection"
+        optionLabel="name"
+        placeholder="Select module"
+      >
+      </p-multiselect>
+      <ng-container *ngIf="modulesSelection.length > 0; else noModulesSelected">
+        <p-listbox
+          [options]="modulesSelection"
+          [(ngModel)]="moduleFocus"
+          optionLabel="name"
+          class="w-full !min-h-full"
+        />
+      </ng-container>
+      <ng-template #noModulesSelected>
+        <div class="pt-10 flex justify-center h-full text-white/50">Select a module</div>
       </ng-template>
-    </p-step-panel>
-  </p-step-item>
-
-  <p-step-item [value]="2">
-    <p-step>Header II</p-step>
-    <p-step-panel>
-      <ng-template #content let-activateCallback="activateCallback">
-        <div class="flex flex-col h-48">
-          <div
-            class="border-2 border-dashed border-surface-200 dark:border-surface-700 rounded bg-surface-50 dark:bg-surface-950 flex-auto flex justify-center items-center font-medium"
-          >
-            Content II
-          </div>
-        </div>
-        <div class="flex py-6 gap-2">
-          <p-button label="Back" severity="secondary" (onClick)="activateCallback(1)" />
-          <p-button label="Next" (onClick)="activateCallback(3)" />
-        </div>
-      </ng-template>
-    </p-step-panel>
-  </p-step-item>
-
-  <p-step-item [value]="3">
-    <p-step>Header III</p-step>
-    <p-step-panel>
-      <ng-template #content let-activateCallback="activateCallback">
-        <div class="flex flex-col h-48">
-          <div
-            class="border-2 border-dashed border-surface-200 dark:border-surface-700 rounded bg-surface-50 dark:bg-surface-950 flex-auto flex justify-center items-center font-medium"
-          >
-            Content III
-          </div>
-        </div>
-        <div class="py-6">
-          <p-button label="Back" severity="secondary" (onClick)="activateCallback(2)" />
-        </div>
-      </ng-template>
-    </p-step-panel>
-  </p-step-item>
-</p-stepper>
+    </div>
+  </ng-template>
+  <ng-template #panel>
+    <ng-container *ngIf="modulesSelection.length > 0; else noModulesSelected">
+      <ng-container *ngFor="let param of moduleFocus.settings"> {{ param.name }} - {{ param.default }} </ng-container>
+    </ng-container>
+    <ng-template #noModulesSelected>
+      <div class="pt-10 flex justify-center h-full text-white/50">Select a module</div>
+    </ng-template>
+  </ng-template>
+</p-splitter>
+{{ modulesSelection | json }}
+{{ modulesSelection }}
