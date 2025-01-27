@@ -9,7 +9,7 @@ import { ModuleParameters } from '../interfaces/module-parameters.interface';
   providedIn: 'root',
 })
 export class ModulesService {
-  private api: string = 'http://localhost:8000/modules';
+  private api: string = '/api/modules';
   private headers = {
     'Content-Type': 'application/json',
     Accept: 'application/json',

@@ -1,0 +1,100 @@
+<p-splitter styleClass="h-64 mb-8" [panelSizes]="[20, 80]">
+  <ng-template #panel>
+    <div class="flex-col w-full h-full">
+      <p-multiselect
+        [options]="availableModules"
+        display="chip"
+        styleClass="!h-12 !w-full !sticky !top-0 !z-10"
+        appendTo="body"
+        [(ngModel)]="modulesSelection"
+        optionLabel="name"
+        placeholder="Select module"
+      >
+      </p-multiselect>
+      <ng-container *ngIf="modulesSelection.length > 0; else noModulesSelected">
+        <p-listbox
+          [options]="modulesSelection"
+          [(ngModel)]="moduleFocus"
+          optionLabel="name"
+          class="w-full !min-h-full"
+        />
+      </ng-container>
+    </div>
+  </ng-template>
+  <ng-template #panel>
+    <ng-container *ngIf="modulesSelection.length > 0 && moduleFocus; else noModulesSelected">
+      <div class="flex flex-col min-w-full">
+        <div class="flex min-w-full text-xl p-2 sticky top-0 bg-black tracking-wide">{{ moduleFocus.name }}</div>
+        <div class="w-full flex flex-col p-2 overflow-y-scroll">
+          <ng-container *ngFor="let param of moduleFocus.settings">
+            <div class="w-full flex flex-row min-h-10">
+              <p class="min-w-56 flex items-center">{{ param.name }}</p>
+
+              <ng-container *ngIf="param.type === 'int'">
+                <ng-template [ngTemplateOutlet]="intInput"></ng-template>
+              </ng-container>
+
+              <ng-container *ngIf="param.type === 'float'">
+                <ng-template [ngTemplateOutlet]="floatInput"></ng-template>
+              </ng-container>
+
+              <ng-container *ngIf="param.type === 'bool'">
+                <ng-template [ngTemplateOutlet]="boolInput"></ng-template>
+              </ng-container>
+
+              <ng-container *ngIf="param.type === 'Enum'">
+                <ng-template [ngTemplateOutlet]="enumInput"></ng-template>
+              </ng-container>
+
+              <ng-container *ngIf="param.type === 'List_int'">
+                <ng-template [ngTemplateOutlet]="listIntInput"></ng-template>
+              </ng-container>
+
+              <ng-template #intInput>
+                <p-inputnumber class="flex-1" [(ngModel)]="param.value" mode="decimal" useGrouping="false" />
+              </ng-template>
+
+              <ng-template #floatInput>
+                <p-inputnumber
+                  class="flex-1"
+                  [(ngModel)]="param.value"
+                  mode="decimal"
+                  useGrouping="false"
+                  [minFractionDigits]="0"
+                  [maxFractionDigits]="5"
+                />
+              </ng-template>
+
+              <ng-template #boolInput>
+                <p-checkbox [(ngModel)]="param.value" binary="true" class="content-center"></p-checkbox>
+              </ng-template>
+
+              <ng-template #enumInput>
+                <p-select
+                  [(ngModel)]="param.value"
+                  [options]="param.availableValues"
+                  class="flex-1"
+                  appendTo="body"
+                ></p-select>
+              </ng-template>
+
+              <ng-template #listIntInput>
+                <p-autocomplete
+                  [(ngModel)]="param.value"
+                  [suggestions]="suggestedBands"
+                  class="flex-1"
+                  multiple
+                  appendTo="body"
+                ></p-autocomplete>
+              </ng-template>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+  </ng-template>
+</p-splitter>
+
+<ng-template #noModulesSelected>
+  <div class="pt-10 flex justify-center h-full text-white/50">Select a module</div>
+</ng-template>

@@ -3,4 +3,5 @@ export interface ModuleParameters {
   type: string;
   default: any;
   value?: any;
+  availableValues?: any[];
 }
