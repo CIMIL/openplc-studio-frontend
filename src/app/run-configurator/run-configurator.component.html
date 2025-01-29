@@ -3,7 +3,7 @@
     <p-step>Packet Loss Simulator</p-step>
     <p-step-panel>
       <ng-template #content let-activateCallback="activateCallback">
-        <div class="flex flex-col h-64 pt-4">
+        <div class="flex flex-col h-64 pt-4 pr-4">
           <plc-module-configurator
             [moduleType]="ModuleType.PacketLossSimulator"
             [modulesSelection]="packetLossSimulatorsConfig"
@@ -21,7 +21,7 @@
     <p-step>PLC Algorithm</p-step>
     <p-step-panel>
       <ng-template #content let-activateCallback="activateCallback">
-        <div class="flex flex-col h-64 pt-4">
+        <div class="flex flex-col h-64 pt-4 pr-4">
           <plc-module-configurator
             [moduleType]="ModuleType.PLCAlgorithm"
             [modulesSelection]="PLCAlgorithmsConfig"
@@ -40,7 +40,7 @@
     <p-step>Output Analyser</p-step>
     <p-step-panel>
       <ng-template #content let-activateCallback="activateCallback">
-        <div class="flex flex-col h-64 pt-4">
+        <div class="flex flex-col h-64 pt-4 pr-4">
           <plc-module-configurator
             [moduleType]="ModuleType.OutputAnalyser"
             [modulesSelection]="outputAnalysersConfig"

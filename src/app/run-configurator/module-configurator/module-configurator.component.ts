@@ -18,14 +18,14 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { Module } from '../../shared/interfaces/module.interface';
 import { ModuleType } from '../../shared/enums/module-type.enum';
 import { SelectModule } from 'primeng/select';
-import { AutoCompleteModule } from 'primeng/autocomplete';
+import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
 
 const suggestedBands: number[] = [200, 1000, 2000];
 
 @Component({
   selector: 'plc-module-configurator',
   templateUrl: './module-configurator.component.html',
-  //   styleUrls: ['./module-configurator.component.scss'],
+  styleUrls: ['./module-configurator.component.scss'],
   imports: [
     CommonModule,
     ButtonModule,
@@ -58,8 +58,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   public moduleFocus!: Module;
 
-  public suggestedBands: number[] = suggestedBands;
-
+  public suggestedBands: string[] = [];
   private readonly unsubAll$ = new Subject<void>();
 
   constructor(private readonly modulesService: ModulesService) {}
@@ -90,6 +89,10 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   public resetDefault(param: ModuleParameters): void {
     param.value = param.default;
+  }
+
+  public search(event: AutoCompleteCompleteEvent) {
+    this.suggestedBands = suggestedBands.map((b) => b.toString()).filter((band) => band.includes(event.query));
   }
 
   ngOnDestroy(): void {

@@ -1,0 +1,38 @@
+:host::ng-deep {
+  p-autocomplete {
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type='number'] {
+      -moz-appearance: textfield;
+    }
+
+    & > .p-autocomplete {
+      width: 100%;
+      & > input {
+        width: 100%;
+      }
+    }
+  }
+}
+
+:host::ng-deep {
+  p-listbox {
+    & > div {
+      border-radius: 0px;
+      border: none !important;
+    }
+  }
+}
+
+:host::ng-deep {
+  p-multiselect {
+    border-radius: 0px;
+    border-top-left-radius: var(--p-multiselect-border-radius);
+    border: none;
+    border-bottom: 1px solid var(--p-multiselect-border-color) !important;
+  }
+}
