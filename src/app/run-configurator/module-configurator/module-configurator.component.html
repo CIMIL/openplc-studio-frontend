@@ -38,6 +38,10 @@
                 <ng-template [ngTemplateOutlet]="floatInput"></ng-template>
               </ng-container>
 
+              <ng-container *ngIf="param.type === 'str'">
+                <ng-template [ngTemplateOutlet]="strInput"></ng-template>
+              </ng-container>
+
               <ng-container *ngIf="param.type === 'bool'">
                 <ng-template [ngTemplateOutlet]="boolInput"></ng-template>
               </ng-container>
@@ -46,12 +50,16 @@
                 <ng-template [ngTemplateOutlet]="enumInput"></ng-template>
               </ng-container>
 
-              <ng-container *ngIf="param.type === 'List_int'">
+              <ng-container *ngIf="param.type === 'list_int'">
                 <ng-template [ngTemplateOutlet]="listIntInput"></ng-template>
               </ng-container>
 
               <ng-template #intInput>
                 <p-inputnumber class="flex-1" [(ngModel)]="param.value" mode="decimal" useGrouping="false" />
+              </ng-template>
+
+              <ng-template #strInput>
+                <input class="flex-1" [(ngModel)]="param.value" />
               </ng-template>
 
               <ng-template #floatInput>

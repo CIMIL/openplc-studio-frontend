@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { ModulesService } from '../../shared/clients/modules.service';
-import { BehaviorSubject, map, tap } from 'rxjs';
+import { BehaviorSubject, map, Subject, takeUntil, tap } from 'rxjs';
 import { StepperModule } from 'primeng/stepper';
 import { SplitterModule } from 'primeng/splitter';
 import { ListboxModule } from 'primeng/listbox';
@@ -45,13 +45,22 @@ const suggestedBands: number[] = [200, 1000, 2000];
   ],
 })
 export class ModuleConfiguratorComponent implements OnInit {
-  public modules: BehaviorSubject<Module[]> = new BehaviorSubject<Module[]>([]);
+  @Input()
+  public moduleType!: ModuleType;
 
-  public modulesSelection: Module[] = [];
+  @Input()
+  public modulesSelection!: Module[];
+
+  @Output()
+  public modulesSelectionChange = new EventEmitter<Module[]>();
+
+  public modules: BehaviorSubject<Module[]> = new BehaviorSubject<Module[]>([]);
 
   public moduleFocus!: Module;
 
   public suggestedBands: number[] = suggestedBands;
+
+  private readonly unsubAll$ = new Subject<void>();
 
   constructor(private readonly modulesService: ModulesService) {}
 
@@ -61,24 +70,32 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   ngOnInit(): void {
     this.modulesService
-      .getModuleTypes(ModuleType.PLCAlgorithm)
+      .getModuleTypes(this.moduleType)
       .pipe(
-        map((types: Module[]) =>
-          types.map((type: Module) => ({
-            ...type,
-            settings: type.settings.map((setting: any) => ({
+        takeUntil(this.unsubAll$),
+        map((modules: Module[]) =>
+          modules.map((module: Module) => ({
+            ...module,
+            settings: module.settings.map((setting: any) => ({
               ...setting,
               value: setting.default,
               availableValues: setting.available_values,
             })),
           }))
         ),
-        tap((types: Module[]) => this.modules.next(types))
+        tap((modules: Module[]) => this.modules.next(modules))
       )
       .subscribe();
   }
 
   public resetDefault(param: ModuleParameters): void {
     param.value = param.default;
+  }
+
+  ngOnDestroy(): void {
+    this.modulesSelectionChange.emit(this.modulesSelection);
+
+    this.unsubAll$.next();
+    this.unsubAll$.complete();
   }
 }

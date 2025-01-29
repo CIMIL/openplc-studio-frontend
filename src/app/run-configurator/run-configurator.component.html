@@ -1,1 +1,57 @@
-<plc-module-configurator></plc-module-configurator>
+<p-stepper [value]="1">
+  <p-step-item [value]="1">
+    <p-step>Packet Loss Simulator</p-step>
+    <p-step-panel>
+      <ng-template #content let-activateCallback="activateCallback">
+        <div class="flex flex-col h-64 pt-4">
+          <plc-module-configurator
+            [moduleType]="ModuleType.PacketLossSimulator"
+            [modulesSelection]="packetLossSimulatorsConfig"
+            (modulesSelectionChange)="updatePacketLossSimulatorsConfig($event)"
+          ></plc-module-configurator>
+        </div>
+        <div class="py-6">
+          <p-button label="Next" (onClick)="activateCallback(2)" />
+        </div>
+      </ng-template>
+    </p-step-panel>
+  </p-step-item>
+
+  <p-step-item [value]="2">
+    <p-step>PLC Algorithm</p-step>
+    <p-step-panel>
+      <ng-template #content let-activateCallback="activateCallback">
+        <div class="flex flex-col h-64 pt-4">
+          <plc-module-configurator
+            [moduleType]="ModuleType.PLCAlgorithm"
+            [modulesSelection]="PLCAlgorithmsConfig"
+            (modulesSelectionChange)="updatePLCAlgorithmsConfig($event)"
+          ></plc-module-configurator>
+        </div>
+        <div class="flex py-6 gap-2">
+          <p-button label="Back" severity="secondary" (onClick)="activateCallback(1)" />
+          <p-button label="Next" (onClick)="activateCallback(3)" />
+        </div>
+      </ng-template>
+    </p-step-panel>
+  </p-step-item>
+
+  <p-step-item [value]="3">
+    <p-step>Output Analyser</p-step>
+    <p-step-panel>
+      <ng-template #content let-activateCallback="activateCallback">
+        <div class="flex flex-col h-64 pt-4">
+          <plc-module-configurator
+            [moduleType]="ModuleType.OutputAnalyser"
+            [modulesSelection]="outputAnalysersConfig"
+            (modulesSelectionChange)="updateOutputAnalysersConfig($event)"
+          ></plc-module-configurator>
+        </div>
+        <div class="py-6">
+          <p-button label="Back" severity="secondary" (onClick)="activateCallback(2)" />
+        </div>
+      </ng-template>
+    </p-step-panel>
+  </p-step-item>
+</p-stepper>
+<!-- {{ packetLossSimulatorsConfig | json }} -->
