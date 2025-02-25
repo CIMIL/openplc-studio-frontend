@@ -22,6 +22,10 @@ import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocompl
 
 const suggestedBands: number[] = [200, 1000, 2000];
 
+type ModuleWithCount = Module & {
+  id?: number;
+};
+
 @Component({
   selector: 'plc-module-configurator',
   templateUrl: './module-configurator.component.html',
@@ -49,40 +53,72 @@ export class ModuleConfiguratorComponent implements OnInit {
   public moduleType!: ModuleType;
 
   @Input()
-  public modulesSelection!: Module[];
+  public modulesSelection!: ModuleWithCount[];
+
+  @Input()
+  public crossfadeModulesSelection!: ModuleWithCount[];
 
   @Output()
   public modulesSelectionChange = new EventEmitter<Module[]>();
 
-  public modules: BehaviorSubject<Module[]> = new BehaviorSubject<Module[]>([]);
+  public modules: BehaviorSubject<ModuleWithCount[]> = new BehaviorSubject<ModuleWithCount[]>([]);
 
-  public moduleFocus!: Module;
+  public moduleFocus!: ModuleWithCount | null;
 
   public suggestedBands: string[] = [];
+
+  public selectedModuleProxy: ModuleWithCount | null = null;
+
+  public selectedModuleCounter: number = 0;
+
+  public availableModulesFilter: ModuleWithCount[] = [];
+
+  public crossfadeModules: BehaviorSubject<ModuleWithCount[]> = new BehaviorSubject<ModuleWithCount[]>([]);
+
+  public crossfadeModuleFocus!: ModuleWithCount | null;
+
+  public selectedCrossfadeModuleProxy: ModuleWithCount | null = null;
+
+  public availableCrossfadeModulesFilter: ModuleWithCount[] = [];
+
   private readonly unsubAll$ = new Subject<void>();
 
   constructor(private readonly modulesService: ModulesService) {}
 
-  get availableModules(): Module[] {
+  get availableModules(): ModuleWithCount[] {
     return this.modules.value;
   }
 
+  get availableCrossfadeModules(): ModuleWithCount[] {
+    return this.crossfadeModules.value;
+  }
+
   ngOnInit(): void {
+    const transformModules = (modules: ModuleWithCount[]) =>
+      modules.map((module: ModuleWithCount) => ({
+        ...module,
+        settings: module.settings.map((setting: any) => ({
+          ...setting,
+          value: setting.default,
+          availableValues: setting.values,
+        })),
+      }));
+
     this.modulesService
       .getModuleTypes(this.moduleType)
       .pipe(
         takeUntil(this.unsubAll$),
-        map((modules: Module[]) =>
-          modules.map((module: Module) => ({
-            ...module,
-            settings: module.settings.map((setting: any) => ({
-              ...setting,
-              value: setting.default,
-              availableValues: setting.available_values,
-            })),
-          }))
-        ),
-        tap((modules: Module[]) => this.modules.next(modules))
+        map(transformModules),
+        tap((modules: ModuleWithCount[]) => this.modules.next(modules))
+      )
+      .subscribe();
+
+    this.modulesService
+      .getModuleTypes(ModuleType.CrossfadeSettings)
+      .pipe(
+        takeUntil(this.unsubAll$),
+        map(transformModules),
+        tap((modules: ModuleWithCount[]) => this.crossfadeModules.next(modules))
       )
       .subscribe();
   }
@@ -91,9 +127,55 @@ export class ModuleConfiguratorComponent implements OnInit {
     param.value = param.default;
   }
 
-  public search(event: AutoCompleteCompleteEvent) {
+  public searchBands(event: AutoCompleteCompleteEvent) {
     this.suggestedBands = suggestedBands.map((b) => b.toString()).filter((band) => band.includes(event.query));
   }
+
+  public searchModules(event: AutoCompleteCompleteEvent) {
+    this.availableModulesFilter = this.availableModules.filter((m) => m.name.toLocaleLowerCase().includes(event.query));
+  }
+
+  public addModule(module: ModuleWithCount | null): void {
+    if (!module) {
+      return;
+    }
+    this.modulesSelection.push({
+      ...module,
+      settings: module.settings.map((param) => ({ ...param })),
+      id: this.selectedModuleCounter++,
+    });
+  }
+
+  public removeFromModulesSelection(moduleIndex: number): void {
+    if (this.modulesSelection[moduleIndex]?.id === this.moduleFocus?.id) {
+      this.moduleFocus = null;
+    }
+    this.modulesSelection.splice(moduleIndex, 1);
+  }
+
+  // public searchCrossfadeModules(event: AutoCompleteCompleteEvent) {
+  //   this.availableCrossfadeModulesFilter = this.availableCrossfadeModules.filter((m) =>
+  //     m.name.toLocaleLowerCase().includes(event.query)
+  //   );
+  // }
+
+  // public addCrossfadeModule(module: ModuleWithCount | null): void {
+  //   if (!module) {
+  //     return;
+  //   }
+  //   this.crossfadeModulesSelection.push({
+  //     ...module,
+  //     settings: module.settings.map((param) => ({ ...param })),
+  //     id: this.selectedModuleCounter++,
+  //   });
+  // }
+
+  // public removeFromCrossfadeModulesSelection(moduleIndex: number): void {
+  //   if (this.crossfadeModulesSelection[moduleIndex]?.id === this.crossfadeModuleFocus?.id) {
+  //     this.crossfadeModuleFocus = null;
+  //   }
+  //   this.crossfadeModulesSelection.splice(moduleIndex, 1);
+  // }
 
   ngOnDestroy(): void {
     this.modulesSelectionChange.emit(this.modulesSelection);

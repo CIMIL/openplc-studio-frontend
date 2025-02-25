@@ -1,23 +1,37 @@
 <p-splitter styleClass="h-64 mb-8" [panelSizes]="[20, 80]">
   <ng-template #panel>
     <div class="flex-col w-full h-full">
-      <p-multiselect
-        [options]="availableModules"
-        display="chip"
-        styleClass="!h-12 !w-full !sticky !top-0 !z-10"
+      <p-autocomplete
+        [(ngModel)]="selectedModuleProxy"
+        [suggestions]="availableModulesFilter"
+        [optionLabel]="'name'"
+        class="flex-1"
+        (completeMethod)="searchModules($event)"
+        (onSelect)="addModule(selectedModuleProxy)"
         appendTo="body"
-        [(ngModel)]="modulesSelection"
-        optionLabel="name"
-        placeholder="Select module"
-      >
-      </p-multiselect>
+        [dropdown]="true"
+      ></p-autocomplete>
       <ng-container *ngIf="modulesSelection.length > 0; else noModulesSelected">
         <p-listbox
           [options]="modulesSelection"
           [(ngModel)]="moduleFocus"
-          optionLabel="name"
+          [optionLabel]="'id'"
           class="w-full !min-h-full"
-        />
+        >
+          <ng-template let-module let-index="index" #item>
+            <div class="flex flex-row flex-auto">
+              <p>{{ module.name }}</p>
+              <div class="flex-auto"></div>
+              <p-button
+                icon="pi pi-times"
+                [rounded]="true"
+                severity="danger"
+                [outlined]="true"
+                (onClick)="$event.stopPropagation(); removeFromModulesSelection(index)"
+              />
+            </div>
+          </ng-template>
+        </p-listbox>
       </ng-container>
     </div>
   </ng-template>
@@ -52,6 +66,10 @@
 
               <ng-container *ngIf="param.type === 'list_int'">
                 <ng-template [ngTemplateOutlet]="listIntInput"></ng-template>
+              </ng-container>
+
+              <ng-container *ngIf="param.type === 'list_CrossfadeSettings'">
+                <ng-template [ngTemplateOutlet]="listCrossfadeInput"></ng-template>
               </ng-container>
 
               <ng-template #intInput>
@@ -91,13 +109,26 @@
                   [(ngModel)]="param.value"
                   [suggestions]="suggestedBands"
                   class="flex-1"
-                  (completeMethod)="search($event)"
+                  (completeMethod)="searchBands($event)"
                   appendTo="body"
                   multiple
                   typeahead="false"
                   [dropdown]="true"
                   type="number"
                 ></p-autocomplete>
+              </ng-template>
+
+              <ng-template #listCrossfadeInput>
+                <!-- <p-autocomplete
+                  [(ngModel)]="selectedCrossfadeModuleProxy"
+                  [suggestions]="availableCrossfadeModulesFilter"
+                  [optionLabel]="'name'"
+                  class="flex-1"
+                  (completeMethod)="searchCrossfadeModules($event)"
+                  (onSelect)="addCrossfadeModule(selectedCrossfadeModuleProxy)"
+                  appendTo="body"
+                  [dropdown]="true"
+                ></p-autocomplete> -->
               </ng-template>
             </div>
           </ng-container>
