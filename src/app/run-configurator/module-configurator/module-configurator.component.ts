@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { ModulesService } from '../../shared/clients/modules.service';
-import { BehaviorSubject, map, Subject, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, filter, map, Subject, takeUntil, tap } from 'rxjs';
 import { StepperModule } from 'primeng/stepper';
 import { SplitterModule } from 'primeng/splitter';
 import { ListboxModule } from 'primeng/listbox';
@@ -22,8 +22,11 @@ import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocompl
 
 const suggestedBands: number[] = [200, 1000, 2000];
 
+const crossfadeNameParameters: string[] = ['crossfade', 'fade_in'];
+
 type ModuleWithCount = Module & {
   id?: number;
+  groupLabel?: string;
 };
 
 @Component({
@@ -93,6 +96,23 @@ export class ModuleConfiguratorComponent implements OnInit {
     return this.crossfadeModules.value;
   }
 
+  get groupedCrossfadeModulesOfSelectedModule(): ModuleWithCount[] {
+    const groupedCrossfadeModules = this.moduleFocus?.settings
+      .filter((s) => crossfadeNameParameters.includes(s.name))
+      .map((s) => {
+        // create obj with groupLabel: s.name, id: id, name: name, settings: settings for each element in s.value, flattened
+      });
+    return [];
+  }
+
+  get isAnyCrossfadeModuleSelected(): boolean {
+    return !!this.moduleFocus?.settings.some(
+      (setting) =>
+        crossfadeNameParameters.includes(setting.name) &&
+        (Array.isArray(setting.value) ? setting.value.length > 0 : false)
+    );
+  }
+
   ngOnInit(): void {
     const transformModules = (modules: ModuleWithCount[]) =>
       modules.map((module: ModuleWithCount) => ({
@@ -113,14 +133,16 @@ export class ModuleConfiguratorComponent implements OnInit {
       )
       .subscribe();
 
-    this.modulesService
-      .getModuleTypes(ModuleType.CrossfadeSettings)
-      .pipe(
-        takeUntil(this.unsubAll$),
-        map(transformModules),
-        tap((modules: ModuleWithCount[]) => this.crossfadeModules.next(modules))
-      )
-      .subscribe();
+    if (this.moduleType === ModuleType.PLCAlgorithm) {
+      this.modulesService
+        .getModuleTypes(ModuleType.CrossfadeSettings)
+        .pipe(
+          takeUntil(this.unsubAll$),
+          map(transformModules),
+          tap((modules: ModuleWithCount[]) => this.crossfadeModules.next(modules))
+        )
+        .subscribe();
+    }
   }
 
   public resetDefault(param: ModuleParameters): void {
@@ -144,6 +166,8 @@ export class ModuleConfiguratorComponent implements OnInit {
       settings: module.settings.map((param) => ({ ...param })),
       id: this.selectedModuleCounter++,
     });
+
+    this.selectedModuleProxy = null;
   }
 
   public removeFromModulesSelection(moduleIndex: number): void {
@@ -153,22 +177,25 @@ export class ModuleConfiguratorComponent implements OnInit {
     this.modulesSelection.splice(moduleIndex, 1);
   }
 
-  // public searchCrossfadeModules(event: AutoCompleteCompleteEvent) {
-  //   this.availableCrossfadeModulesFilter = this.availableCrossfadeModules.filter((m) =>
-  //     m.name.toLocaleLowerCase().includes(event.query)
-  //   );
-  // }
+  public searchCrossfadeModules(event: AutoCompleteCompleteEvent) {
+    this.availableCrossfadeModulesFilter = this.availableCrossfadeModules.filter((m) =>
+      m.name.toLocaleLowerCase().includes(event.query)
+    );
+  }
 
-  // public addCrossfadeModule(module: ModuleWithCount | null): void {
-  //   if (!module) {
-  //     return;
-  //   }
-  //   this.crossfadeModulesSelection.push({
-  //     ...module,
-  //     settings: module.settings.map((param) => ({ ...param })),
-  //     id: this.selectedModuleCounter++,
-  //   });
-  // }
+  public addCrossfadeModule(crossfadeModule: ModuleWithCount | null, paramName: string): void {
+    if (!crossfadeModule) {
+      return;
+    }
+
+    const parentModuleSetting = this.moduleFocus?.settings.find((setting) => setting.name === paramName);
+    if (parentModuleSetting) {
+      parentModuleSetting.value = parentModuleSetting.value || [];
+      parentModuleSetting.value.push(crossfadeModule);
+    }
+
+    this.selectedCrossfadeModuleProxy = null;
+  }
 
   // public removeFromCrossfadeModulesSelection(moduleIndex: number): void {
   //   if (this.crossfadeModulesSelection[moduleIndex]?.id === this.crossfadeModuleFocus?.id) {

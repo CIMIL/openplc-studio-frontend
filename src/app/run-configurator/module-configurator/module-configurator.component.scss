@@ -36,3 +36,14 @@
     border-bottom: 1px solid var(--p-multiselect-border-color) !important;
   }
 }
+
+:host::ng-deep {
+  p-button button {
+    width: 24px !important;
+    height: 24px !important;
+
+    .p-button-icon {
+      font-size: 12px;
+    }
+  }
+}
