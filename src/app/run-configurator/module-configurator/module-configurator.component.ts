@@ -29,6 +29,8 @@ type ModuleWithCount = Module & {
   groupLabel?: string;
 };
 
+type GroupedModules = { label: string; items: Module[] };
+
 @Component({
   selector: 'plc-module-configurator',
   templateUrl: './module-configurator.component.html',
@@ -96,13 +98,11 @@ export class ModuleConfiguratorComponent implements OnInit {
     return this.crossfadeModules.value;
   }
 
-  get groupedCrossfadeModulesOfSelectedModule(): ModuleWithCount[] {
+  get groupedCrossfadeModulesOfSelectedModule(): GroupedModules[] {
     const groupedCrossfadeModules = this.moduleFocus?.settings
-      .filter((s) => crossfadeNameParameters.includes(s.name))
-      .map((s) => {
-        // create obj with groupLabel: s.name, id: id, name: name, settings: settings for each element in s.value, flattened
-      });
-    return [];
+      .filter((setting: ModuleParameters) => crossfadeNameParameters.includes(setting.name))
+      .map((setting: ModuleParameters) => ({ label: setting.name, items: (setting.value ?? []) as Module[] }));
+    return groupedCrossfadeModules ?? [];
   }
 
   get isAnyCrossfadeModuleSelected(): boolean {

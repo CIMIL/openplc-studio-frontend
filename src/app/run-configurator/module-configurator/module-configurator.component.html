@@ -53,15 +53,32 @@
                 [group]="true"
                 class="w-full !min-h-full"
               >
-                <!-- <ng-template let-group #group>
+                <ng-template let-group #group>
                   <div class="flex items-center">
-                    <span>{{ group.name }}</span>
+                    <span>{{ group.label }}</span>
                   </div>
-                </ng-template> -->
+                </ng-template>
+
+                <ng-template let-module let-index="index" #item>
+                  <div class="flex flex-row flex-auto">
+                    <p>{{ module.name }}</p>
+                    <div class="flex-auto"></div>
+                    <p-button
+                      icon="pi pi-times"
+                      [rounded]="true"
+                      severity="danger"
+                      [outlined]="true"
+                      size="small"
+                      (onClick)="$event.stopPropagation()"
+                    />
+                  </div>
+                </ng-template>
               </p-listbox>
             </ng-template>
             <ng-template #panel>
-              <div class="col flex items-center justify-center">Panel 4</div>
+              <div class="col flex items-center justify-center">
+                {{ crossfadeModuleFocus | json }}
+              </div>
             </ng-template>
           </p-splitter>
         </ng-template>
