@@ -68,7 +68,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   public modules: BehaviorSubject<ModuleWithCount[]> = new BehaviorSubject<ModuleWithCount[]>([]);
 
-  public moduleFocus!: ModuleWithCount | null;
+  public moduleFocus: ModuleWithCount | null = null;
 
   public suggestedBands: string[] = [];
 
@@ -83,6 +83,8 @@ export class ModuleConfiguratorComponent implements OnInit {
   public crossfadeModuleFocus!: ModuleWithCount | null;
 
   public selectedCrossfadeModuleProxy: ModuleWithCount | null = null;
+
+  public selectedCrossfadeModuleCounter: number = 0;
 
   public availableCrossfadeModulesFilter: ModuleWithCount[] = [];
 
@@ -161,6 +163,7 @@ export class ModuleConfiguratorComponent implements OnInit {
     if (!module) {
       return;
     }
+
     this.modulesSelection.push({
       ...module,
       settings: module.settings.map((param) => ({ ...param })),
@@ -191,18 +194,33 @@ export class ModuleConfiguratorComponent implements OnInit {
     const parentModuleSetting = this.moduleFocus?.settings.find((setting) => setting.name === paramName);
     if (parentModuleSetting) {
       parentModuleSetting.value = parentModuleSetting.value || [];
-      parentModuleSetting.value.push(crossfadeModule);
+      parentModuleSetting.value.push({
+        ...crossfadeModule,
+        settings: crossfadeModule.settings.map((param) => ({ ...param })),
+        id: this.selectedCrossfadeModuleCounter++,
+      });
     }
 
     this.selectedCrossfadeModuleProxy = null;
   }
 
-  // public removeFromCrossfadeModulesSelection(moduleIndex: number): void {
-  //   if (this.crossfadeModulesSelection[moduleIndex]?.id === this.crossfadeModuleFocus?.id) {
-  //     this.crossfadeModuleFocus = null;
-  //   }
-  //   this.crossfadeModulesSelection.splice(moduleIndex, 1);
-  // }
+  public removeFromCrossfadeModulesSelection(moduleId: number): void {
+    const crossfadeModuleParentList =
+      this.moduleFocus?.settings
+        .filter((s) => crossfadeNameParameters.includes(s.name) && s.value !== null)
+        .flatMap((s) => s.value) ?? [];
+
+    const moduleToRemoveIndex = crossfadeModuleParentList.findIndex((module) => module.id === moduleId);
+
+    if (moduleToRemoveIndex === -1) {
+      return;
+    }
+
+    if (crossfadeModuleParentList[moduleToRemoveIndex]?.id === this.crossfadeModuleFocus?.id) {
+      this.crossfadeModuleFocus = null;
+    }
+    crossfadeModuleParentList.splice(moduleToRemoveIndex, 1);
+  }
 
   ngOnDestroy(): void {
     this.modulesSelectionChange.emit(this.modulesSelection);

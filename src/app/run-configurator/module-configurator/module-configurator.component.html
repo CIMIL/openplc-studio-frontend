@@ -10,7 +10,7 @@
         (onSelect)="addModule(selectedModuleProxy)"
         appendTo="body"
         [dropdown]="true"
-      ></p-autocomplete>
+      />
       <ng-container *ngIf="modulesSelection.length > 0; else noModulesSelected">
         <p-listbox
           [options]="modulesSelection"
@@ -38,18 +38,20 @@
   </ng-template>
   <ng-template #panel>
     <ng-container *ngIf="!isAnyCrossfadeModuleSelected">
-      <ng-template [ngTemplateOutlet]="moduleSettingsTemplate"> </ng-template>
+      <ng-container *ngTemplateOutlet="moduleSettingsTemplate; context: { $implicit: this.moduleFocus }" />
     </ng-container>
     <ng-container *ngIf="isAnyCrossfadeModuleSelected">
       <p-splitter layout="vertical" [panelSizes]="[50, 50]">
-        <ng-template #panel> <ng-template [ngTemplateOutlet]="moduleSettingsTemplate"> </ng-template></ng-template>
+        <ng-template #panel>
+          <ng-container *ngTemplateOutlet="moduleSettingsTemplate; context: { $implicit: this.moduleFocus }" />
+        </ng-template>
         <ng-template #panel>
           <p-splitter [panelSizes]="[20, 80]">
             <ng-template #panel>
               <p-listbox
                 [options]="groupedCrossfadeModulesOfSelectedModule"
                 [(ngModel)]="crossfadeModuleFocus"
-                [optionLabel]="'name'"
+                [optionLabel]="'id'"
                 [group]="true"
                 class="w-full !min-h-full"
               >
@@ -69,16 +71,16 @@
                       severity="danger"
                       [outlined]="true"
                       size="small"
-                      (onClick)="$event.stopPropagation()"
+                      (onClick)="$event.stopPropagation(); removeFromCrossfadeModulesSelection(module.id)"
                     />
                   </div>
                 </ng-template>
               </p-listbox>
             </ng-template>
             <ng-template #panel>
-              <div class="col flex items-center justify-center">
-                {{ crossfadeModuleFocus | json }}
-              </div>
+              <ng-container
+                *ngTemplateOutlet="moduleSettingsTemplate; context: { $implicit: this.crossfadeModuleFocus }"
+              />
             </ng-template>
           </p-splitter>
         </ng-template>
@@ -87,12 +89,14 @@
   </ng-template>
 </p-splitter>
 
-<ng-template #moduleSettingsTemplate>
-  <ng-container *ngIf="modulesSelection.length > 0 && moduleFocus; else noModulesSelected">
+<ng-template #moduleSettingsTemplate let-selectedModule>
+  <ng-container *ngIf="modulesSelection.length > 0 && selectedModule; else noModulesSelected">
     <div class="flex flex-col min-w-full">
-      <div class="flex min-w-full text-xl p-2 sticky top-0 bg-black tracking-wide">{{ moduleFocus.name }}</div>
+      <div class="flex min-w-full text-xl p-2 sticky top-0 bg-black tracking-wide">
+        {{ selectedModule?.name }}
+      </div>
       <div class="w-full flex flex-col p-2 overflow-y-auto gap-2">
-        <ng-container *ngFor="let param of moduleFocus.settings">
+        <ng-container *ngFor="let param of selectedModule?.settings ?? []">
           <div class="w-full flex flex-row min-h-10">
             <p class="min-w-56 flex items-center">{{ param.name }}</p>
 
