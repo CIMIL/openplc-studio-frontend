@@ -56,8 +56,9 @@
                 class="w-full !min-h-full"
               >
                 <ng-template let-group #group>
-                  <div class="flex items-center">
+                  <div class="flex items-center" *ngIf="(group.items ?? []).length > 0">
                     <span>{{ group.label }}</span>
+                    <span>{{ group.items.length }}</span>
                   </div>
                 </ng-template>
 
