@@ -18,9 +18,9 @@
           [optionLabel]="'id'"
           class="w-full !min-h-full"
         >
-          <ng-template let-module let-index="index" #item>
+          <ng-template let-item let-index="index" #item>
             <div class="flex flex-row flex-auto">
-              <p>{{ module.name }}</p>
+              <p>{{ item.name }}</p>
               <div class="flex-auto"></div>
               <p-button
                 icon="pi pi-times"
@@ -61,9 +61,9 @@
                   </div>
                 </ng-template>
 
-                <ng-template let-module let-index="index" #item>
+                <ng-template let-item let-index="index" #item>
                   <div class="flex flex-row flex-auto">
-                    <p>{{ module.name }}</p>
+                    <p>{{ item.name }}</p>
                     <div class="flex-auto"></div>
                     <p-button
                       icon="pi pi-times"
@@ -71,7 +71,7 @@
                       severity="danger"
                       [outlined]="true"
                       size="small"
-                      (onClick)="$event.stopPropagation(); removeFromCrossfadeModulesSelection(module.id)"
+                      (onClick)="$event.stopPropagation(); removeFromCrossfadeModulesSelection(item.id)"
                     />
                   </div>
                 </ng-template>

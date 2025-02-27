@@ -205,21 +205,23 @@ export class ModuleConfiguratorComponent implements OnInit {
   }
 
   public removeFromCrossfadeModulesSelection(moduleId: number): void {
-    const crossfadeModuleParentList =
+    const crossfadeModuleParentList: ModuleWithCount[][] =
       this.moduleFocus?.settings
         .filter((s) => crossfadeNameParameters.includes(s.name) && s.value !== null)
-        .flatMap((s) => s.value) ?? [];
+        .map((s) => s.value ?? []) ?? [];
 
-    const moduleToRemoveIndex = crossfadeModuleParentList.findIndex((module) => module.id === moduleId);
+    const crossfadeModuleList = crossfadeModuleParentList.find((s) => s.some((module) => module.id === moduleId)) ?? [];
 
-    if (moduleToRemoveIndex === -1) {
+    const moduleToRemoveIndex: number = crossfadeModuleList.findIndex((module) => module.id === moduleId) ?? -1;
+
+    if (moduleToRemoveIndex === -1 || crossfadeModuleList.length === 0) {
       return;
     }
 
-    if (crossfadeModuleParentList[moduleToRemoveIndex]?.id === this.crossfadeModuleFocus?.id) {
+    if (crossfadeModuleList[moduleToRemoveIndex]?.id === this.crossfadeModuleFocus?.id) {
       this.crossfadeModuleFocus = null;
     }
-    crossfadeModuleParentList.splice(moduleToRemoveIndex, 1);
+    crossfadeModuleList.splice(moduleToRemoveIndex, 1);
   }
 
   ngOnDestroy(): void {

@@ -24,6 +24,7 @@ export class ModulesService {
 
     return this.http.get<Module[]>(this.api, { headers: this.headers, params: params });
   }
+
   public getModuleParams(moduleType: ModuleType, module: string): Observable<ModuleParameters[]> {
     let params = new HttpParams();
 
