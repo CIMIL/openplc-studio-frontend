@@ -5,6 +5,9 @@ import { StepperModule } from 'primeng/stepper';
 import { ButtonModule } from 'primeng/button';
 import { CommonModule } from '@angular/common';
 import { Module } from '../shared/interfaces/module.interface';
+import { RunStatus } from '../shared/enums/run-status.enum';
+import { Run } from '../shared/interfaces/run.interface';
+import { RunsClient } from '../shared/clients/runs.service';
 
 @Component({
   selector: 'plc-run-configurator',
@@ -21,7 +24,7 @@ export class RunConfiguratorComponent implements OnInit {
 
   private _outputAnalysersConfig: Module[] = [];
 
-  constructor() {}
+  constructor(private readonly runsClient: RunsClient) {}
 
   public get packetLossSimulatorsConfig(): Module[] {
     return this._packetLossSimulatorsConfig;
@@ -59,5 +62,34 @@ export class RunConfiguratorComponent implements OnInit {
     this.outputAnalysersConfig = modules;
   }
 
+  get isConfigurationValid(): boolean {
+    if (
+      this.packetLossSimulatorsConfig.length < 1 ||
+      this.PLCAlgorithmsConfig.length < 1 ||
+      this.outputAnalysersConfig.length < 1
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
   ngOnInit(): void {}
+
+  public createRun(): void {
+    const run: Run = {
+      author: 'default',
+      name: 'default',
+      status: RunStatus.CREATED,
+      modules: {
+        [ModuleType.PacketLossSimulator]: this.packetLossSimulatorsConfig,
+        [ModuleType.PLCAlgorithm]: this.PLCAlgorithmsConfig,
+        [ModuleType.OutputAnalyser]: this.outputAnalysersConfig,
+      },
+    };
+
+    this.runsClient.createRun(run).subscribe((createdRun) => {
+      console.log('Run created:', createdRun);
+    });
+  }
 }

@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
-import { ModulesService } from '../../shared/clients/modules.service';
+import { ModulesClient } from '../../shared/clients/modules.service';
 import { BehaviorSubject, filter, map, Subject, takeUntil, tap } from 'rxjs';
 import { StepperModule } from 'primeng/stepper';
 import { SplitterModule } from 'primeng/splitter';
@@ -90,7 +90,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   private readonly unsubAll$ = new Subject<void>();
 
-  constructor(private readonly modulesService: ModulesService) {}
+  constructor(private readonly modulesService: ModulesClient) {}
 
   get availableModules(): ModuleWithCount[] {
     return this.modules.value;

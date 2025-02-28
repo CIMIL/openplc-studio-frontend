@@ -8,7 +8,7 @@ import { ModuleParameters } from '../interfaces/module-parameters.interface';
 @Injectable({
   providedIn: 'root',
 })
-export class ModulesService {
+export class ModulesClient {
   private api: string = '/api/modules';
   private headers = {
     'Content-Type': 'application/json',
