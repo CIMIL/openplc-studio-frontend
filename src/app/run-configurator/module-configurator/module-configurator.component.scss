@@ -47,3 +47,15 @@
     }
   }
 }
+
+:host::ng-deep {
+  p-autocomplete > div.p-autocomplete {
+    & > input.p-inputtext {
+      border-bottom-left-radius: 0px;
+    }
+    & > button.p-autocomplete-dropdown {
+      border-bottom-right-radius: 0px;
+      border-top-right-radius: 0px;
+    }
+  }
+}

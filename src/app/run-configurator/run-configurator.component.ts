@@ -8,15 +8,32 @@ import { Module } from '../shared/interfaces/module.interface';
 import { RunStatus } from '../shared/enums/run-status.enum';
 import { Run } from '../shared/interfaces/run.interface';
 import { RunsClient } from '../shared/clients/runs.service';
+import { InputTextModule } from 'primeng/inputtext';
+import { LEFT, RIGHT } from './run-names-blueprint';
+import { FormsModule } from '@angular/forms';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
+import { switchMap, tap } from 'rxjs';
 
 @Component({
   selector: 'plc-run-configurator',
   templateUrl: './run-configurator.component.html',
   styleUrls: ['./run-configurator.component.scss'],
-  imports: [ModuleConfiguratorComponent, CommonModule, StepperModule, ButtonModule],
+  imports: [
+    ModuleConfiguratorComponent,
+    CommonModule,
+    FormsModule,
+    StepperModule,
+    ButtonModule,
+    InputTextModule,
+    ToastModule,
+  ],
+  providers: [MessageService],
 })
 export class RunConfiguratorComponent implements OnInit {
   public ModuleType: typeof ModuleType = ModuleType;
+
+  public runName: string = this.generateRandomRunName();
 
   private _packetLossSimulatorsConfig: Module[] = [];
 
@@ -24,7 +41,7 @@ export class RunConfiguratorComponent implements OnInit {
 
   private _outputAnalysersConfig: Module[] = [];
 
-  constructor(private readonly runsClient: RunsClient) {}
+  constructor(private readonly runsClient: RunsClient, private readonly messageService: MessageService) {}
 
   public get packetLossSimulatorsConfig(): Module[] {
     return this._packetLossSimulatorsConfig;
@@ -79,7 +96,7 @@ export class RunConfiguratorComponent implements OnInit {
   public createRun(): void {
     const run: Run = {
       author: 'default',
-      name: 'default',
+      name: this.runName,
       status: RunStatus.CREATED,
       modules: {
         [ModuleType.PacketLossSimulator]: this.packetLossSimulatorsConfig,
@@ -88,8 +105,21 @@ export class RunConfiguratorComponent implements OnInit {
       },
     };
 
-    this.runsClient.createRun(run).subscribe((createdRun) => {
-      console.log('Run created:', createdRun);
-    });
+    this.runsClient
+      .createRun(run)
+      .pipe(
+        tap((createdRun: Run) =>
+          this.messageService.add({
+            severity: 'info',
+            summary: 'Created',
+            detail: `Run ${createdRun.name} was created`,
+          })
+        )
+      )
+      .subscribe();
+  }
+
+  public generateRandomRunName(): string {
+    return `${LEFT[Math.floor(Math.random() * LEFT.length)]} ${RIGHT[Math.floor(Math.random() * RIGHT.length)]}`;
   }
 }

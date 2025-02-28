@@ -97,98 +97,99 @@
         {{ selectedModule?.name }}
       </div>
       <div class="w-full flex flex-col p-2 overflow-y-auto gap-2">
-        <ng-container *ngFor="let param of selectedModule?.settings ?? []">
-          <div class="w-full flex flex-row min-h-10">
-            <p class="min-w-56 flex items-center">{{ param.name }}</p>
+        <ng-container *ngIf="selectedModule?.settings?.length > 0; else hasNoParam">
+          <ng-container *ngFor="let param of selectedModule?.settings ?? []">
+            <div class="w-full flex flex-row min-h-10">
+              <p class="min-w-56 flex items-center">{{ param.name }}</p>
 
-            <ng-container *ngIf="param.type === 'int'">
-              <ng-template [ngTemplateOutlet]="intInput"></ng-template>
-            </ng-container>
+              <ng-container *ngIf="param.type === 'int'">
+                <ng-template [ngTemplateOutlet]="intInput"></ng-template>
+              </ng-container>
 
-            <ng-container *ngIf="param.type === 'float'">
-              <ng-template [ngTemplateOutlet]="floatInput"></ng-template>
-            </ng-container>
+              <ng-container *ngIf="param.type === 'float'">
+                <ng-template [ngTemplateOutlet]="floatInput"></ng-template>
+              </ng-container>
 
-            <ng-container *ngIf="param.type === 'str'">
-              <ng-template [ngTemplateOutlet]="strInput"></ng-template>
-            </ng-container>
+              <ng-container *ngIf="param.type === 'str'">
+                <ng-template [ngTemplateOutlet]="strInput"></ng-template>
+              </ng-container>
 
-            <ng-container *ngIf="param.type === 'bool'">
-              <ng-template [ngTemplateOutlet]="boolInput"></ng-template>
-            </ng-container>
+              <ng-container *ngIf="param.type === 'bool'">
+                <ng-template [ngTemplateOutlet]="boolInput"></ng-template>
+              </ng-container>
 
-            <ng-container *ngIf="param.type === 'Enum'">
-              <ng-template [ngTemplateOutlet]="enumInput"></ng-template>
-            </ng-container>
+              <ng-container *ngIf="param.type === 'Enum'">
+                <ng-template [ngTemplateOutlet]="enumInput"></ng-template>
+              </ng-container>
 
-            <ng-container *ngIf="param.type === 'list_int'">
-              <ng-template [ngTemplateOutlet]="listIntInput"></ng-template>
-            </ng-container>
+              <ng-container *ngIf="param.type === 'list_int'">
+                <ng-template [ngTemplateOutlet]="listIntInput"></ng-template>
+              </ng-container>
 
-            <ng-container *ngIf="param.type === 'list_CrossfadeSettings'">
-              <ng-template [ngTemplateOutlet]="listCrossfadeInput"></ng-template>
-            </ng-container>
+              <ng-container *ngIf="param.type === 'list_CrossfadeSettings'">
+                <ng-template [ngTemplateOutlet]="listCrossfadeInput"></ng-template>
+              </ng-container>
 
-            <ng-template #intInput>
-              <p-inputnumber class="flex-1" [(ngModel)]="param.value" mode="decimal" useGrouping="false" />
-            </ng-template>
+              <ng-template #intInput>
+                <p-inputnumber class="flex-1" [(ngModel)]="param.value" mode="decimal" useGrouping="false" />
+              </ng-template>
 
-            <ng-template #strInput>
-              <input class="flex-1" [(ngModel)]="param.value" />
-            </ng-template>
+              <ng-template #strInput>
+                <input class="flex-1" [(ngModel)]="param.value" />
+              </ng-template>
 
-            <ng-template #floatInput>
-              <p-inputnumber
-                class="flex-1"
-                [(ngModel)]="param.value"
-                mode="decimal"
-                useGrouping="false"
-                [minFractionDigits]="0"
-                [maxFractionDigits]="5"
-              />
-            </ng-template>
+              <ng-template #floatInput>
+                <p-inputnumber
+                  class="flex-1"
+                  [(ngModel)]="param.value"
+                  mode="decimal"
+                  useGrouping="false"
+                  [minFractionDigits]="0"
+                  [maxFractionDigits]="5"
+                />
+              </ng-template>
 
-            <ng-template #boolInput>
-              <p-checkbox [(ngModel)]="param.value" binary="true" class="content-center"></p-checkbox>
-            </ng-template>
+              <ng-template #boolInput>
+                <p-checkbox [(ngModel)]="param.value" binary="true" class="content-center"></p-checkbox>
+              </ng-template>
 
-            <ng-template #enumInput>
-              <p-select
-                [(ngModel)]="param.value"
-                [options]="param.availableValues"
-                class="flex-1"
-                appendTo="body"
-              ></p-select>
-            </ng-template>
+              <ng-template #enumInput>
+                <p-select
+                  [(ngModel)]="param.value"
+                  [options]="param.availableValues"
+                  class="flex-1"
+                  appendTo="body"
+                ></p-select>
+              </ng-template>
 
-            <ng-template #listIntInput>
-              <p-autocomplete
-                [(ngModel)]="param.value"
-                [suggestions]="suggestedBands"
-                class="flex-1"
-                (completeMethod)="searchBands($event)"
-                appendTo="body"
-                multiple
-                typeahead="false"
-                [dropdown]="true"
-                type="number"
-              ></p-autocomplete>
-            </ng-template>
+              <ng-template #listIntInput>
+                <p-autocomplete
+                  [(ngModel)]="param.value"
+                  [suggestions]="suggestedBands"
+                  class="flex-1"
+                  (completeMethod)="searchBands($event)"
+                  appendTo="body"
+                  multiple
+                  typeahead="false"
+                  [dropdown]="true"
+                  type="number"
+                ></p-autocomplete>
+              </ng-template>
 
-            <ng-template #listCrossfadeInput>
-              <p-autocomplete
-                [(ngModel)]="selectedCrossfadeModuleProxy"
-                [suggestions]="availableCrossfadeModulesFilter"
-                [optionLabel]="'name'"
-                class="flex-1"
-                (completeMethod)="searchCrossfadeModules($event)"
-                (onSelect)="addCrossfadeModule(selectedCrossfadeModuleProxy, param.name)"
-                appendTo="body"
-                [dropdown]="true"
-              ></p-autocomplete>
-            </ng-template>
-          </div>
-        </ng-container>
+              <ng-template #listCrossfadeInput>
+                <p-autocomplete
+                  [(ngModel)]="selectedCrossfadeModuleProxy"
+                  [suggestions]="availableCrossfadeModulesFilter"
+                  [optionLabel]="'name'"
+                  class="flex-1"
+                  (completeMethod)="searchCrossfadeModules($event)"
+                  (onSelect)="addCrossfadeModule(selectedCrossfadeModuleProxy, param.name)"
+                  appendTo="body"
+                  [dropdown]="true"
+                ></p-autocomplete>
+              </ng-template>
+            </div> </ng-container
+        ></ng-container>
       </div>
     </div>
   </ng-container>
@@ -196,4 +197,7 @@
 
 <ng-template #noModulesSelected>
   <div class="pt-10 flex justify-center h-full text-white/50">Select a module</div>
+</ng-template>
+<ng-template #hasNoParam>
+  <div class="pt-10 flex justify-center h-full text-white/50">This module has no parameters</div>
 </ng-template>

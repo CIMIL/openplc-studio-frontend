@@ -24,9 +24,8 @@ const suggestedBands: number[] = [200, 1000, 2000];
 
 const crossfadeNameParameters: string[] = ['crossfade', 'fade_in'];
 
-type ModuleWithCount = Module & {
+export type ModuleWithCount = Module & {
   id?: number;
-  groupLabel?: string;
 };
 
 type GroupedModules = { label: string; items: Module[] };
