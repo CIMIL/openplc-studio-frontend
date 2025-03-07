@@ -13,7 +13,7 @@ import { LEFT, RIGHT } from './run-names-blueprint';
 import { FormsModule } from '@angular/forms';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { switchMap, tap } from 'rxjs';
+import { tap } from 'rxjs';
 
 @Component({
   selector: 'plc-run-configurator',
