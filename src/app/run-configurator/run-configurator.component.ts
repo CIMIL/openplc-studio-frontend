@@ -93,15 +93,23 @@ export class RunConfiguratorComponent implements OnInit {
 
   ngOnInit(): void {}
 
+  private mapSpecToConfig(modules: Module[]): Module[] {
+    return modules.map((m) => ({
+      ...m,
+      // testbench_node_id: '',
+      settings: m.settings.map((s) => ({ name: s.name, value: s.value })),
+    }));
+  }
+
   public createRun(): void {
     const run: Run = {
       author: 'default',
       name: this.runName,
       status: RunStatus.CREATED,
       modules: {
-        [ModuleType.PacketLossSimulator]: this.packetLossSimulatorsConfig,
-        [ModuleType.PLCAlgorithm]: this.PLCAlgorithmsConfig,
-        [ModuleType.OutputAnalyser]: this.outputAnalysersConfig,
+        [ModuleType.PacketLossSimulator]: this.mapSpecToConfig(this.packetLossSimulatorsConfig),
+        [ModuleType.PLCAlgorithm]: this.mapSpecToConfig(this.PLCAlgorithmsConfig),
+        [ModuleType.OutputAnalyser]: this.mapSpecToConfig(this.outputAnalysersConfig),
       },
     };
 

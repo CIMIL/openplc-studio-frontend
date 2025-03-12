@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { ChipModule } from 'primeng/chip';
 import { FormsModule } from '@angular/forms';
-import { ModuleParameters } from '../../shared/interfaces/module-parameters.interface';
+import { ModuleParameter, ModuleParameterSpec } from '../../shared/interfaces/module-parameters.interface';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { KeyFilterModule } from 'primeng/keyfilter';
@@ -101,8 +101,8 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   get groupedCrossfadeModulesOfSelectedModule(): GroupedModules[] {
     const groupedCrossfadeModules = this.moduleFocus?.settings
-      .filter((setting: ModuleParameters) => crossfadeNameParameters.includes(setting.name))
-      .map((setting: ModuleParameters) => ({ label: setting.name, items: (setting.value ?? []) as Module[] }));
+      .filter((setting) => crossfadeNameParameters.includes(setting.name))
+      .map((setting) => ({ label: setting.name, items: (setting.value ?? []) as Module[] }));
     return groupedCrossfadeModules ?? [];
   }
 
@@ -146,8 +146,8 @@ export class ModuleConfiguratorComponent implements OnInit {
     }
   }
 
-  public resetDefault(param: ModuleParameters): void {
-    param.value = param.default;
+  public resetDefault(param: ModuleParameterSpec): void {
+    param.value = param?.default;
   }
 
   public searchBands(event: AutoCompleteCompleteEvent) {

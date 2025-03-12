@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ModuleType } from '../enums/module-type.enum';
 import { Module } from '../interfaces/module.interface';
-import { ModuleParameters } from '../interfaces/module-parameters.interface';
+import { ModuleParameter, ModuleParameterSpec } from '../interfaces/module-parameters.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -25,13 +25,13 @@ export class ModulesClient {
     return this.http.get<Module[]>(this.api, { headers: this.headers, params: params });
   }
 
-  public getModuleParams(moduleType: ModuleType, module: string): Observable<ModuleParameters[]> {
+  public getModuleParams(moduleType: ModuleType, module: string): Observable<ModuleParameterSpec[]> {
     let params = new HttpParams();
 
     params = params.set('module_name', module);
 
     const endpoint = `${this.api}/${moduleType}/parameters`;
 
-    return this.http.get<ModuleParameters[]>(endpoint, { headers: this.headers, params: params });
+    return this.http.get<ModuleParameterSpec[]>(endpoint, { headers: this.headers, params: params });
   }
 }

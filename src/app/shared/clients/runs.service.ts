@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ModuleType } from '../enums/module-type.enum';
 import { Module } from '../interfaces/module.interface';
-import { ModuleParameters } from '../interfaces/module-parameters.interface';
+import { ModuleParameter } from '../interfaces/module-parameters.interface';
 import { Run } from '../interfaces/run.interface';
 
 @Injectable({
