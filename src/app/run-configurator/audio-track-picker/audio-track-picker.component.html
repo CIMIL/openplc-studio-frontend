@@ -1,0 +1,35 @@
+<p-splitter>
+  <ng-template #panel>
+    <p-fileupload
+      name="files"
+      [url]="filesClient.api"
+      (onUpload)="onUpload($event)"
+      [multiple]="true"
+      accept="audio/*"
+      maxFileSize="100000000"
+      mode="advanced"
+      class="w-full"
+    >
+      <ng-template #empty>
+        <div class="flex items-center justify-center flex-col">
+          <i class="pi pi-cloud-upload !p-8 !text-4xl !text-muted-color"></i>
+          <p class="mt-6 mb-0">Drag and drop files to here to upload.</p>
+        </div>
+      </ng-template>
+      <ng-template #content>
+        <ul *ngIf="uploadedFiles.length">
+          <li *ngFor="let file of uploadedFiles">{{ file.name }} - {{ file.size }} bytes</li>
+        </ul>
+      </ng-template>
+    </p-fileupload>
+
+    <p-toast />
+  </ng-template>
+  <ng-template #panel>
+    <p-picklist [source]="sourceFilenames" [target]="targetFilenames" [dragdrop]="true" [responsive]="true">
+      <ng-template let-item #item>
+        {{ item.name }}
+      </ng-template>
+    </p-picklist>
+  </ng-template>
+</p-splitter>

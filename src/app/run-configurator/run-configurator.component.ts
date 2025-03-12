@@ -14,6 +14,8 @@ import { FormsModule } from '@angular/forms';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { tap } from 'rxjs';
+import { AudioTrackPickerComponent } from './audio-track-picker/audio-track-picker.component';
+import { SplitterModule } from 'primeng/splitter';
 
 @Component({
   selector: 'plc-run-configurator',
@@ -27,6 +29,7 @@ import { tap } from 'rxjs';
     ButtonModule,
     InputTextModule,
     ToastModule,
+    AudioTrackPickerComponent,
   ],
   providers: [MessageService],
 })
@@ -96,7 +99,6 @@ export class RunConfiguratorComponent implements OnInit {
   private mapSpecToConfig(modules: Module[]): Module[] {
     return modules.map((m) => ({
       ...m,
-      // testbench_node_id: '',
       settings: m.settings.map((s) => ({ name: s.name, value: s.value })),
     }));
   }
