@@ -26,9 +26,15 @@
     <p-toast />
   </ng-template>
   <ng-template #panel>
-    <p-picklist [source]="sourceFilenames" [target]="targetFilenames" [dragdrop]="true" [responsive]="true">
+    <p-picklist
+      [source]="sourceFilenames"
+      [target]="audioTracksSelection"
+      [dragdrop]="true"
+      [responsive]="true"
+      class="w-full"
+    >
       <ng-template let-item #item>
-        {{ item.name }}
+        {{ item }}
       </ng-template>
     </p-picklist>
   </ng-template>

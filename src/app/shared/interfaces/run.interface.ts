@@ -6,6 +6,7 @@ export interface Run {
   author: string;
   name: string;
   status: RunStatus;
+  tracks: string[];
   modules: {
     [ModuleType.PacketLossSimulator]: Module[];
     [ModuleType.PLCAlgorithm]: Module[];

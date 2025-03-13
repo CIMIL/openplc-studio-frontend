@@ -59,7 +59,6 @@ export class ModuleConfiguratorComponent implements OnInit {
   @Input()
   public modulesSelection!: ModuleWithCount[];
 
-  @Input()
   public crossfadeModulesSelection!: ModuleWithCount[];
 
   @Output()

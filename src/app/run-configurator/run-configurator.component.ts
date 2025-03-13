@@ -37,6 +37,8 @@ export class RunConfiguratorComponent implements OnInit {
 
   public runName: string = this.generateRandomRunName();
 
+  private _audioTracksConfig: string[] = [];
+
   private _packetLossSimulatorsConfig: Module[] = [];
 
   private _PLCAlgorithmsConfig: Module[] = [];
@@ -44,6 +46,14 @@ export class RunConfiguratorComponent implements OnInit {
   private _outputAnalysersConfig: Module[] = [];
 
   constructor(private readonly runsClient: RunsClient, private readonly messageService: MessageService) {}
+
+  public get audioTracksConfig(): string[] {
+    return this._audioTracksConfig;
+  }
+
+  public set audioTracksConfig(value: string[]) {
+    this._audioTracksConfig = value;
+  }
 
   public get packetLossSimulatorsConfig(): Module[] {
     return this._packetLossSimulatorsConfig;
@@ -69,20 +79,13 @@ export class RunConfiguratorComponent implements OnInit {
     this._outputAnalysersConfig = value;
   }
 
-  public updatePacketLossSimulatorsConfig(modules: Module[]): void {
-    this.packetLossSimulatorsConfig = modules;
-  }
-
-  public updatePLCAlgorithmsConfig(modules: Module[]): void {
-    this.PLCAlgorithmsConfig = modules;
-  }
-
-  public updateOutputAnalysersConfig(modules: Module[]): void {
-    this.outputAnalysersConfig = modules;
+  public updateAudioTracksConfig(tracks: string[]): void {
+    this.audioTracksConfig = tracks;
   }
 
   get isConfigurationValid(): boolean {
     if (
+      this.audioTracksConfig.length < 1 ||
       this.packetLossSimulatorsConfig.length < 1 ||
       this.PLCAlgorithmsConfig.length < 1 ||
       this.outputAnalysersConfig.length < 1
@@ -107,6 +110,7 @@ export class RunConfiguratorComponent implements OnInit {
       author: 'default',
       name: this.runName,
       status: RunStatus.CREATED,
+      tracks: this.audioTracksConfig,
       modules: {
         [ModuleType.PacketLossSimulator]: this.mapSpecToConfig(this.packetLossSimulatorsConfig),
         [ModuleType.PLCAlgorithm]: this.mapSpecToConfig(this.PLCAlgorithmsConfig),
