@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
-import { ModulesClient } from '../../shared/clients/modules.service';
+import { ModulesClient } from '../../shared/clients/modules.client';
 import { BehaviorSubject, filter, map, Subject, takeUntil, tap } from 'rxjs';
 import { StepperModule } from 'primeng/stepper';
 import { SplitterModule } from 'primeng/splitter';

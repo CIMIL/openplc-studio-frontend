@@ -7,7 +7,7 @@ import { CommonModule } from '@angular/common';
 import { Module } from '../shared/interfaces/module.interface';
 import { RunStatus } from '../shared/enums/run-status.enum';
 import { Run } from '../shared/interfaces/run.interface';
-import { RunsClient } from '../shared/clients/runs.service';
+import { RunsClient } from '../shared/clients/runs.client';
 import { InputTextModule } from 'primeng/inputtext';
 import { LEFT, RIGHT } from './run-names-blueprint';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +15,6 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { tap } from 'rxjs';
 import { AudioTrackPickerComponent } from './audio-track-picker/audio-track-picker.component';
-import { SplitterModule } from 'primeng/splitter';
 
 @Component({
   selector: 'plc-run-configurator',
