@@ -1,0 +1,18 @@
+<p-table [value]="runs" [tableStyle]="{ 'min-width': '50rem' }">
+  <ng-template #header>
+    <tr>
+      <th>Name</th>
+      <th>Created</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-run>
+    <tr>
+      <td>{{ run.name }}</td>
+      <td>{{ run.name }}</td>
+      <td><plc-run-status-badge [runStatus]="run.status"></plc-run-status-badge></td>
+      <td>{{ run.name }}</td>
+    </tr>
+  </ng-template>
+</p-table>

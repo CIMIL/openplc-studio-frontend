@@ -21,4 +21,12 @@ export class RunsClient {
   public createRun(run: Run): Observable<Run> {
     return this.http.post<Run>(this.api, run, { headers: this.headers });
   }
+
+  public getRun(runId: string): Observable<Run> {
+    return this.http.get<Run>(`${this.api}/${runId}`, { headers: this.headers });
+  }
+
+  public getAllRuns(): Observable<Run[]> {
+    return this.http.get<Run[]>(this.api, { headers: this.headers });
+  }
 }
