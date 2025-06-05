@@ -4,11 +4,11 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class FilesClient {
-  private _api = '/api/files';
-
-  get api(): string {
-    return this._api;
-  }
+  private api = '/api/files';
+  private headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
 
   constructor(private http: HttpClient) {}
 
@@ -21,6 +21,6 @@ export class FilesClient {
   }
 
   public getFilenames(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.api}/names`);
+    return this.http.get<string[]>(`${this.api}/names`, { headers: this.headers });
   }
 }
