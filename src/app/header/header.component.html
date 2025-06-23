@@ -1,0 +1,10 @@
+<p-toolbar [style]="{ 'border-radius': '0px', padding: '1rem 1rem 1rem 1.5rem' }">
+  <ng-template #start> PLC Testbench :) </ng-template>
+  <ng-template #center> </ng-template>
+  <ng-template #end>
+    <button (click)="toggleDarkMode()">
+      <i *ngIf="!isDarkMode" class="pi pi-sun"> </i>
+      <i *ngIf="isDarkMode" class="pi pi-moon"> </i>
+    </button>
+  </ng-template>
+</p-toolbar>

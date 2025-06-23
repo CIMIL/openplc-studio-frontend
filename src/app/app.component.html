@@ -1,9 +1,4 @@
-<ul>
-  <li><a href="analyser">analyser</a></li>
-  <li><a href="run-configurator">run-configurator</a></li>
-  <li><a href="backlog">backlog</a></li>
-</ul>
-<p-togglebutton [(ngModel)]="isDarkMode" onLabel="" offLabel="" [onIcon]="'pi pi-moon'" [offIcon]="'pi pi-sun'" />
-
-<div style="height: 5rem"></div>
-<router-outlet />
+<plc-header></plc-header>
+<main>
+  <router-outlet />
+</main>

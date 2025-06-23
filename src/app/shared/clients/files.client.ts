@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class FilesClient {
-  private api = '/api/files';
+  public api = '/api/files';
   private headers = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
