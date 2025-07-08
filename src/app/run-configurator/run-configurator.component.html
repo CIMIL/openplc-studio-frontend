@@ -10,7 +10,8 @@
     <p-step-panel>
       <ng-template #content let-activateCallback="activateCallback">
         <div class="flex flex-col pt-4 pr-4">
-          <plc-audio-track-picker [(audioTracksSelection)]="audioTracksConfig"></plc-audio-track-picker>
+          <plc-audio-track-picker [(audioTracksSelection)]="audioTracksConfig" class="max-h-[600px] overflow-y-scroll">
+          </plc-audio-track-picker>
         </div>
         <!-- <div class="py-6">
           <p-button label="Next" (onClick)="activateCallback(2)" />

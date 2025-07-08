@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, Input, EventEmitter, OnInit, Output, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, EventEmitter, OnInit, Output, OnDestroy, ViewChild } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { FileUploadEvent, FileUploadModule } from 'primeng/fileupload';
+import { FileUpload, FileUploadEvent, FileUploadModule } from 'primeng/fileupload';
 import { FilesClient } from '../../shared/clients/files.client';
 import { ToastModule } from 'primeng/toast';
 import { PickListModule } from 'primeng/picklist';
@@ -16,6 +16,8 @@ import { of, switchMap, tap } from 'rxjs';
   providers: [MessageService, FilesClient],
 })
 export class AudioTrackPickerComponent implements OnInit, OnDestroy {
+  @ViewChild('fileUpload') fileUpload!: FileUpload;
+
   @Input()
   public audioTracksSelection!: string[];
 
@@ -49,6 +51,7 @@ export class AudioTrackPickerComponent implements OnInit, OnDestroy {
     }
 
     this.messageService.add({ severity: 'info', summary: `File(s) uploaded with success`, detail: '' });
+    this.fileUpload.clear();
   }
 
   ngOnDestroy(): void {

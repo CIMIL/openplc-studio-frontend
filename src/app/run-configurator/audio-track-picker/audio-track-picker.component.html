@@ -1,6 +1,7 @@
 <p-splitter>
   <ng-template #panel>
     <p-fileupload
+      #fileUpload
       name="files"
       [url]="filesClient.api"
       (onUpload)="onUpload($event)"
@@ -11,12 +12,12 @@
       class="w-full"
     >
       <ng-template #empty>
-        <div class="flex items-center justify-center flex-col">
+        <div class="flex items-center justify-center flex-col" (click)="fileUpload.choose()" style="cursor: pointer">
           <i class="pi pi-cloud-upload !p-8 !text-4xl !text-muted-color"></i>
           <p class="mt-6 mb-0">Drag and drop files to here to upload.</p>
         </div>
       </ng-template>
-      <ng-template #content>
+      <ng-template #content class="overflow-y-scroll max-h-full">
         <ul *ngIf="uploadedFiles.length">
           <li *ngFor="let file of uploadedFiles">{{ file.name }} - {{ file.size }} bytes</li>
         </ul>
@@ -25,6 +26,7 @@
 
     <p-toast />
   </ng-template>
+
   <ng-template #panel>
     <p-picklist
       [source]="sourceFilenames"
