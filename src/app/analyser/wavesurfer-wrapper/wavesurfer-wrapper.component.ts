@@ -3,7 +3,7 @@ import WaveSurfer from 'wavesurfer.js';
 import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';
 import Spectrogram from 'wavesurfer.js/dist/plugins/spectrogram';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions';
-import { Chart } from 'chart.js/auto';
+// import { Chart } from 'chart.js/auto';
 
 @Component({
   selector: 'plc-wavesurfer-wrapper',
@@ -14,8 +14,8 @@ import { Chart } from 'chart.js/auto';
 export class WavesurferWrapperComponent {
   // chart stuff
 
-  @ViewChild('myChart', { static: true }) chartRef!: ElementRef<HTMLCanvasElement>;
-  chart!: Chart;
+  // @ViewChild('myChart', { static: true }) chartRef!: ElementRef<HTMLCanvasElement>;
+  // chart!: Chart;
   // chart stuff
 
   // @ViewChild('waveform', { static: false })
@@ -27,23 +27,23 @@ export class WavesurferWrapperComponent {
   // private wavesurfer!: WaveSurfer;
 
   public ngOnInit() {
-    this.chart = new Chart(this.chartRef.nativeElement, {
-      type: 'bar',
-      data: {
-        labels: ['Red', 'Blue', 'Yellow'],
-        datasets: [
-          {
-            label: '# of Votes',
-            data: [12, 19, 3],
-            backgroundColor: ['red', 'blue', 'yellow'],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-      },
-    });
+    // this.chart = new Chart(this.chartRef.nativeElement, {
+    //   type: 'bar',
+    //   data: {
+    //     labels: ['Red', 'Blue', 'Yellow'],
+    //     datasets: [
+    //       {
+    //         label: '# of Votes',
+    //         data: [12, 19, 3],
+    //         backgroundColor: ['red', 'blue', 'yellow'],
+    //       },
+    //     ],
+    //   },
+    //   options: {
+    //     responsive: true,
+    //     maintainAspectRatio: false,
+    //   },
+    // });
   }
 
   // public ngAfterViewInit(): void {
