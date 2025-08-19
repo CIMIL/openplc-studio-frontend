@@ -11,10 +11,10 @@ import { RunsClient } from '../shared/clients/runs.client';
 import { InputTextModule } from 'primeng/inputtext';
 import { LEFT, RIGHT } from './run-names-blueprint';
 import { FormsModule } from '@angular/forms';
-import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { tap } from 'rxjs';
 import { AudioTrackPickerComponent } from './audio-track-picker/audio-track-picker.component';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'plc-run-configurator',
@@ -27,10 +27,9 @@ import { AudioTrackPickerComponent } from './audio-track-picker/audio-track-pick
     StepperModule,
     ButtonModule,
     InputTextModule,
-    ToastModule,
     AudioTrackPickerComponent,
   ],
-  providers: [MessageService],
+  providers: [],
 })
 export class RunConfiguratorComponent implements OnInit {
   public ModuleType: typeof ModuleType = ModuleType;
@@ -45,7 +44,11 @@ export class RunConfiguratorComponent implements OnInit {
 
   private _outputAnalysersConfig: Module[] = [];
 
-  constructor(private readonly runsClient: RunsClient, private readonly messageService: MessageService) {}
+  constructor(
+    private readonly runsClient: RunsClient,
+    private readonly messageService: MessageService,
+    private readonly router: Router
+  ) {}
 
   public get audioTracksConfig(): string[] {
     return this._audioTracksConfig;
@@ -127,7 +130,10 @@ export class RunConfiguratorComponent implements OnInit {
             summary: 'Created',
             detail: `Run ${createdRun.name} was created`,
           })
-        )
+        ),
+        tap(() => {
+          this.router.navigate(['/backlog']);
+        })
       )
       .subscribe();
   }

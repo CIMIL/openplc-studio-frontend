@@ -1,7 +1,6 @@
 <div class="flex justify-content-end p-4">
   <p-button label="Create Run" severity="success" (onClick)="createRun()" [disabled]="!isConfigurationValid"></p-button>
 </div>
-<p-toast />
 
 <div>Creating run <input type="text" pInputText [(ngModel)]="runName" /></div>
 <p-stepper [value]="1">
