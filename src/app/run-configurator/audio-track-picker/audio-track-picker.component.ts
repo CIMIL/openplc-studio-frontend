@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, Input, EventEmitter, OnInit, Output, OnDestroy, ViewChild } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { FileUpload, FileUploadEvent, FileUploadModule } from 'primeng/fileupload';
-import { FilesClient } from '../../shared/clients/files.client';
+import { AssetsClient } from '../../shared/clients/assets.client';
 import { ToastModule } from 'primeng/toast';
 import { PickListModule } from 'primeng/picklist';
 import { SplitterModule } from 'primeng/splitter';
@@ -13,7 +13,7 @@ import { of, switchMap, tap } from 'rxjs';
   templateUrl: './audio-track-picker.component.html',
   styleUrls: ['./audio-track-picker.component.scss'],
   imports: [CommonModule, FileUploadModule, ToastModule, SplitterModule, PickListModule],
-  providers: [MessageService, FilesClient],
+  providers: [MessageService, AssetsClient],
 })
 export class AudioTrackPickerComponent implements OnInit, OnDestroy {
   @ViewChild('fileUpload') fileUpload!: FileUpload;
@@ -30,7 +30,7 @@ export class AudioTrackPickerComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly messageService: MessageService,
-    public readonly filesClient: FilesClient,
+    public readonly filesClient: AssetsClient,
     private cdr: ChangeDetectorRef
   ) {}
 

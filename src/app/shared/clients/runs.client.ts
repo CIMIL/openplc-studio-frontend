@@ -1,10 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { ModuleType } from '../enums/module-type.enum';
-import { Module } from '../interfaces/module.interface';
-import { ModuleParameter } from '../interfaces/module-parameters.interface';
+import { Observable, of, switchMap } from 'rxjs';
 import { Run } from '../interfaces/run.interface';
+import { RunMapper } from '../mappers/run.mapper';
+import { RunDto } from '../dtos/run.dto';
 
 @Injectable({
   providedIn: 'root',
@@ -19,14 +18,24 @@ export class RunsClient {
   constructor(private http: HttpClient) {}
 
   public createRun(run: Run): Observable<Run> {
-    return this.http.post<Run>(this.api, run, { headers: this.headers });
+    return this.http
+      .post<RunDto>(this.api, RunMapper.modelToDto(run), { headers: this.headers })
+      .pipe(switchMap((dto: RunDto) => of(RunMapper.dtoToModel(dto))));
   }
 
   public getRun(runId: string): Observable<Run> {
-    return this.http.get<Run>(`${this.api}/${runId}`, { headers: this.headers });
+    return this.http
+      .get<RunDto>(`${this.api}/${runId}`, { headers: this.headers })
+      .pipe(switchMap((dto: RunDto) => of(RunMapper.dtoToModel(dto))));
   }
 
   public getAllRuns(): Observable<Run[]> {
-    return this.http.get<Run[]>(this.api, { headers: this.headers });
+    return this.http
+      .get<RunDto[]>(this.api, { headers: this.headers })
+      .pipe(switchMap((dtos: RunDto[]) => of(dtos.map((dto) => RunMapper.dtoToModel(dto)))));
+  }
+
+  public getRunAssets(runId: string, depth: number): Observable<ArrayBuffer> {
+    return this.http.get(`${this.api}/${runId}/assets/${depth}`, { responseType: 'arraybuffer' });
   }
 }

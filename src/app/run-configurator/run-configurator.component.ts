@@ -112,6 +112,7 @@ export class RunConfiguratorComponent implements OnInit {
     const run: Run = {
       author: 'default',
       name: this.runName,
+      testbenchInternalId: '',
       status: RunStatus.CREATED,
       tracks: this.audioTracksConfig,
       modules: {

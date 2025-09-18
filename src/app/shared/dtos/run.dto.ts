@@ -1,11 +1,11 @@
 import { RunStatus } from '../enums/run-status.enum';
 import { ModuleType } from '../enums/module-type.enum';
-import { Module } from './module.interface';
+import { Module } from '../interfaces/module.interface';
 
-export interface Run {
+export interface RunDto {
   author: string;
   name: string;
-  testbenchInternalId: string;
+  testbench_internal_id: string;
   status: RunStatus;
   tracks: string[];
   modules: {

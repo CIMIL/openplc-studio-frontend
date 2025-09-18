@@ -1,0 +1,35 @@
+import { RunDto } from '../dtos/run.dto';
+import { ModuleType } from '../enums/module-type.enum';
+import { Run } from '../interfaces/run.interface';
+
+export class RunMapper {
+  static modelToDto(run: Run): RunDto {
+    return {
+      author: run.author,
+      name: run.name,
+      testbench_internal_id: run.testbenchInternalId,
+      status: run.status,
+      tracks: run.tracks,
+      modules: {
+        [ModuleType.PacketLossSimulator]: run.modules[ModuleType.PacketLossSimulator],
+        [ModuleType.PLCAlgorithm]: run.modules[ModuleType.PLCAlgorithm],
+        [ModuleType.OutputAnalyser]: run.modules[ModuleType.OutputAnalyser],
+      },
+    };
+  }
+
+  static dtoToModel(runDto: RunDto): Run {
+    return {
+      author: runDto.author,
+      name: runDto.name,
+      testbenchInternalId: runDto.testbench_internal_id,
+      status: runDto.status,
+      tracks: runDto.tracks,
+      modules: {
+        [ModuleType.PacketLossSimulator]: runDto.modules[ModuleType.PacketLossSimulator],
+        [ModuleType.PLCAlgorithm]: runDto.modules[ModuleType.PLCAlgorithm],
+        [ModuleType.OutputAnalyser]: runDto.modules[ModuleType.OutputAnalyser],
+      },
+    };
+  }
+}
