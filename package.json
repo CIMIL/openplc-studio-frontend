@@ -24,8 +24,9 @@
     "primeng": "^19.0.5",
     "rxjs": "~7.8.0",
     "tailwindcss-primeui": "^0.4.0",
+    "tarparser": "^0.0.5",
     "tslib": "^2.3.0",
-    "wavesurfer.js": "^7.9.1",
+    "wavesurfer.js": "^7.10.1",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
