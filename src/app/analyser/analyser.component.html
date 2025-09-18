@@ -1,3 +1,11 @@
 <div class="">
-  <plc-wavesurfer-wrapper [audioUrl]="'assets/test.wav'"></plc-wavesurfer-wrapper>
+  <p-dropdown
+    [options]="originalTracks"
+    optionLabel="name"
+    placeholder="Select a track"
+    [(ngModel)]="selectedOriginalTrack"
+    (ngModelChange)="onTrackChange($event)"
+  >
+  </p-dropdown>
+  <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
 </div>

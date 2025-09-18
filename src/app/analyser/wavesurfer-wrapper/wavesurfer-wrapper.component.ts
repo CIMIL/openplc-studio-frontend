@@ -1,30 +1,34 @@
-import { Component, ElementRef, Input, ViewChild, HostListener } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild, OnDestroy } from '@angular/core';
+import { BehaviorSubject, filter, Subject, takeUntil, tap } from 'rxjs';
 import WaveSurfer from 'wavesurfer.js';
 import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';
 import Spectrogram from 'wavesurfer.js/dist/plugins/spectrogram';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions';
+import { CommonModule } from '@angular/common';
+import { AnalysisService } from '../../shared/services/analysis.service';
 // import { Chart } from 'chart.js/auto';
 
 @Component({
   selector: 'plc-wavesurfer-wrapper',
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './wavesurfer-wrapper.component.html',
   styleUrl: './wavesurfer-wrapper.component.scss',
 })
-export class WavesurferWrapperComponent {
+export class WavesurferWrapperComponent implements OnDestroy {
   // chart stuff
 
   // @ViewChild('myChart', { static: true }) chartRef!: ElementRef<HTMLCanvasElement>;
   // chart!: Chart;
   // chart stuff
 
-  // @ViewChild('waveform', { static: false })
-  // private waveformRef!: ElementRef;
+  @ViewChild('waveform', { static: false })
+  private waveformRef!: ElementRef;
 
-  @Input()
-  public audioUrl!: string;
+  private destroy$ = new Subject<void>();
 
-  // private wavesurfer!: WaveSurfer;
+  private wavesurfer!: WaveSurfer;
+
+  constructor(private readonly audioService: AnalysisService) {}
 
   public ngOnInit() {
     // this.chart = new Chart(this.chartRef.nativeElement, {
@@ -44,72 +48,95 @@ export class WavesurferWrapperComponent {
     //     maintainAspectRatio: false,
     //   },
     // });
+
+    this.audioService.audioBlob$
+      .pipe(
+        takeUntil(this.destroy$),
+        tap((blob: Blob | null) => {
+          if (this.wavesurfer && blob) {
+            this.destroyWavesurfer();
+            this.initializeWaveSurfer();
+          }
+        })
+      )
+      .subscribe();
   }
 
-  // public ngAfterViewInit(): void {
-  //   this.initializeWaveSurfer();
-  // }
+  public ngAfterViewInit(): void {
+    this.initializeWaveSurfer();
+  }
 
-  // public ngOnDestroy(): void {
-  //   if (this.wavesurfer) {
-  //     this.wavesurfer.destroy();
-  //   }
-  // }
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
 
-  // private initializeWaveSurfer(): void {
-  //   this.wavesurfer = WaveSurfer.create({
-  //     container: this.waveformRef.nativeElement,
-  //     backend: 'WebAudio',
-  //     waveColor: 'violet',
-  //     progressColor: 'purple',
-  //     height: 500,
-  //     barWidth: 3,
-  //     barHeight: 1,
-  //     barRadius: 10,
-  //     barGap: 2,
-  //     minPxPerSec: 50,
-  //   });
+    if (this.wavesurfer) {
+      this.destroyWavesurfer();
+    }
+  }
 
-  //   if (this.audioUrl) {
-  //     this.loadAudio(this.audioUrl);
-  //   }
+  private initializeWaveSurfer(): void {
+    this.wavesurfer = WaveSurfer.create({
+      container: this.waveformRef.nativeElement,
+      backend: 'WebAudio',
+      waveColor: 'violet',
+      progressColor: 'purple',
+      height: 500,
+      barWidth: 3,
+      barHeight: 1,
+      barRadius: 10,
+      barGap: 2,
+      minPxPerSec: 50,
+    });
 
-  //   // this.wavesurfer.registerPlugin(
-  //   //   Spectrogram.create({
-  //   //     labels: true,
-  //   //     height: 1000,
-  //   //     splitChannels: true,
-  //   //     scale: 'mel', // or 'linear', 'logarithmic', 'bark', 'erb'
-  //   //     frequencyMax: 16000,
-  //   //     frequencyMin: 0,
-  //   //     fftSamples: 2048,
-  //   //     labelsBackground: 'rgba(0, 0, 0, 0.1)',
-  //   //   })
-  //   // );
+    // define wavesurfer events
+    this.wavesurfer.on('click', () => {
+      this.wavesurfer.play();
+    });
 
-  //   this.wavesurfer.registerPlugin(
-  //     ZoomPlugin.create({
-  //       scale: 1,
-  //       maxZoom: 20000,
-  //       exponentialZooming: true,
-  //     })
-  //   );
+    const audio = this.audioService.currentAudioBlob;
 
-  //   const lens = RegionsPlugin.create();
+    if (audio) {
+      this.wavesurfer.loadBlob(audio);
+    }
 
-  //   this.wavesurfer.registerPlugin(lens);
+    // this.wavesurfer.registerPlugin(
+    //   Spectrogram.create({
+    //     labels: true,
+    //     height: 1000,
+    //     splitChannels: true,
+    //     scale: 'mel', // or 'linear', 'logarithmic', 'bark', 'erb'
+    //     frequencyMax: 16000,
+    //     frequencyMin: 0,
+    //     fftSamples: 2048,
+    //     labelsBackground: 'rgba(0, 0, 0, 0.1)',
+    //   })
+    // );
 
-  //   this.wavesurfer.on('decode', () => {
-  //     lens.addRegion({
-  //       start: 1,
-  //       end: 5,
-  //       drag: true,
-  //       resize: true,
-  //     });
-  //   });
-  // }
+    this.wavesurfer.registerPlugin(
+      ZoomPlugin.create({
+        scale: 1,
+        maxZoom: 20000,
+        exponentialZooming: true,
+      })
+    );
 
-  // public loadAudio(url: string): void {
-  //   this.wavesurfer.load(url);
-  // }
+    const lens = RegionsPlugin.create();
+
+    this.wavesurfer.registerPlugin(lens);
+
+    this.wavesurfer.on('decode', () => {
+      lens.addRegion({
+        start: 1,
+        end: 5,
+        drag: true,
+        resize: true,
+      });
+    });
+  }
+
+  private destroyWavesurfer() {
+    this.wavesurfer.stop();
+    this.wavesurfer.destroy();
+  }
 }
