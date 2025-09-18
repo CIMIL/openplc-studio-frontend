@@ -1,5 +1,5 @@
 import { Component, ElementRef, Input, ViewChild, OnDestroy } from '@angular/core';
-import { BehaviorSubject, filter, Subject, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, debounceTime, filter, fromEvent, Subject, Subscription, takeUntil, tap } from 'rxjs';
 import WaveSurfer from 'wavesurfer.js';
 import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';
 import Spectrogram from 'wavesurfer.js/dist/plugins/spectrogram';
@@ -24,9 +24,11 @@ export class WavesurferWrapperComponent implements OnDestroy {
   @ViewChild('waveform', { static: false })
   private waveformRef!: ElementRef;
 
+  private wavesurfer!: WaveSurfer;
+
   private destroy$ = new Subject<void>();
 
-  private wavesurfer!: WaveSurfer;
+  private spacebarSubscription?: Subscription;
 
   constructor(private readonly audioService: AnalysisService) {}
 
@@ -90,6 +92,21 @@ export class WavesurferWrapperComponent implements OnDestroy {
     });
 
     // define wavesurfer events
+
+    if (!this.spacebarSubscription) {
+      this.spacebarSubscription = fromEvent<KeyboardEvent>(document, 'keydown')
+        .pipe(
+          filter((event) => event.code === 'Space' && !!this.wavesurfer),
+          // debounceTime( 200),
+          tap((event) => {
+            event.preventDefault();
+            this.wavesurfer.playPause();
+          })
+        )
+        .subscribe();
+    }
+
+    // Optionally, keep click to play
     this.wavesurfer.on('click', () => {
       this.wavesurfer.play();
     });

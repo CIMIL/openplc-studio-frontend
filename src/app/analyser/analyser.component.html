@@ -3,7 +3,15 @@
     [options]="originalTracks"
     optionLabel="name"
     placeholder="Select a track"
-    [(ngModel)]="selectedOriginalTrack"
+    [(ngModel)]="selectedTrack"
+    (ngModelChange)="onTrackChange($event)"
+  >
+  </p-dropdown>
+  <p-dropdown
+    [options]="reconstructedTracks"
+    optionLabel="name"
+    placeholder="Select a track"
+    [(ngModel)]="selectedTrack"
     (ngModelChange)="onTrackChange($event)"
   >
   </p-dropdown>

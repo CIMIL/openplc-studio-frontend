@@ -6,20 +6,26 @@ import { FileDescription, parseTar } from 'tarparser';
 import { AnalysisService } from '../shared/services/analysis.service';
 import { DropdownModule } from 'primeng/dropdown';
 import { FormsModule } from '@angular/forms';
+import { CascadeSelectModule } from 'primeng/cascadeselect';
 
 @Component({
   selector: 'plc-analyser',
-  imports: [WavesurferWrapperComponent, DropdownModule, FormsModule],
+  imports: [WavesurferWrapperComponent, DropdownModule, FormsModule, CascadeSelectModule],
   templateUrl: './analyser.component.html',
 })
 export class AnalyserComponent {
   public originalTracks: FileDescription[] = [];
-  public selectedOriginalTrack: FileDescription | null = null;
+
+  public tracks: any = [];
+
+  public reconstructedTracks: FileDescription[] = [];
+
+  public selectedTrack: FileDescription | null = null;
 
   constructor(private readonly runsClient: RunsClient, private readonly analysisService: AnalysisService) {}
 
   public ngOnInit(): void {
-    const runId = '68cbc39f6d2bc953f26fa1c4';
+    const runId = '68cc15a3d680f029a3b48ac7';
 
     this.runsClient
       .getRunAssets(runId, 0)
@@ -29,9 +35,9 @@ export class AnalyserComponent {
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         tap((files: FileDescription[]) => {
           this.originalTracks = files;
-          this.selectedOriginalTrack = files[0] ?? null;
-          if (this.selectedOriginalTrack) {
-            this.onTrackChange(this.selectedOriginalTrack);
+          this.selectedTrack = files[0] ?? null;
+          if (this.selectedTrack) {
+            this.onTrackChange(this.selectedTrack);
           } else {
             this.analysisService.setAudioBlob(null);
           }
@@ -39,23 +45,21 @@ export class AnalyserComponent {
       )
       .subscribe();
 
-    // this.runsClient
-    //   .getRunAssets(runId, 2)
-    //   .pipe(
-    //     take(1),
-    //     switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
-    //     switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-    //     tap((files: FileDescription[]) => {
-    //       this.originalTracks = files;
-    //       this.selectedOriginalTrack = files[0] ?? null;
-    //       if (this.selectedOriginalTrack) {
-    //         this.onTrackChange(this.selectedOriginalTrack);
-    //       } else {
-    //         this.analysisService.setAudioBlob(null);
-    //       }
-    //     })
-    //   )
-    //   .subscribe();
+    this.runsClient
+      .getRunAssets(runId, 2)
+      .pipe(
+        take(1),
+        switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
+        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
+        tap((files: FileDescription[]) => {
+          this.reconstructedTracks = files;
+          const t = this.originalTracks.map(({ name, data }) => ({ name, data }));
+          console.log(this.reconstructedTracks);
+
+          this.tracks;
+        })
+      )
+      .subscribe();
   }
 
   public onTrackChange(track: FileDescription | null): void {
