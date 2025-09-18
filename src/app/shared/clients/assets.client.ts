@@ -3,8 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
-export class FilesClient {
-  public api = '/api/files';
+export class AssetsClient {
+  public api = '/api/assets';
   private headers = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -21,6 +21,6 @@ export class FilesClient {
   }
 
   public getFilenames(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.api}/names`, { headers: this.headers });
+    return this.http.get<string[]>(`${this.api}/original-tracks`, { headers: this.headers });
   }
 }
