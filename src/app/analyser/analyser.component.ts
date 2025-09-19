@@ -35,9 +35,9 @@ export class AnalyserComponent {
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         tap((files: FileDescription[]) => {
           this.originalTracks = files;
-          this.selectedTrack = files[0] ?? null;
-          if (this.selectedTrack) {
-            this.onTrackChange(this.selectedTrack);
+          // load default track
+          if (files[0]) {
+            this.onTrackChange(files[0]);
           } else {
             this.analysisService.setAudioBlob(null);
           }
@@ -53,10 +53,24 @@ export class AnalyserComponent {
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         tap((files: FileDescription[]) => {
           this.reconstructedTracks = files;
-          const t = this.originalTracks.map(({ name, data }) => ({ name, data }));
-          console.log(this.reconstructedTracks);
 
-          this.tracks;
+          const tracks = this.originalTracks.reduce((acc, { name, data }) => {
+            acc[name.split('.')[0]] = { children: [{ name, data }] };
+            return acc;
+          }, {} as Record<string, { children: { name: string; data: any }[] }>);
+
+          this.reconstructedTracks.forEach((t: FileDescription) => {
+            const originalTrackStem = t.name.split('/')[0];
+            if (Object.keys(tracks).includes(originalTrackStem)) {
+              tracks[originalTrackStem].children.push({ name: t.name, data: t.data });
+            }
+          });
+
+          this.tracks = Object.keys(tracks).map((key) => ({
+            originalTrack: key,
+            children: tracks[key].children,
+          }));
+          console.log(this.tracks);
         })
       )
       .subscribe();

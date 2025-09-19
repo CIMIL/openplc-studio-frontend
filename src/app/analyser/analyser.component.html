@@ -1,5 +1,5 @@
 <div class="">
-  <p-dropdown
+  <!-- <p-dropdown
     [options]="originalTracks"
     optionLabel="name"
     placeholder="Select a track"
@@ -14,6 +14,16 @@
     [(ngModel)]="selectedTrack"
     (ngModelChange)="onTrackChange($event)"
   >
-  </p-dropdown>
+  </p-dropdown> -->
+  <p-cascadeselect
+    [(ngModel)]="selectedTrack"
+    (ngModelChange)="onTrackChange($event)"
+    [options]="tracks"
+    optionLabel="name"
+    optionGroupLabel="originalTrack"
+    [optionGroupChildren]="['children']"
+    [style]="{ minWidth: '14rem' }"
+    placeholder="Select a track"
+  />
   <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
 </div>
