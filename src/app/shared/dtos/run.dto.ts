@@ -3,6 +3,19 @@ import { ModuleType } from '../enums/module-type.enum';
 import { Module } from '../interfaces/module.interface';
 
 export interface RunDto {
+  id: string;
+  author: string;
+  name: string;
+  testbench_internal_id: string;
+  status: RunStatus;
+  tracks: string[];
+  modules: {
+    [ModuleType.PacketLossSimulator]: Module[];
+    [ModuleType.PLCAlgorithm]: Module[];
+    [ModuleType.OutputAnalyser]: Module[];
+  };
+}
+export interface RunCreateDto {
   author: string;
   name: string;
   testbench_internal_id: string;

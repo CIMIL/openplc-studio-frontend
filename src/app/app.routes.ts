@@ -5,7 +5,7 @@ import { BacklogComponent } from './backlog/backlog.component';
 
 export const routes: Routes = [
   {
-    path: 'analyzer',
+    path: 'analyzer/:id',
     component: AnalyserComponent,
   },
   {

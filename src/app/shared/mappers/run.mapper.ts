@@ -1,9 +1,9 @@
-import { RunDto } from '../dtos/run.dto';
+import { RunCreateDto, RunDto } from '../dtos/run.dto';
 import { ModuleType } from '../enums/module-type.enum';
 import { Run } from '../interfaces/run.interface';
 
 export class RunMapper {
-  static modelToDto(run: Run): RunDto {
+  static modelToCreateDto(run: Omit<Run, 'id'>): RunCreateDto {
     return {
       author: run.author,
       name: run.name,
@@ -20,6 +20,7 @@ export class RunMapper {
 
   static dtoToModel(runDto: RunDto): Run {
     return {
+      id: runDto.id,
       author: runDto.author,
       name: runDto.name,
       testbenchInternalId: runDto.testbench_internal_id,

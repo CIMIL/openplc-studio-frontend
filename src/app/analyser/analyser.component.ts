@@ -7,6 +7,7 @@ import { AnalysisService } from '../shared/services/analysis.service';
 import { DropdownModule } from 'primeng/dropdown';
 import { FormsModule } from '@angular/forms';
 import { CascadeSelectModule } from 'primeng/cascadeselect';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'plc-analyser',
@@ -14,6 +15,8 @@ import { CascadeSelectModule } from 'primeng/cascadeselect';
   templateUrl: './analyser.component.html',
 })
 export class AnalyserComponent {
+  public runId?: string;
+
   public originalTracks: FileDescription[] = [];
 
   public trackGroups: { originalTrack: string; reconstructedTracks: { name: string }[] }[] = [];
@@ -24,10 +27,14 @@ export class AnalyserComponent {
 
   public selectedTrack?: { name: string } | null = null;
 
-  constructor(private readonly runsClient: RunsClient, private readonly analysisService: AnalysisService) {}
+  constructor(
+    private readonly runsClient: RunsClient,
+    private readonly analysisService: AnalysisService,
+    private readonly route: ActivatedRoute
+  ) {}
 
   public ngOnInit(): void {
-    const runId = '68cd2cedbbac8400cb554742';
+    const runId = this.route.snapshot.paramMap.get('id') || '';
 
     this.runsClient
       .getRunAssets(runId, 0)

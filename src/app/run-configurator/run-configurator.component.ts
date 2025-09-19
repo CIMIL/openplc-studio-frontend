@@ -109,7 +109,7 @@ export class RunConfiguratorComponent implements OnInit {
   }
 
   public createRun(): void {
-    const run: Run = {
+    const run = {
       author: 'default',
       name: this.runName,
       testbenchInternalId: '',

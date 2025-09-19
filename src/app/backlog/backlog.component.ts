@@ -7,6 +7,7 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { TableModule } from 'primeng/table';
 import { RunStatusBadgeComponent } from '../shared/components/run-status-badge/run-status-badge.component';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'plc-backlog',
@@ -17,7 +18,7 @@ import { RunStatusBadgeComponent } from '../shared/components/run-status-badge/r
 export class BacklogComponent implements OnInit {
   public runs!: Run[];
 
-  constructor(private runsClient: RunsClient) {}
+  constructor(private runsClient: RunsClient, private router: Router) {}
 
   ngOnInit() {
     this.getAllRuns();
@@ -32,5 +33,11 @@ export class BacklogComponent implements OnInit {
         })
       )
       .subscribe();
+  }
+
+  public onAnalyse(run: Run) {
+    console.log(run);
+
+    this.router.navigate(['analyzer', run.id]);
   }
 }

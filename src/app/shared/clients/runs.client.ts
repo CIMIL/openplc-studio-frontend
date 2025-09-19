@@ -17,9 +17,9 @@ export class RunsClient {
 
   constructor(private http: HttpClient) {}
 
-  public createRun(run: Run): Observable<Run> {
+  public createRun(run: Omit<Run, 'id'>): Observable<Run> {
     return this.http
-      .post<RunDto>(this.api, RunMapper.modelToDto(run), { headers: this.headers })
+      .post<RunDto>(this.api, RunMapper.modelToCreateDto(run), { headers: this.headers })
       .pipe(switchMap((dto: RunDto) => of(RunMapper.dtoToModel(dto))));
   }
 
