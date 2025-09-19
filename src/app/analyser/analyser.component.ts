@@ -16,16 +16,18 @@ import { CascadeSelectModule } from 'primeng/cascadeselect';
 export class AnalyserComponent {
   public originalTracks: FileDescription[] = [];
 
-  public tracks: any = [];
+  public trackGroups: { originalTrack: string; reconstructedTracks: { name: string }[] }[] = [];
+
+  public trackMaps: Record<string, Uint8Array> = {};
 
   public reconstructedTracks: FileDescription[] = [];
 
-  public selectedTrack: FileDescription | null = null;
+  public selectedTrack?: { name: string } | null = null;
 
   constructor(private readonly runsClient: RunsClient, private readonly analysisService: AnalysisService) {}
 
   public ngOnInit(): void {
-    const runId = '68cc15a3d680f029a3b48ac7';
+    const runId = '68cd2cedbbac8400cb554742';
 
     this.runsClient
       .getRunAssets(runId, 0)
@@ -35,6 +37,8 @@ export class AnalyserComponent {
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         tap((files: FileDescription[]) => {
           this.originalTracks = files;
+          this.originalTracks.forEach((t) => (this.trackMaps[t.name] = t.data));
+
           // load default track
           if (files[0]) {
             this.onTrackChange(files[0]);
@@ -53,35 +57,35 @@ export class AnalyserComponent {
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         tap((files: FileDescription[]) => {
           this.reconstructedTracks = files;
+          this.reconstructedTracks.forEach((t) => (this.trackMaps[t.name] = t.data));
 
-          const tracks = this.originalTracks.reduce((acc, { name, data }) => {
-            acc[name.split('.')[0]] = { children: [{ name, data }] };
+          const tracks = this.originalTracks.reduce((acc, { name }) => {
+            acc[name.split('.')[0]] = { reconstructedTracks: [{ name }] };
             return acc;
-          }, {} as Record<string, { children: { name: string; data: any }[] }>);
+          }, {} as Record<string, { reconstructedTracks: { name: string }[] }>);
 
           this.reconstructedTracks.forEach((t: FileDescription) => {
             const originalTrackStem = t.name.split('/')[0];
             if (Object.keys(tracks).includes(originalTrackStem)) {
-              tracks[originalTrackStem].children.push({ name: t.name, data: t.data });
+              tracks[originalTrackStem].reconstructedTracks.push({ name: t.name });
             }
           });
 
-          this.tracks = Object.keys(tracks).map((key) => ({
+          this.trackGroups = Object.keys(tracks).map((key) => ({
             originalTrack: key,
-            children: tracks[key].children,
+            reconstructedTracks: tracks[key].reconstructedTracks,
           }));
-          console.log(this.tracks);
         })
       )
       .subscribe();
   }
 
-  public onTrackChange(track: FileDescription | null): void {
-    if (!track || !track.data) {
+  public onTrackChange(track: { name: string } | null): void {
+    if (!track || !track.name) {
       this.analysisService.setAudioBlob(null);
       return;
     }
-    const audioBuffer = new Uint8Array(track.data);
+    const audioBuffer = new Uint8Array(this.trackMaps[track.name]);
     const blob = new Blob([audioBuffer], { type: 'audio/wave' });
     this.analysisService.setAudioBlob(blob);
   }

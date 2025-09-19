@@ -18,10 +18,10 @@
   <p-cascadeselect
     [(ngModel)]="selectedTrack"
     (ngModelChange)="onTrackChange($event)"
-    [options]="tracks"
+    [options]="$any(trackGroups)"
     optionLabel="name"
     optionGroupLabel="originalTrack"
-    [optionGroupChildren]="['children']"
+    [optionGroupChildren]="['reconstructedTracks']"
     [style]="{ minWidth: '14rem' }"
     placeholder="Select a track"
   />
