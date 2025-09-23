@@ -15,6 +15,7 @@ import { MessageService } from 'primeng/api';
 import { tap } from 'rxjs';
 import { AudioTrackPickerComponent } from './audio-track-picker/audio-track-picker.component';
 import { Router } from '@angular/router';
+import { ModuleParameter, ModuleParameterSpec } from '../shared/interfaces/module-parameters.interface';
 
 @Component({
   selector: 'plc-run-configurator',
@@ -101,10 +102,44 @@ export class RunConfiguratorComponent implements OnInit {
 
   ngOnInit(): void {}
 
+  private isModuleArray(val: unknown): val is Module[] {
+    return Array.isArray(val) && val.every((v) => v && typeof v === 'object' && 'name' in v && 'settings' in v);
+  }
+
+  private isSpecArray(val: unknown): val is ModuleParameterSpec[] {
+    return (
+      Array.isArray(val) &&
+      val.every((v) => v && typeof v === 'object' && 'name' in v && ('default' in v || 'value' in v))
+    );
+  }
+
+  private toParameter = (s: ModuleParameterSpec | ModuleParameter): ModuleParameter => ({
+    name: s.name,
+    value: (s as ModuleParameter).value ?? (s as ModuleParameterSpec).default,
+  });
+
   private mapSpecToConfig(modules: Module[]): Module[] {
-    return modules.map((m) => ({
+    return modules.map((m: Module) => ({
       ...m,
-      settings: m.settings.map((s) => ({ name: s.name, value: s.value })),
+      settings: m.settings.map((s: ModuleParameter | ModuleParameterSpec) => {
+        const val = (s as any).value;
+        if (this.isModuleArray(val)) {
+          return {
+            name: s.name,
+            value: val.map((xf: Module) => ({
+              name: xf.name,
+              settings: xf.settings.map(this.toParameter),
+            })),
+          };
+        }
+        if (this.isSpecArray(val)) {
+          return {
+            name: s.name,
+            value: val.map(this.toParameter),
+          };
+        }
+        return this.toParameter(s);
+      }),
     }));
   }
 
