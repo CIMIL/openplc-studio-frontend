@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'plc-backlog',
   imports: [TableModule, ButtonModule, TagModule, CommonModule, RunStatusBadgeComponent],
+  standalone: true,
   templateUrl: './backlog.component.html',
   styleUrl: './backlog.component.scss',
 })

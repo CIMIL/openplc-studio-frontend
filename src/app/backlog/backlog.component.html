@@ -13,9 +13,9 @@
       <td>{{ run.name }}</td>
       <td><plc-run-status-badge [runStatus]="run.status"></plc-run-status-badge></td>
       <td>
-        <button type="button" class="p-button-text" (click)="onAnalyse(run)">
+        <p-button type="button" class="p-button-text" severity="info" (click)="onAnalyse(run)">
           <i class="pi pi-chart-bar"></i>
-        </button>
+        </p-button>
       </td>
     </tr>
   </ng-template>
