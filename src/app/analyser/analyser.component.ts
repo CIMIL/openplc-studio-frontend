@@ -85,6 +85,29 @@ export class AnalyserComponent {
         })
       )
       .subscribe();
+
+    this.runsClient
+      .getRunAssets(runId, 3)
+      .pipe(
+        take(1),
+        switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
+        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
+        tap((files: FileDescription[]) => {
+          const parsedFiles = files.map((file) => {
+            let json = null;
+            try {
+              const decoder = new TextDecoder('utf-8');
+              const text = decoder.decode(file.data);
+              json = JSON.parse(text);
+            } catch (e) {
+              console.error('Failed to parse file as JSON:', file.name, e);
+            }
+            return { ...file, json };
+          });
+          console.log(parsedFiles);
+        })
+      )
+      .subscribe();
   }
 
   public onTrackChange(track: { name: string } | null): void {

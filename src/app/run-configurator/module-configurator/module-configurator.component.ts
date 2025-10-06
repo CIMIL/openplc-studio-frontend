@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { ChipModule } from 'primeng/chip';
 import { FormsModule } from '@angular/forms';
-import { ModuleParameter, ModuleParameterSpec } from '../../shared/interfaces/module-parameters.interface';
+import { ModuleParameterSpec } from '../../shared/interfaces/module-parameters.interface';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { KeyFilterModule } from 'primeng/keyfilter';
@@ -23,6 +23,8 @@ import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocompl
 const suggestedBands: number[] = [200, 1000, 2000];
 
 const crossfadeNameParameters: string[] = ['crossfade', 'fade_in'];
+
+const bandSettingsOmittedParams: string[] = ['crossfade', 'fade_in', 'crossfade_frequencies', 'crossover_order'];
 
 export type ModuleWithCount = Module & {
   id?: number;
@@ -86,6 +88,12 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   public availableCrossfadeModulesFilter: ModuleWithCount[] = [];
 
+  public bandSettingModuleFocus!: ModuleWithCount | null;
+
+  public bandSettingsSelectedModuleProxy: ModuleWithCount | null = null;
+
+  public bandSettingsSelectedModuleCounter: number = 0;
+
   private readonly unsubAll$ = new Subject<void>();
 
   constructor(private readonly modulesService: ModulesClient) {}
@@ -99,10 +107,16 @@ export class ModuleConfiguratorComponent implements OnInit {
   }
 
   get groupedCrossfadeModulesOfSelectedModule(): GroupedModules[] {
-    const groupedCrossfadeModules = this.moduleFocus?.settings
+    const groupedModules = this.moduleFocus?.settings
       .filter((setting) => crossfadeNameParameters.includes(setting.name))
       .map((setting) => ({ label: setting.name, items: (setting.value ?? []) as Module[] }));
-    return groupedCrossfadeModules ?? [];
+    return groupedModules ?? [];
+  }
+
+  get groupedBandSettingsOfSelectedModule(): GroupedModules[] {
+    const bandSettingsParam = this.moduleFocus?.settings.find((setting) => setting.name === 'band_settings');
+    const bandSettings = bandSettingsParam?.value as Record<string, Module[]> | undefined;
+    return bandSettings ? Object.entries(bandSettings).map(([label, items]) => ({ label, items })) : [];
   }
 
   get isAnyCrossfadeModuleSelected(): boolean {
@@ -110,6 +124,15 @@ export class ModuleConfiguratorComponent implements OnInit {
       (setting) =>
         crossfadeNameParameters.includes(setting.name) &&
         (Array.isArray(setting.value) ? setting.value.length > 0 : false)
+    );
+  }
+
+  get isAnyBandSettingsModuleSelected(): boolean {
+    const bandSettingsParam = this.moduleFocus?.settings.find((setting) => setting.name === 'band_settings');
+    const bandSettings = bandSettingsParam?.value as Record<string, Module[]> | undefined;
+    return (
+      !!bandSettings &&
+      Object.values(bandSettings).some((values) => (Array.isArray(values) ? values.length > 0 : false))
     );
   }
 
@@ -222,10 +245,75 @@ export class ModuleConfiguratorComponent implements OnInit {
     crossfadeModuleList.splice(moduleToRemoveIndex, 1);
   }
 
+  public removeFromBandSettingsModulesSelection(moduleId: number): void {
+    const bandSettingsParam = this.moduleFocus?.settings.find((setting) => setting.name === 'band_settings');
+    const bandSettings = bandSettingsParam?.value as Record<string, ModuleWithCount[]> | undefined;
+
+    if (!bandSettings) {
+      return;
+    }
+
+    const bandLabel =
+      Object.keys(bandSettings).find((label) => bandSettings[label].some((module) => module.id === moduleId)) || '';
+
+    const moduleToRemoveIndex =
+      bandLabel !== undefined ? bandSettings[bandLabel].findIndex((module) => module.id === moduleId) : -1;
+
+    if (moduleToRemoveIndex === -1) {
+      return;
+    }
+
+    if (bandSettings[bandLabel][moduleToRemoveIndex]?.id === this.bandSettingModuleFocus?.id) {
+      this.bandSettingModuleFocus = null;
+    }
+
+    bandSettings[bandLabel].splice(moduleToRemoveIndex, 1);
+  }
+
   ngOnDestroy(): void {
     this.modulesSelectionChange.emit(this.modulesSelection);
 
     this.unsubAll$.next();
     this.unsubAll$.complete();
+  }
+
+  public isAdvancedPLCLinked(): boolean {
+    if (!this.moduleFocus || !this.moduleFocus.settings) {
+      return false;
+    }
+    const channelLinkSetting = this.moduleFocus.settings.find((setting) => setting.name === 'channel_link');
+    return channelLinkSetting ? channelLinkSetting.value : false;
+  }
+
+  public getAdvancedPLCStereoImageProcessingValue(): string {
+    if (!this.moduleFocus || !this.moduleFocus.settings) {
+      return '';
+    }
+    const channelLinkSetting = this.moduleFocus.settings.find((setting) => setting.name === 'stereo_image_processing');
+    return channelLinkSetting ? channelLinkSetting.value : '';
+  }
+
+  public addAdvancedPLCBandSettingModule(
+    bandSettingModule: ModuleWithCount | null,
+    paramName: string,
+    bandLabel: string
+  ) {
+    if (!bandSettingModule) {
+      return;
+    }
+
+    const parentModuleSetting = this.moduleFocus?.settings.find((setting) => setting.name === paramName);
+    if (parentModuleSetting) {
+      parentModuleSetting.value[bandLabel] = parentModuleSetting.value[bandLabel] || [];
+      parentModuleSetting.value[bandLabel].push({
+        ...bandSettingModule,
+        settings: bandSettingModule.settings
+          .map((param: any) => ({ ...param }))
+          .filter((param) => !bandSettingsOmittedParams.includes(param.name)),
+        id: this.bandSettingsSelectedModuleCounter++,
+      });
+    }
+
+    this.bandSettingsSelectedModuleProxy = null;
   }
 }
