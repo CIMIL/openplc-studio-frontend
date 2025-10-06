@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrapper.component';
 import { RunsClient } from '../shared/clients/runs.client';
 import { from, of, switchMap, take, tap } from 'rxjs';
@@ -8,10 +8,20 @@ import { DropdownModule } from 'primeng/dropdown';
 import { FormsModule } from '@angular/forms';
 import { CascadeSelectModule } from 'primeng/cascadeselect';
 import { ActivatedRoute } from '@angular/router';
+import Chart from 'chart.js/auto';
+import zoomPlugin from 'chartjs-plugin-zoom';
+import { CommonModule } from '@angular/common';
+import { SkeletonModule } from 'primeng/skeleton';
+
+Chart.register(zoomPlugin);
+
+const TD_METRICS = ['MSECalculator', 'MAECalculator'];
+const FD_METRICS = ['SpectralEnergyCalculator', 'PerceptualCalculator'];
+const SCALAR_METRICS = ['PEAQCalculator', 'WindowedPEAQCalculator'];
 
 @Component({
   selector: 'plc-analyser',
-  imports: [WavesurferWrapperComponent, DropdownModule, FormsModule, CascadeSelectModule],
+  imports: [WavesurferWrapperComponent, DropdownModule, FormsModule, CascadeSelectModule, CommonModule, SkeletonModule],
   templateUrl: './analyser.component.html',
 })
 export class AnalyserComponent {
@@ -26,6 +36,13 @@ export class AnalyserComponent {
   public reconstructedTracks: FileDescription[] = [];
 
   public selectedTrack?: { name: string } | null = null;
+
+  public metrics: any = [];
+
+  @ViewChild('analysisChart', { static: false })
+  private chartRef?: ElementRef<HTMLCanvasElement>;
+
+  private chart?: Chart;
 
   constructor(
     private readonly runsClient: RunsClient,
@@ -43,8 +60,8 @@ export class AnalyserComponent {
         switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         tap((files: FileDescription[]) => {
-          this.originalTracks = files;
           this.originalTracks.forEach((t) => (this.trackMaps[t.name] = t.data));
+          this.originalTracks = files;
 
           // load default track
           if (files[0]) {
@@ -104,10 +121,86 @@ export class AnalyserComponent {
             }
             return { ...file, json };
           });
-          console.log(parsedFiles);
-        })
+          this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest);
+        }),
+        tap(() => this.initChart())
       )
       .subscribe();
+  }
+
+  private initChart(): void {
+    if (!this.chartRef) return;
+    if (this.chart) {
+      this.chart.destroy();
+    }
+
+    const channelLabels = ['Left', 'Right'];
+    const colors = ['#3b82f6', '#a7ef6e'];
+    const labels = Array.from({ length: this.metrics[0].json[0].length }, (_, i) => i.toString());
+
+    console.log(this.metrics);
+
+    // this.chart = new Chart(this.chartRef.nativeElement, {
+    //   type: 'bar',
+    //   data: { labels: channelLabels, datasets: [{ data: this.metrics[0].json }] },
+    //   options: {
+    //     responsive: true,
+    //     maintainAspectRatio: false,
+    //     animation: false,
+    //     scales: {
+    //       x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
+    //       y: {
+    //         beginAtZero: true,
+    //         min: -4, // Clip at -4 on the y axis
+    //       },
+    //     },
+    //     plugins: {
+    //       legend: { display: false },
+    //       tooltip: { intersect: false, mode: 'index' as const },
+    //     },
+    //   },
+    // });
+
+    this.chart = new Chart(this.chartRef.nativeElement, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: this.metrics[1].json.map((c: any, i: number) => ({
+          label: channelLabels[i % channelLabels.length],
+          data: c,
+          tension: 0.25,
+          borderColor: colors[i % colors.length],
+          backgroundColor: `${colors[i % colors.length]}26`,
+          pointRadius: 2,
+          fill: true,
+        })),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
+          y: { beginAtZero: true },
+        },
+        plugins: {
+          legend: { display: true },
+          tooltip: { intersect: false, mode: 'index' as const },
+          zoom: {
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: 'x',
+            },
+            // pan: {
+            //   enabled: true,
+            //   mode: 'x',
+            //   modifierKey: 'shift',
+            // },
+          },
+        },
+      },
+    });
   }
 
   public onTrackChange(track: { name: string } | null): void {

@@ -1,29 +1,28 @@
 <div class="">
-  <!-- <p-dropdown
-    [options]="originalTracks"
-    optionLabel="name"
-    placeholder="Select a track"
-    [(ngModel)]="selectedTrack"
-    (ngModelChange)="onTrackChange($event)"
-  >
-  </p-dropdown>
-  <p-dropdown
-    [options]="reconstructedTracks"
-    optionLabel="name"
-    placeholder="Select a track"
-    [(ngModel)]="selectedTrack"
-    (ngModelChange)="onTrackChange($event)"
-  >
-  </p-dropdown> -->
-  <p-cascadeselect
-    [(ngModel)]="selectedTrack"
-    (ngModelChange)="onTrackChange($event)"
-    [options]="$any(trackGroups)"
-    optionLabel="name"
-    optionGroupLabel="originalTrack"
-    [optionGroupChildren]="['reconstructedTracks']"
-    [style]="{ minWidth: '14rem' }"
-    placeholder="Select a track"
-  />
-  <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
+  <ng-container *ngIf="originalTracks.length > 0; else trackSelectSkeleton">
+    <p-cascadeselect
+      [(ngModel)]="selectedTrack"
+      (ngModelChange)="onTrackChange($event)"
+      [options]="$any(trackGroups)"
+      optionLabel="name"
+      optionGroupLabel="originalTrack"
+      [optionGroupChildren]="['reconstructedTracks']"
+      [style]="{ minWidth: '14rem' }"
+      placeholder="Select a track"
+    />
+  </ng-container>
+  <ng-container *ngIf="originalTracks.length > 0; else wavesurferSkeleton">
+    <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
+  </ng-container>
+
+  <div style="width: 100%; height: 240px; margin-top: 1rem">
+    <canvas #analysisChart></canvas>
+  </div>
 </div>
+
+<ng-template #trackSelectSkeleton>
+  <p-skeleton width="auto" height="auto"></p-skeleton>
+</ng-template>
+<ng-template #wavesurferSkeleton>
+  <p-skeleton width="auto" height="500px"></p-skeleton>
+</ng-template>
