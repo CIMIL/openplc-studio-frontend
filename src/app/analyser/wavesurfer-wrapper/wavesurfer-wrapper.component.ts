@@ -15,13 +15,7 @@ import { AnalysisService } from '../../shared/services/analysis.service';
   styleUrl: './wavesurfer-wrapper.component.scss',
 })
 export class WavesurferWrapperComponent implements OnDestroy {
-  // chart stuff
-
-  // @ViewChild('myChart', { static: true }) chartRef!: ElementRef<HTMLCanvasElement>;
-  // chart!: Chart;
-  // chart stuff
-
-  @ViewChild('waveform', { static: false })
+  @ViewChild('waveform', { static: true })
   private waveformRef!: ElementRef;
 
   private wavesurfer!: WaveSurfer;
@@ -33,39 +27,21 @@ export class WavesurferWrapperComponent implements OnDestroy {
   constructor(private readonly audioService: AnalysisService) {}
 
   public ngOnInit() {
-    // this.chart = new Chart(this.chartRef.nativeElement, {
-    //   type: 'bar',
-    //   data: {
-    //     labels: ['Red', 'Blue', 'Yellow'],
-    //     datasets: [
-    //       {
-    //         label: '# of Votes',
-    //         data: [12, 19, 3],
-    //         backgroundColor: ['red', 'blue', 'yellow'],
-    //       },
-    //     ],
-    //   },
-    //   options: {
-    //     responsive: true,
-    //     maintainAspectRatio: false,
-    //   },
-    // });
-
     this.audioService.audioBlob$
       .pipe(
         takeUntil(this.destroy$),
         tap((blob: Blob | null) => {
-          if (this.wavesurfer && blob) {
-            this.destroyWavesurfer();
+          if (blob) {
+            if (this.wavesurfer) {
+              this.destroyWavesurfer();
+            }
             this.initializeWaveSurfer();
+          } else if (this.wavesurfer) {
+            this.destroyWavesurfer();
           }
         })
       )
       .subscribe();
-  }
-
-  public ngAfterViewInit(): void {
-    this.initializeWaveSurfer();
   }
 
   public ngOnDestroy(): void {
