@@ -1,7 +1,7 @@
 import { Component, ElementRef, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrapper.component';
 import { RunsClient } from '../shared/clients/runs.client';
-import { debounce, debounceTime, from, of, switchMap, take, tap } from 'rxjs';
+import { debounce, debounceTime, from, map, of, switchMap, take, tap } from 'rxjs';
 import { FileDescription, parseTar } from 'tarparser';
 import { AnalysisService } from '../shared/services/analysis.service';
 import { DropdownModule } from 'primeng/dropdown';
@@ -12,7 +12,6 @@ import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CommonModule } from '@angular/common';
 import { SkeletonModule } from 'primeng/skeleton';
-import { BaseIcon } from 'primeng/icons/baseicon';
 
 Chart.register(zoomPlugin);
 
@@ -23,17 +22,11 @@ const SCALAR_METRICS = ['PEAQCalculator'];
 
 const colors = ['#3b82f6', '#a7ef6e'];
 
+type FileDescriptionWithJson = FileDescription & { json: any[] };
+
 @Component({
   selector: 'plc-analyser',
-  imports: [
-    WavesurferWrapperComponent,
-    DropdownModule,
-    FormsModule,
-    CascadeSelectModule,
-    CommonModule,
-    SkeletonModule,
-    BaseIcon,
-  ],
+  imports: [WavesurferWrapperComponent, DropdownModule, FormsModule, CascadeSelectModule, CommonModule, SkeletonModule],
   templateUrl: './analyser.component.html',
 })
 export class AnalyserComponent {
@@ -49,7 +42,9 @@ export class AnalyserComponent {
 
   public selectedTrack?: { name: string } | null = null;
 
-  public metrics: any = [];
+  public sampleMasks: any[] = [];
+
+  public metrics: any[] = [];
 
   @ViewChildren('analysisCharts')
   private chartRefs?: QueryList<ElementRef<HTMLCanvasElement>>;
@@ -87,25 +82,29 @@ export class AnalyserComponent {
       .subscribe();
 
     this.runsClient
+      .getRunAssets(runId, 1)
+      .pipe(
+        take(1),
+        switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
+        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
+        map((files: FileDescription[]) => files.map(this.decodeJson)),
+        tap((parsedFiles: FileDescriptionWithJson[]) => {
+          console.log(parsedFiles);
+        })
+      )
+      .subscribe();
+
+    this.runsClient
       .getRunAssets(runId, 3)
       .pipe(
         take(1),
         switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        tap((files: FileDescription[]) => {
-          const parsedFiles = files.map((file) => {
-            let json = null;
-            try {
-              const decoder = new TextDecoder('utf-8');
-              const text = decoder.decode(file.data);
-              json = JSON.parse(text);
-            } catch (e) {
-              console.error('Failed to parse file as JSON:', file.name, e);
-            }
-            return { ...file, json };
-          });
-          this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest);
-        }),
+        map((files: FileDescription[]) => files.map(this.decodeJson)),
+        tap(
+          (parsedFiles: FileDescriptionWithJson[]) =>
+            (this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest))
+        ),
         tap(() => this.ngAfterViewInit())
       )
       .subscribe();
@@ -160,6 +159,9 @@ export class AnalyserComponent {
       }
 
       refsArray.forEach((chartRef: ElementRef<HTMLCanvasElement>, i: number) => {
+        if (this.charts[i]) {
+          this.charts[i].destroy();
+        }
         const metric = this.metrics[i];
         this.initChart(chartRef, metric);
       });
@@ -252,5 +254,17 @@ export class AnalyserComponent {
         },
       })
     );
+  }
+
+  private decodeJson(file: FileDescription): FileDescriptionWithJson {
+    let json = null;
+    try {
+      const decoder = new TextDecoder('utf-8');
+      const text = decoder.decode(file.data);
+      json = JSON.parse(text);
+    } catch (e) {
+      console.error('Failed to parse file as JSON:', file.name, e);
+    }
+    return { ...file, json };
   }
 }

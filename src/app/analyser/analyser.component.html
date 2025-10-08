@@ -14,9 +14,7 @@
     </ng-container>
   </div>
   <div>
-    <ng-container *ngIf="(analysisService.audioBlob$ | async) != null; else wavesurferSkeleton">
-      <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
-    </ng-container>
+    <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
   </div>
 
   <div style="width: 100%; height: 240px; margin-top: 1rem">
@@ -28,7 +26,4 @@
 
 <ng-template #trackSelectSkeleton>
   <p-skeleton width="auto" height="2.5rem"></p-skeleton>
-</ng-template>
-<ng-template #wavesurferSkeleton>
-  <p-skeleton width="auto" height="500px"></p-skeleton>
 </ng-template>

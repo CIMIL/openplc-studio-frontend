@@ -6,17 +6,37 @@ import Spectrogram from 'wavesurfer.js/dist/plugins/spectrogram';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions';
 import { CommonModule } from '@angular/common';
 import { AnalysisService } from '../../shared/services/analysis.service';
-// import { Chart } from 'chart.js/auto';
+import { SkeletonModule } from 'primeng/skeleton';
 
 @Component({
   selector: 'plc-wavesurfer-wrapper',
-  imports: [CommonModule],
+  imports: [CommonModule, SkeletonModule],
   templateUrl: './wavesurfer-wrapper.component.html',
   styleUrl: './wavesurfer-wrapper.component.scss',
 })
 export class WavesurferWrapperComponent implements OnDestroy {
-  @ViewChild('waveform', { static: true })
-  private waveformRef!: ElementRef;
+  private _waveformRef?: ElementRef;
+
+  @ViewChild('waveform')
+  set waveformRef(ref: ElementRef | undefined) {
+    this._waveformRef = ref;
+    if (ref && this.analysisService.currentAudioBlob) {
+      this.initializeWaveSurfer();
+    }
+  }
+
+  get waveformRef() {
+    return this._waveformRef;
+  }
+
+  public isSpectrogramReady: boolean = false;
+
+  private _spectrogramRef?: ElementRef;
+
+  @ViewChild('spectrogram', { static: false })
+  set spectrogramRef(ref: ElementRef | undefined) {
+    this._spectrogramRef = ref;
+  }
 
   private wavesurfer!: WaveSurfer;
 
@@ -24,21 +44,18 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
   private spacebarSubscription?: Subscription;
 
-  constructor(private readonly audioService: AnalysisService) {}
+  constructor(public readonly analysisService: AnalysisService) {}
 
-  public ngOnInit() {
-    this.audioService.audioBlob$
+  public ngAfterViewInit() {
+    this.analysisService.audioBlob$
       .pipe(
         takeUntil(this.destroy$),
+        filter((blob) => !!blob),
         tap((blob: Blob | null) => {
-          if (blob) {
-            if (this.wavesurfer) {
-              this.destroyWavesurfer();
-            }
-            this.initializeWaveSurfer();
-          } else if (this.wavesurfer) {
+          if (this.wavesurfer) {
             this.destroyWavesurfer();
           }
+          this.initializeWaveSurfer();
         })
       )
       .subscribe();
@@ -54,6 +71,10 @@ export class WavesurferWrapperComponent implements OnDestroy {
   }
 
   private initializeWaveSurfer(): void {
+    if (!this.waveformRef) {
+      return;
+    }
+
     this.wavesurfer = WaveSurfer.create({
       container: this.waveformRef.nativeElement,
       backend: 'WebAudio',
@@ -65,10 +86,12 @@ export class WavesurferWrapperComponent implements OnDestroy {
       barRadius: 10,
       barGap: 2,
       minPxPerSec: 50,
+      sampleRate: 44100,
     });
 
     // define wavesurfer events
 
+    // play with spacebar
     if (!this.spacebarSubscription) {
       this.spacebarSubscription = fromEvent<KeyboardEvent>(document, 'keydown')
         .pipe(
@@ -82,29 +105,29 @@ export class WavesurferWrapperComponent implements OnDestroy {
         .subscribe();
     }
 
-    // Optionally, keep click to play
-    this.wavesurfer.on('click', () => {
-      this.wavesurfer.play();
-    });
-
-    const audio = this.audioService.currentAudioBlob;
+    const audio = this.analysisService.currentAudioBlob;
 
     if (audio) {
       this.wavesurfer.loadBlob(audio);
     }
 
-    // this.wavesurfer.registerPlugin(
-    //   Spectrogram.create({
-    //     labels: true,
-    //     height: 1000,
-    //     splitChannels: true,
-    //     scale: 'mel', // or 'linear', 'logarithmic', 'bark', 'erb'
-    //     frequencyMax: 16000,
-    //     frequencyMin: 0,
-    //     fftSamples: 2048,
-    //     labelsBackground: 'rgba(0, 0, 0, 0.1)',
-    //   })
-    // );
+    const spectrogramPlugin = this.wavesurfer.registerPlugin(
+      Spectrogram.create({
+        labels: true,
+        height: 400,
+        splitChannels: false,
+        scale: 'mel',
+        frequencyMax: 0,
+        frequencyMin: 0,
+        fftSamples: 2048,
+      })
+    );
+
+    spectrogramPlugin.once('ready', () => {
+      this.isSpectrogramReady = true;
+      const wrapper = (spectrogramPlugin as any).wrapper as HTMLElement; // plugin's root element
+      this.spectrogramRef?.nativeElement.appendChild(wrapper);
+    });
 
     this.wavesurfer.registerPlugin(
       ZoomPlugin.create({
