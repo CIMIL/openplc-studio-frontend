@@ -1,4 +1,4 @@
-import { Component, ElementRef, QueryList, ViewChild, ViewChildren } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrapper.component';
 import { RunsClient } from '../shared/clients/runs.client';
 import { debounce, debounceTime, from, map, of, switchMap, take, tap } from 'rxjs';
@@ -45,6 +45,8 @@ export class AnalyserComponent {
   public sampleMasks: any[] = [];
 
   public metrics: any[] = [];
+
+  public chartsReady = false;
 
   @ViewChildren('analysisCharts')
   private chartRefs?: QueryList<ElementRef<HTMLCanvasElement>>;
@@ -105,7 +107,23 @@ export class AnalyserComponent {
           (parsedFiles: FileDescriptionWithJson[]) =>
             (this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest))
         ),
-        tap(() => this.ngAfterViewInit())
+        tap(() => {
+          this.chartRefs?.changes.subscribe((refs: QueryList<ElementRef<HTMLCanvasElement>>) => {
+            const refsArray = refs.toArray();
+            if (!refsArray.length) {
+              return;
+            }
+
+            refsArray.forEach((chartRef: ElementRef<HTMLCanvasElement>, i: number) => {
+              if (this.charts[i]) {
+                this.charts[i].destroy();
+              }
+              const metric = this.metrics[i];
+              this.initChart(chartRef, metric);
+            });
+          });
+          this.chartsReady = true;
+        })
       )
       .subscribe();
   }
@@ -149,23 +167,6 @@ export class AnalyserComponent {
     const audioBuffer = new Uint8Array(this.trackMaps[track.name]);
     const blob = new Blob([audioBuffer], { type: 'audio/wave' });
     this.analysisService.setAudioBlob(blob);
-  }
-
-  ngAfterViewInit(): void {
-    this.chartRefs?.changes.subscribe((refs: QueryList<ElementRef<HTMLCanvasElement>>) => {
-      const refsArray = refs.toArray();
-      if (!refsArray.length) {
-        return;
-      }
-
-      refsArray.forEach((chartRef: ElementRef<HTMLCanvasElement>, i: number) => {
-        if (this.charts[i]) {
-          this.charts[i].destroy();
-        }
-        const metric = this.metrics[i];
-        this.initChart(chartRef, metric);
-      });
-    });
   }
 
   private initChart(chartRef: ElementRef<HTMLCanvasElement>, metric: any): void {

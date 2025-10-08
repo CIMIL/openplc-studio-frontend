@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, ViewChild, OnDestroy } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { BehaviorSubject, debounceTime, filter, fromEvent, Subject, Subscription, takeUntil, tap } from 'rxjs';
 import WaveSurfer from 'wavesurfer.js';
 import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';

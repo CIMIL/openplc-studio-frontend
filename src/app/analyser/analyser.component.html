@@ -17,6 +17,7 @@
     <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
   </div>
 
+  <p-skeleton *ngIf="!chartsReady" width="auto" height="10rem"></p-skeleton>
   <div style="width: 100%; height: 240px; margin-top: 1rem">
     <ng-container *ngFor="let metric of metrics; let i = index">
       <canvas #analysisCharts [attr.id]="'analysisChart' + i"></canvas>
