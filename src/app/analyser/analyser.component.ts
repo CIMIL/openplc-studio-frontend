@@ -1,7 +1,7 @@
-import { ChangeDetectorRef, Component, ElementRef, QueryList, ViewChild, ViewChildren } from '@angular/core';
+import { Component, ElementRef, QueryList, ViewChildren } from '@angular/core';
 import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrapper.component';
 import { RunsClient } from '../shared/clients/runs.client';
-import { combineLatest, debounce, debounceTime, from, map, Observable, of, Subject, switchMap, take, tap } from 'rxjs';
+import { BehaviorSubject, combineLatest, from, map, of, ReplaySubject, Subject, switchMap, take, tap } from 'rxjs';
 import { FileDescription, parseTar } from 'tarparser';
 import { AnalysisService } from '../shared/services/analysis.service';
 import { DropdownModule } from 'primeng/dropdown';
@@ -18,6 +18,7 @@ import { Run } from '../shared/interfaces/run.interface';
 import { ModuleType } from '../shared/enums/module-type.enum';
 import { Module } from '../shared/interfaces/module.interface';
 import { ModuleParameter } from '../shared/interfaces/module-parameters.interface';
+import { SelectModule } from 'primeng/select';
 
 Chart.register(zoomPlugin);
 
@@ -40,6 +41,7 @@ type FileDescriptionWithJson = FileDescription & { json: any[] };
     CommonModule,
     SkeletonModule,
     ListboxModule,
+    SelectModule,
   ],
   templateUrl: './analyser.component.html',
 })
@@ -62,6 +64,8 @@ export class AnalyserComponent {
 
   public sampleMasks: any[] = [];
 
+  public selectedSampleMaskIndex: number = 0;
+
   public selectedPacket: any;
 
   public metrics: any[] = [];
@@ -75,9 +79,9 @@ export class AnalyserComponent {
 
   public charts: Chart[] = [];
 
-  public runFetchDone: Subject<void> = new Subject<void>();
+  public runFetchDone: Subject<void> = new ReplaySubject<void>();
 
-  public originalTracksFetchDone: Subject<void> = new Subject<void>();
+  public originalTracksFetchDone: Subject<void> = new ReplaySubject<void>();
 
   constructor(
     private readonly runsClient: RunsClient,
@@ -93,8 +97,13 @@ export class AnalyserComponent {
     );
   }
 
-  get sampleMaskNames(): any[] {
-    return this.run?.modules[ModuleType.PacketLossSimulator].map((m: Module) => m.name) ?? [];
+  get sampleMaskNames(): { label: string; value: number }[] {
+    return (
+      this.run?.modules[ModuleType.PacketLossSimulator].map((m: Module, index: number) => ({
+        label: m.name,
+        value: index,
+      })) ?? []
+    );
   }
 
   public ngOnInit(): void {
@@ -104,7 +113,6 @@ export class AnalyserComponent {
       .getRun(runId)
       .pipe(
         tap((run) => (this.run = run)),
-        tap(() => console.log(this.sampleMaskPacketSizes)),
         tap(() => this.runFetchDone.next())
       )
       .subscribe();
@@ -149,11 +157,14 @@ export class AnalyserComponent {
     ])
       .pipe(
         map(([files, blank]: [FileDescriptionWithJson[], any]) =>
-          files.map(({ json, ...rest }) => ({ json: json.filter((_: any, idx: number) => idx % 32 === 0), ...rest }))
+          files.map(({ json, ...rest }, index: number) => ({
+            json: json.filter((_: any, idx: number) => idx % this.sampleMaskPacketSizes[index % 2] === 0),
+            ...rest,
+          }))
         ),
         map((files: FileDescriptionWithJson[]) =>
-          files.map(({ json, ...rest }, fileIndex) => ({
-            json: json.map((v: number) => v / this.originalTrackSampleRates[fileIndex]),
+          files.map(({ json, ...rest }, index) => ({
+            json: json.map((v: number) => v / this.originalTrackSampleRates[index]),
             ...rest,
           }))
         ),
@@ -167,7 +178,7 @@ export class AnalyserComponent {
         switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader')))
       ),
-      this.runFetchDone.asObservable(),
+      this.originalTracksFetchDone.asObservable(),
     ])
       .pipe(
         tap(([files, blank]: [FileDescription[], any]) => {
@@ -211,7 +222,6 @@ export class AnalyserComponent {
             if (!refsArray.length) {
               return;
             }
-            // console.log(this.metrics);
 
             refsArray.forEach((chartRef: ElementRef<HTMLCanvasElement>, i: number) => {
               if (this.charts[i]) {
