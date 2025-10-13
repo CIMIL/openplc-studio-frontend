@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, ElementRef, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrapper.component';
 import { RunsClient } from '../shared/clients/runs.client';
-import { debounce, debounceTime, from, map, of, switchMap, take, tap } from 'rxjs';
+import { combineLatest, debounce, debounceTime, from, map, Observable, of, Subject, switchMap, take, tap } from 'rxjs';
 import { FileDescription, parseTar } from 'tarparser';
 import { AnalysisService } from '../shared/services/analysis.service';
 import { DropdownModule } from 'primeng/dropdown';
@@ -12,6 +12,12 @@ import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CommonModule } from '@angular/common';
 import { SkeletonModule } from 'primeng/skeleton';
+import { ChartModule } from 'primeng/chart';
+import { ListboxModule } from 'primeng/listbox';
+import { Run } from '../shared/interfaces/run.interface';
+import { ModuleType } from '../shared/enums/module-type.enum';
+import { Module } from '../shared/interfaces/module.interface';
+import { ModuleParameter } from '../shared/interfaces/module-parameters.interface';
 
 Chart.register(zoomPlugin);
 
@@ -26,13 +32,25 @@ type FileDescriptionWithJson = FileDescription & { json: any[] };
 
 @Component({
   selector: 'plc-analyser',
-  imports: [WavesurferWrapperComponent, DropdownModule, FormsModule, CascadeSelectModule, CommonModule, SkeletonModule],
+  imports: [
+    WavesurferWrapperComponent,
+    DropdownModule,
+    FormsModule,
+    CascadeSelectModule,
+    CommonModule,
+    SkeletonModule,
+    ListboxModule,
+  ],
   templateUrl: './analyser.component.html',
 })
 export class AnalyserComponent {
   public runId?: string;
 
+  public run?: Run;
+
   public originalTracks: FileDescription[] = [];
+
+  public originalTrackSampleRates: number[] = [];
 
   public trackGroups: { originalTrack: string; reconstructedTracks: { name: string }[] }[] = [];
 
@@ -44,14 +62,22 @@ export class AnalyserComponent {
 
   public sampleMasks: any[] = [];
 
+  public selectedPacket: any;
+
   public metrics: any[] = [];
 
   public chartsReady = false;
+
+  public lostPacketsfirstSampleTs: any = [];
 
   @ViewChildren('analysisCharts')
   private chartRefs?: QueryList<ElementRef<HTMLCanvasElement>>;
 
   public charts: Chart[] = [];
+
+  public runFetchDone: Subject<void> = new Subject<void>();
+
+  public originalTracksFetchDone: Subject<void> = new Subject<void>();
 
   constructor(
     private readonly runsClient: RunsClient,
@@ -59,8 +85,29 @@ export class AnalyserComponent {
     private readonly route: ActivatedRoute
   ) {}
 
+  get sampleMaskPacketSizes(): any[] {
+    return (
+      this.run?.modules[ModuleType.PacketLossSimulator].map(
+        (m: Module) => m.settings.filter((mp: ModuleParameter) => mp.name === 'packet_size')[0].value
+      ) ?? []
+    );
+  }
+
+  get sampleMaskNames(): any[] {
+    return this.run?.modules[ModuleType.PacketLossSimulator].map((m: Module) => m.name) ?? [];
+  }
+
   public ngOnInit(): void {
     const runId = this.route.snapshot.paramMap.get('id') || '';
+
+    this.runsClient
+      .getRun(runId)
+      .pipe(
+        tap((run) => (this.run = run)),
+        tap(() => console.log(this.sampleMaskPacketSizes)),
+        tap(() => this.runFetchDone.next())
+      )
+      .subscribe();
 
     this.runsClient
       .getRunAssets(runId, 0)
@@ -72,6 +119,13 @@ export class AnalyserComponent {
           this.originalTracks = files;
           this.originalTracks.forEach((t) => (this.trackMaps[t.name] = t.data));
 
+          this.originalTracks.forEach((t) => {
+            const u8 = t.data as Uint8Array<ArrayBufferLike>;
+            const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+            const sampleRate = dv.getUint32(24, true);
+            this.originalTrackSampleRates.push(sampleRate);
+          });
+
           // load default track
           if (files[0]) {
             this.onTrackChange(files[0]);
@@ -79,63 +133,44 @@ export class AnalyserComponent {
             this.analysisService.setAudioBlob(null);
           }
         }),
-        tap(() => this.loadReconstructedTracks(runId))
+        tap(() => this.originalTracksFetchDone.next())
       )
       .subscribe();
 
-    this.runsClient
-      .getRunAssets(runId, 1)
-      .pipe(
+    // FETCH SAMPLE MASKS
+    combineLatest([
+      this.runsClient.getRunAssets(runId, 1).pipe(
         take(1),
-        switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
+        switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        map((files: FileDescription[]) => files.map(this.decodeJson)),
-        tap((parsedFiles: FileDescriptionWithJson[]) => {
-          console.log(parsedFiles);
-        })
-      )
-      .subscribe();
-
-    this.runsClient
-      .getRunAssets(runId, 3)
+        map((files: FileDescription[]) => files.map(this.decodeJson))
+      ),
+      this.originalTracksFetchDone.asObservable(),
+    ])
       .pipe(
-        take(1),
-        switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
-        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        map((files: FileDescription[]) => files.map(this.decodeJson)),
-        tap(
-          (parsedFiles: FileDescriptionWithJson[]) =>
-            (this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest))
+        map(([files, blank]: [FileDescriptionWithJson[], any]) =>
+          files.map(({ json, ...rest }) => ({ json: json.filter((_: any, idx: number) => idx % 32 === 0), ...rest }))
         ),
-        tap(() => {
-          this.chartRefs?.changes.subscribe((refs: QueryList<ElementRef<HTMLCanvasElement>>) => {
-            const refsArray = refs.toArray();
-            if (!refsArray.length) {
-              return;
-            }
-
-            refsArray.forEach((chartRef: ElementRef<HTMLCanvasElement>, i: number) => {
-              if (this.charts[i]) {
-                this.charts[i].destroy();
-              }
-              const metric = this.metrics[i];
-              this.initChart(chartRef, metric);
-            });
-          });
-          this.chartsReady = true;
-        })
+        map((files: FileDescriptionWithJson[]) =>
+          files.map(({ json, ...rest }, fileIndex) => ({
+            json: json.map((v: number) => v / this.originalTrackSampleRates[fileIndex]),
+            ...rest,
+          }))
+        ),
+        tap((files: FileDescriptionWithJson[]) => (this.sampleMasks = files))
       )
       .subscribe();
-  }
 
-  private loadReconstructedTracks(runId: string): void {
-    this.runsClient
-      .getRunAssets(runId, 2)
-      .pipe(
+    combineLatest([
+      this.runsClient.getRunAssets(runId, 2).pipe(
         take(1),
         switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
-        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        tap((files: FileDescription[]) => {
+        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader')))
+      ),
+      this.runFetchDone.asObservable(),
+    ])
+      .pipe(
+        tap(([files, blank]: [FileDescription[], any]) => {
           this.reconstructedTracks = files;
           this.reconstructedTracks.forEach((t) => (this.trackMaps[t.name] = t.data));
 
@@ -155,6 +190,38 @@ export class AnalyserComponent {
             originalTrack: key,
             reconstructedTracks: tracks[key].reconstructedTracks,
           }));
+        })
+      )
+      .subscribe();
+
+    this.runsClient
+      .getRunAssets(runId, 3)
+      .pipe(
+        take(1),
+        switchMap((buf) => from(parseTar(buf))),
+        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
+        map((files: FileDescription[]) => files.map(this.decodeJson)),
+        tap(
+          (parsedFiles: FileDescriptionWithJson[]) =>
+            (this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest))
+        ),
+        tap(() => {
+          this.chartRefs?.changes.subscribe((refs: QueryList<ElementRef<HTMLCanvasElement>>) => {
+            const refsArray = refs.toArray();
+            if (!refsArray.length) {
+              return;
+            }
+            // console.log(this.metrics);
+
+            refsArray.forEach((chartRef: ElementRef<HTMLCanvasElement>, i: number) => {
+              if (this.charts[i]) {
+                this.charts[i].destroy();
+              }
+              const metric = this.metrics[i];
+              this.initChart(chartRef, metric);
+            });
+          });
+          this.chartsReady = true;
         })
       )
       .subscribe();
@@ -236,7 +303,7 @@ export class AnalyserComponent {
     this.charts.push(
       new Chart(chartRef.nativeElement, {
         type: 'bar',
-        data: { labels: ['Left', 'Right'], datasets: [{ data: metric.json }] },
+        data: { labels: ['DI', 'ODG'], datasets: [{ data: metric.json }] },
         options: {
           responsive: true,
           maintainAspectRatio: false,
