@@ -66,6 +66,8 @@ export class AnalyserComponent {
 
   public selectedSampleMaskIndex: number = 0;
 
+  public selectedOriginalTrack?: string;
+
   public selectedPacket: any;
 
   public metrics: any[] = [];
@@ -89,6 +91,13 @@ export class AnalyserComponent {
     private readonly route: ActivatedRoute
   ) {}
 
+  get originalTrackNames() {
+    if (this.run === undefined) {
+      return [];
+    }
+    return this.run?.tracks;
+  }
+
   get sampleMaskPacketSizes(): any[] {
     return (
       this.run?.modules[ModuleType.PacketLossSimulator].map(
@@ -104,6 +113,10 @@ export class AnalyserComponent {
         value: index,
       })) ?? []
     );
+  }
+
+  get indexOfSelectedOriginalTrack(): number {
+    return this.run?.tracks.indexOf(`${this.selectedOriginalTrack}.wav`) ?? 0;
   }
 
   public ngOnInit(): void {
@@ -158,16 +171,19 @@ export class AnalyserComponent {
       .pipe(
         map(([files, blank]: [FileDescriptionWithJson[], any]) =>
           files.map(({ json, ...rest }, index: number) => ({
-            json: json.filter((_: any, idx: number) => idx % this.sampleMaskPacketSizes[index % 2] === 0),
+            json: json.filter(
+              (_: any, idx: number) => idx % this.sampleMaskPacketSizes[index % (this.run?.tracks.length ?? 0)] === 0
+            ),
             ...rest,
           }))
         ),
         map((files: FileDescriptionWithJson[]) =>
           files.map(({ json, ...rest }, index) => ({
-            json: json.map((v: number) => v / this.originalTrackSampleRates[index]),
+            json: json.map((v: number) => v / this.originalTrackSampleRates[index % (this.run?.tracks.length ?? 0)]),
             ...rest,
           }))
         ),
+        tap((a) => console.log(a)),
         tap((files: FileDescriptionWithJson[]) => (this.sampleMasks = files))
       )
       .subscribe();
@@ -241,6 +257,14 @@ export class AnalyserComponent {
     if (!track || !track.name) {
       return;
     }
+    const trackNameStem = track.name.split('.')[0].split('/')[0];
+    this.selectedOriginalTrack = trackNameStem;
+
+    console.log(
+      this.sampleMasks[this.selectedSampleMaskIndex * this.indexOfSelectedOriginalTrack],
+      this.selectedSampleMaskIndex + (this.run?.tracks.length ?? 1) * this.indexOfSelectedOriginalTrack
+    );
+
     const audioBuffer = new Uint8Array(this.trackMaps[track.name]);
     const blob = new Blob([audioBuffer], { type: 'audio/wave' });
     this.analysisService.setAudioBlob(blob);

@@ -13,9 +13,9 @@
       />
     </ng-container>
   </div>
-  <div>
+  <!-- <div>
     <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
-  </div>
+  </div> -->
 
   <p-select
     [options]="sampleMaskNames"
@@ -25,7 +25,7 @@
   ></p-select>
 
   <p-listbox
-    [options]="sampleMasks[selectedSampleMaskIndex]?.json"
+    [options]="sampleMasks[selectedSampleMaskIndex + originalTrackNames.length * indexOfSelectedOriginalTrack]?.json"
     [(ngModel)]="selectedPacket"
     class="w-full md:w-56"
   />
