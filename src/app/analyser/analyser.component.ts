@@ -42,6 +42,7 @@ type FileDescriptionWithJson = FileDescription & { json: any[] };
     SkeletonModule,
     ListboxModule,
     SelectModule,
+    ChartModule,
   ],
   templateUrl: './analyser.component.html',
 })
@@ -72,14 +73,20 @@ export class AnalyserComponent {
 
   public metrics: any[] = [];
 
-  public chartsReady = false;
+  public chartsReady: boolean = false;
 
   public lostPacketsfirstSampleTs: any = [];
 
-  @ViewChildren('analysisCharts')
-  private chartRefs?: QueryList<ElementRef<HTMLCanvasElement>>;
+  // @ViewChildren('analysisCharts')
+  // private chartRefs?: QueryList<ElementRef<HTMLCanvasElement>>;
 
-  public charts: Chart[] = [];
+  // public charts: Chart[] = [];
+
+  public chartData: any[] = [];
+
+  public chartOptions: any[] = [];
+
+  public chartTypes: Array<'line' | 'bar'> = [];
 
   public runFetchDone: Subject<void> = new ReplaySubject<void>();
 
@@ -233,19 +240,11 @@ export class AnalyserComponent {
             (this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest))
         ),
         tap(() => {
-          this.chartRefs?.changes.subscribe((refs: QueryList<ElementRef<HTMLCanvasElement>>) => {
-            const refsArray = refs.toArray();
-            if (!refsArray.length) {
-              return;
-            }
-
-            refsArray.forEach((chartRef: ElementRef<HTMLCanvasElement>, i: number) => {
-              if (this.charts[i]) {
-                this.charts[i].destroy();
-              }
-              const metric = this.metrics[i];
-              this.initChart(chartRef, metric);
-            });
+          this.metrics.forEach((metric) => {
+            const { data, options, type } = this.buildChart(metric);
+            this.chartData.push(data);
+            this.chartOptions.push(options);
+            this.chartTypes.push(type);
           });
           this.chartsReady = true;
         })
@@ -270,92 +269,83 @@ export class AnalyserComponent {
     this.analysisService.setAudioBlob(blob);
   }
 
-  private initChart(chartRef: ElementRef<HTMLCanvasElement>, metric: any): void {
-    if (!chartRef) return;
-
+  private buildChart(metric: any): any {
     const metricModule = metric.name.split('-')[0];
 
     if (TD_METRICS.includes(metricModule)) {
-      this.initTDChart(chartRef, metric);
+      return this.initTDChart(metric);
       // } else if (FD_METRICS.includes(metricModule)) {
-      //   this.initFDChart(chartRef, metric);
+      //   this.initFDChart(metric);
     } else if (SCALAR_METRICS.includes(metricModule)) {
-      this.initScalarChart(chartRef, metric);
+      return this.initScalarChart(metric);
     }
   }
 
-  private initTDChart(chartRef: ElementRef<HTMLCanvasElement>, metric: any): void {
-    this.charts.push(
-      new Chart(chartRef.nativeElement, {
-        type: 'line',
-        data: {
-          labels: Array.from({ length: metric.json[0].length }, (_, i) => i.toString()),
-          datasets: metric.json.map((c: any, i: number) => ({
-            label: ['Left', 'Right'][i % 2],
-            data: c,
-            tension: 0.25,
-            borderColor: colors[i % colors.length],
-            backgroundColor: `${colors[i % colors.length]}26`,
-            pointRadius: 2,
-            fill: true,
-          })),
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          scales: {
-            x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
-            y: { beginAtZero: true },
+  private initTDChart(metric: any): any {
+    const data = {
+      labels: Array.from({ length: metric.json[0].length }, (_, i) => i.toString()),
+      datasets: metric.json.map((c: any, i: number) => ({
+        label: ['Left', 'Right'][i % 2],
+        data: c,
+        tension: 0.25,
+        borderColor: colors[i % colors.length],
+        backgroundColor: `${colors[i % colors.length]}26`,
+        pointRadius: 2,
+        fill: true,
+      })),
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
+        y: { beginAtZero: true },
+      },
+      plugins: {
+        legend: { display: true },
+        tooltip: { intersect: false, mode: 'index' as const },
+        zoom: {
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x',
           },
-          plugins: {
-            legend: { display: true },
-            tooltip: { intersect: false, mode: 'index' as const },
-            zoom: {
-              zoom: {
-                wheel: { enabled: true },
-                pinch: { enabled: true },
-                mode: 'x',
-              },
-              // pan: {
-              //   enabled: true,
-              //   mode: 'x',
-              //   modifierKey: 'shift',
-              // },
-            },
-          },
+          // pan: {
+          //   enabled: true,
+          //   mode: 'x',
+          //   modifierKey: 'shift',
+          // },
         },
-      })
-    );
+      },
+    };
+    return { data, options, type: 'line' as const };
   }
 
-  private initFDChart(chartRef: ElementRef<HTMLCanvasElement>, metric: any): void {
+  private initFDChart(metric: any): void {
     console.log('FD', metric);
   }
 
-  private initScalarChart(chartRef: ElementRef<HTMLCanvasElement>, metric: any): void {
-    this.charts.push(
-      new Chart(chartRef.nativeElement, {
-        type: 'bar',
-        data: { labels: ['DI', 'ODG'], datasets: [{ data: metric.json }] },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          scales: {
-            x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
-            y: {
-              beginAtZero: true,
-              min: -4, // Clip at -4 on the y axis
-            },
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: { intersect: false, mode: 'index' as const },
-          },
+  private initScalarChart(metric: any): any {
+    const data = { labels: ['DI', 'ODG'], datasets: [{ data: metric.json }] };
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
+        y: {
+          beginAtZero: true,
+          min: -4, // Clip at -4 on the y axis
         },
-      })
-    );
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { intersect: false, mode: 'index' as const },
+      },
+    };
+    return { data, options, type: 'bar' as const };
   }
 
   private decodeJson(file: FileDescription): FileDescriptionWithJson {
