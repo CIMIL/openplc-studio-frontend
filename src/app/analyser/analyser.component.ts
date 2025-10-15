@@ -8,7 +8,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { FormsModule } from '@angular/forms';
 import { CascadeSelectModule } from 'primeng/cascadeselect';
 import { ActivatedRoute } from '@angular/router';
-import Chart from 'chart.js/auto';
+import Chart, { ChartData, ChartOptions } from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CommonModule } from '@angular/common';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -19,6 +19,14 @@ import { ModuleType } from '../shared/enums/module-type.enum';
 import { Module } from '../shared/interfaces/module.interface';
 import { ModuleParameter } from '../shared/interfaces/module-parameters.interface';
 import { SelectModule } from 'primeng/select';
+import {
+  extractBitDepthFromWavHeader,
+  extractChannelNumberFromWavHeader,
+  extractSampleRateFromWavHeader,
+  normalizePcmSegment,
+  stripWavBinarySegment,
+  stripWavHeader,
+} from './wavUtils';
 
 Chart.register(zoomPlugin);
 
@@ -27,9 +35,28 @@ const FD_METRICS = ['SpectralEnergyCalculator', 'PerceptualCalculator'];
 // const SCALAR_METRICS = ['PEAQCalculator', 'WindowedPEAQCalculator'];
 const SCALAR_METRICS = ['PEAQCalculator'];
 
-const colors = ['#3b82f6', '#a7ef6e'];
+// Color palette from Tailwind CSS + Extra
+const colors = [
+  '#3b82f6', // Blue
+  '#ef4444', // Red
+  '#10b981', // Emerald
+  '#f59e42', // Orange
+  '#a78bfa', // Violet
+  '#f43f5e', // Rose
+  '#eab308', // Amber
+  '#06b6d4', // Cyan
+  '#6366f1', // Indigo
+  '#84cc16', // Lime
+  '#d946ef', // Fuchsia
+  '#38bdf8', // Sky blue
+  '#f87171', // Light red
+  '#34d399', // Light green
+  '#facc15', // Yellow
+];
 
 type FileDescriptionWithJson = FileDescription & { json: any[] };
+
+type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
 @Component({
   selector: 'plc-analyser',
@@ -55,7 +82,7 @@ export class AnalyserComponent {
 
   public originalTrackSampleRates: number[] = [];
 
-  public trackGroups: { originalTrack: string; reconstructedTracks: { name: string }[] }[] = [];
+  public trackGroups: TrackGroup[] = [];
 
   public trackMaps: Record<string, Uint8Array> = {};
 
@@ -67,7 +94,7 @@ export class AnalyserComponent {
 
   public selectedSampleMaskIndex: number = 0;
 
-  public selectedOriginalTrack?: string;
+  public selectedOriginalTrack: string = '';
 
   public selectedPacket: any;
 
@@ -77,16 +104,15 @@ export class AnalyserComponent {
 
   public lostPacketsfirstSampleTs: any = [];
 
-  // @ViewChildren('analysisCharts')
-  // private chartRefs?: QueryList<ElementRef<HTMLCanvasElement>>;
-
-  // public charts: Chart[] = [];
-
   public chartData: any[] = [];
 
   public chartOptions: any[] = [];
 
   public chartTypes: Array<'line' | 'bar'> = [];
+
+  public zoomSegmentData?: ChartData | null = null;
+
+  public zoomSegmentOptions?: ChartOptions | null = null;
 
   public runFetchDone: Subject<void> = new ReplaySubject<void>();
 
@@ -147,12 +173,9 @@ export class AnalyserComponent {
           this.originalTracks = files;
           this.originalTracks.forEach((t) => (this.trackMaps[t.name] = t.data));
 
-          this.originalTracks.forEach((t) => {
-            const u8 = t.data as Uint8Array<ArrayBufferLike>;
-            const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-            const sampleRate = dv.getUint32(24, true);
-            this.originalTrackSampleRates.push(sampleRate);
-          });
+          this.originalTracks.forEach((t) =>
+            this.originalTrackSampleRates.push(extractSampleRateFromWavHeader(t.data))
+          );
 
           // load default track
           if (files[0]) {
@@ -177,20 +200,17 @@ export class AnalyserComponent {
     ])
       .pipe(
         map(([files, blank]: [FileDescriptionWithJson[], any]) =>
-          files.map(({ json, ...rest }, index: number) => ({
-            json: json.filter(
-              (_: any, idx: number) => idx % this.sampleMaskPacketSizes[index % (this.run?.tracks.length ?? 0)] === 0
-            ),
-            ...rest,
-          }))
+          files.map(({ json, ...rest }, index: number) => {
+            console.log(json, rest.name);
+
+            return {
+              json: json.filter(
+                (value: any) => value % this.sampleMaskPacketSizes[index % (this.run?.tracks.length ?? 0)] === 0
+              ),
+              ...rest,
+            };
+          })
         ),
-        map((files: FileDescriptionWithJson[]) =>
-          files.map(({ json, ...rest }, index) => ({
-            json: json.map((v: number) => v / this.originalTrackSampleRates[index % (this.run?.tracks.length ?? 0)]),
-            ...rest,
-          }))
-        ),
-        tap((a) => console.log(a)),
         tap((files: FileDescriptionWithJson[]) => (this.sampleMasks = files))
       )
       .subscribe();
@@ -282,7 +302,7 @@ export class AnalyserComponent {
   }
 
   private initTDChart(metric: any): any {
-    const data = {
+    const data: ChartData = {
       labels: Array.from({ length: metric.json[0].length }, (_, i) => i.toString()),
       datasets: metric.json.map((c: any, i: number) => ({
         label: ['Left', 'Right'][i % 2],
@@ -295,7 +315,7 @@ export class AnalyserComponent {
       })),
     };
 
-    const options = {
+    const options: ChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
@@ -306,18 +326,6 @@ export class AnalyserComponent {
       plugins: {
         legend: { display: true },
         tooltip: { intersect: false, mode: 'index' as const },
-        zoom: {
-          zoom: {
-            wheel: { enabled: true },
-            pinch: { enabled: true },
-            mode: 'x',
-          },
-          // pan: {
-          //   enabled: true,
-          //   mode: 'x',
-          //   modifierKey: 'shift',
-          // },
-        },
       },
     };
     return { data, options, type: 'line' as const };
@@ -358,5 +366,80 @@ export class AnalyserComponent {
       console.error('Failed to parse file as JSON:', file.name, e);
     }
     return { ...file, json };
+  }
+
+  public giantMess() {
+    const selectedOriginalTrack: string = this.selectedOriginalTrack;
+
+    const foundTrackGroup = this.trackGroups.find((t) => t.originalTrack === selectedOriginalTrack);
+
+    const allTracks = foundTrackGroup ? [...foundTrackGroup.reconstructedTracks.map((r) => r.name)] : [];
+
+    const trackBinaryData = allTracks.map((t) => this.trackMaps[t]);
+
+    const maskPacketSize = this.sampleMaskPacketSizes[this.selectedSampleMaskIndex];
+
+    const bitDepth = extractBitDepthFromWavHeader(trackBinaryData[0]);
+
+    const channelNumber = extractChannelNumberFromWavHeader(trackBinaryData[0]);
+
+    const leftBound = this.selectedPacket;
+
+    const rightBound = this.selectedPacket + maskPacketSize;
+
+    const segments = trackBinaryData
+      .map(stripWavHeader)
+      .map((data) =>
+        stripWavBinarySegment(data, leftBound, rightBound, bitDepth, channelNumber, Math.max(maskPacketSize * 2, 50))
+      );
+
+    let normalizedSegments = segments.map((seg) => normalizePcmSegment(seg, bitDepth, channelNumber));
+    console.log(bitDepth, channelNumber, allTracks, normalizedSegments);
+
+    const maxAbsoluteValue = Math.max(
+      ...normalizedSegments.flatMap((segment) => segment[0].map((value) => Math.abs(value)))
+    );
+
+    this.zoomSegmentData = {
+      labels: Array.from({ length: normalizedSegments[0][0].length }, (_, i) => i.toString()),
+      datasets: normalizedSegments.map((t: any, i: number) => ({
+        label: allTracks.map((tn) => tn.split('/')[allTracks.length - 1] ?? tn)[i % normalizedSegments.length],
+        data: t[0],
+        tension: 0.25,
+        borderColor: colors[i % colors.length],
+        pointRadius: 2,
+        fill: false,
+      })),
+    };
+
+    const documentStyle = getComputedStyle(document.documentElement);
+    const textColor = documentStyle.getPropertyValue('--p-text-color');
+    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
+    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
+
+    this.zoomSegmentOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: false,
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 8, color: textColorSecondary } },
+        y: {
+          beginAtZero: true,
+          min: -maxAbsoluteValue,
+          max: maxAbsoluteValue,
+          ticks: { color: textColorSecondary },
+          grid: { color: surfaceBorder },
+        },
+      },
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            color: textColor,
+          },
+        },
+        tooltip: { intersect: false, mode: 'index' as const },
+      },
+    };
   }
 }
