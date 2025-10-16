@@ -13,50 +13,67 @@
       />
     </ng-container>
   </div>
-  <!-- <div>
+  <div>
     <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
-  </div> -->
-
-  <p-select
-    [options]="sampleMaskNames"
-    optionLabel="label"
-    optionValue="value"
-    [(ngModel)]="selectedSampleMaskIndex"
-  ></p-select>
-
-  <p-listbox
-    [options]="sampleMasks[selectedSampleMaskIndex + originalTrackNames.length * indexOfSelectedOriginalTrack]?.json"
-    [(ngModel)]="selectedPacket"
-    (onChange)="giantMess()"
-    class="w-full md:w-56"
-  />
-
-  <div class="bg-surface">
-    <p-chart
-      [type]="'line'"
-      [data]="zoomSegmentData"
-      [options]="zoomSegmentOptions"
-      [width]="'100%'"
-      [height]="'600px'"
-    />
   </div>
 
-  @if (!chartsReady) {
-  <p-skeleton width="auto" height="10rem"></p-skeleton>
-  }
-  <div style="width: 100%; height: 240px; margin-top: 1rem">
-    <ng-container *ngFor="let metric of metrics; let i = index">
-      <p-chart
-        [type]="chartTypes[i]"
-        [data]="chartData[i]"
-        [options]="chartOptions[i]"
-        [width]="'100%'"
-        [height]="'600px'"
+  <div>
+    <div class="flex-column gap-6">
+      <div class="flex gap-4">
+        <p-select
+          [options]="sampleMaskNames"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="analysisService.selectedSampleMaskIndex.value"
+          (ngModelChange)="analysisService.selectedSampleMaskIndex.next($event)"
+        ></p-select>
+        <p-toggle-button
+          [(ngModel)]="sampleMaskSelectedChannel"
+          offLabel="Left"
+          onLabel="Right"
+          (ngModelChange)="onChannelToggle()"
+        ></p-toggle-button>
+      </div>
+
+      <p-listbox
+        [options]="
+          sampleMaskPackets[
+            analysisService.selectedSampleMaskIndex.value + originalTrackNames.length * indexOfSelectedOriginalTrack
+          ]?.json
+        "
+        [(ngModel)]="selectedPacket"
+        (onChange)="giantMess()"
+        class="w-full md:w-56"
       />
-    </ng-container>
-  </div>
-</div>
 
-<ng-template #trackSelectSkeleton>
-  <p-skeleton width="auto" height="2.5rem"></p-skeleton>
-</ng-template>
+      <div class="bg-surface">
+        <p-chart
+          [type]="'line'"
+          [data]="zoomSegmentData"
+          [options]="zoomSegmentOptions"
+          [width]="'100%'"
+          [height]="'600px'"
+        />
+      </div>
+    </div>
+
+    @if (!chartsReady) {
+    <p-skeleton width="auto" height="10rem"></p-skeleton>
+    }
+    <div style="width: 100%; height: 240px; margin-top: 1rem">
+      <ng-container *ngFor="let metric of metrics; let i = index">
+        <p-chart
+          [type]="chartTypes[i]"
+          [data]="chartData[i]"
+          [options]="chartOptions[i]"
+          [width]="'100%'"
+          [height]="'600px'"
+        />
+      </ng-container>
+    </div>
+  </div>
+
+  <ng-template #trackSelectSkeleton>
+    <p-skeleton width="auto" height="2.5rem"></p-skeleton>
+  </ng-template>
+</div>

@@ -27,6 +27,7 @@ import {
   stripWavBinarySegment,
   stripWavHeader,
 } from './wavUtils';
+import { ToggleButtonModule } from 'primeng/togglebutton';
 
 Chart.register(zoomPlugin);
 
@@ -70,6 +71,7 @@ type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }
     ListboxModule,
     SelectModule,
     ChartModule,
+    ToggleButtonModule,
   ],
   templateUrl: './analyser.component.html',
 })
@@ -80,8 +82,6 @@ export class AnalyserComponent {
 
   public originalTracks: FileDescription[] = [];
 
-  public originalTrackSampleRates: number[] = [];
-
   public trackGroups: TrackGroup[] = [];
 
   public trackMaps: Record<string, Uint8Array> = {};
@@ -90,29 +90,33 @@ export class AnalyserComponent {
 
   public selectedTrack?: { name: string } | null = null;
 
-  public sampleMasks: any[] = [];
+  public sampleMaskPackets: any[] = [];
 
-  public selectedSampleMaskIndex: number = 0;
+  public sampleMaskSelectedChannel: boolean = false;
 
   public selectedOriginalTrack: string = '';
 
   public selectedPacket: any;
 
+  // START METRICS SECTION
   public metrics: any[] = [];
 
   public chartsReady: boolean = false;
-
-  public lostPacketsfirstSampleTs: any = [];
 
   public chartData: any[] = [];
 
   public chartOptions: any[] = [];
 
   public chartTypes: Array<'line' | 'bar'> = [];
+  // END METRICS SECTION
 
   public zoomSegmentData?: ChartData | null = null;
 
   public zoomSegmentOptions?: ChartOptions | null = null;
+
+  private normalizedSegmentsCache: any[] = [];
+
+  private allTracksCache: string[] = [];
 
   public runFetchDone: Subject<void> = new ReplaySubject<void>();
 
@@ -173,10 +177,9 @@ export class AnalyserComponent {
           this.originalTracks = files;
           this.originalTracks.forEach((t) => (this.trackMaps[t.name] = t.data));
 
-          this.originalTracks.forEach((t) =>
-            this.originalTrackSampleRates.push(extractSampleRateFromWavHeader(t.data))
+          this.analysisService.originalTrackSampleRates.next(
+            this.originalTracks.map((t) => extractSampleRateFromWavHeader(t.data))
           );
-
           // load default track
           if (files[0]) {
             this.onTrackChange(files[0]);
@@ -200,18 +203,29 @@ export class AnalyserComponent {
     ])
       .pipe(
         map(([files, blank]: [FileDescriptionWithJson[], any]) =>
-          files.map(({ json, ...rest }, index: number) => {
-            console.log(json, rest.name);
-
-            return {
-              json: json.filter(
-                (value: any) => value % this.sampleMaskPacketSizes[index % (this.run?.tracks.length ?? 0)] === 0
-              ),
-              ...rest,
-            };
-          })
+          files.map(({ json, ...rest }, index: number) => ({
+            json: json.filter(
+              (value: any) => value % this.sampleMaskPacketSizes[index % (this.run?.tracks.length ?? 0)] === 0
+            ),
+            ...rest,
+          }))
         ),
-        tap((files: FileDescriptionWithJson[]) => (this.sampleMasks = files))
+        tap((files: FileDescriptionWithJson[]) => (this.sampleMaskPackets = files)),
+        tap(() => {
+          const leftBoundsArr: number[][] = [];
+          const rightBoundsArr: number[][] = [];
+
+          this.sampleMaskPackets.forEach((maskPacket, i) => {
+            const json = maskPacket?.json;
+            const packetSize = this.sampleMaskPacketSizes[i];
+            const [left, right] = this.analysisService.calculatePacketBurstBounds(json, packetSize);
+            leftBoundsArr.push(left);
+            rightBoundsArr.push(right);
+          });
+
+          this.analysisService.packetBurstsLeftBounds.next(leftBoundsArr);
+          this.analysisService.packetBurstsRightBounds.next(rightBoundsArr);
+        })
       )
       .subscribe();
 
@@ -278,11 +292,6 @@ export class AnalyserComponent {
     }
     const trackNameStem = track.name.split('.')[0].split('/')[0];
     this.selectedOriginalTrack = trackNameStem;
-
-    console.log(
-      this.sampleMasks[this.selectedSampleMaskIndex * this.indexOfSelectedOriginalTrack],
-      this.selectedSampleMaskIndex + (this.run?.tracks.length ?? 1) * this.indexOfSelectedOriginalTrack
-    );
 
     const audioBuffer = new Uint8Array(this.trackMaps[track.name]);
     const blob = new Blob([audioBuffer], { type: 'audio/wave' });
@@ -377,34 +386,37 @@ export class AnalyserComponent {
 
     const trackBinaryData = allTracks.map((t) => this.trackMaps[t]);
 
-    const maskPacketSize = this.sampleMaskPacketSizes[this.selectedSampleMaskIndex];
+    const maskPacketSize = this.sampleMaskPacketSizes[this.analysisService.selectedSampleMaskIndex.value];
 
     const bitDepth = extractBitDepthFromWavHeader(trackBinaryData[0]);
 
     const channelNumber = extractChannelNumberFromWavHeader(trackBinaryData[0]);
 
-    const leftBound = this.selectedPacket;
+    const leftBound = this.getLeftBound();
 
-    const rightBound = this.selectedPacket + maskPacketSize;
+    const rightBound = this.getRightBound() + maskPacketSize;
 
     const segments = trackBinaryData
       .map(stripWavHeader)
       .map((data) =>
-        stripWavBinarySegment(data, leftBound, rightBound, bitDepth, channelNumber, Math.max(maskPacketSize * 2, 50))
+        stripWavBinarySegment(data, leftBound, rightBound, bitDepth, channelNumber, Math.min(maskPacketSize, 100))
       );
 
     let normalizedSegments = segments.map((seg) => normalizePcmSegment(seg, bitDepth, channelNumber));
-    console.log(bitDepth, channelNumber, allTracks, normalizedSegments);
 
     const maxAbsoluteValue = Math.max(
       ...normalizedSegments.flatMap((segment) => segment[0].map((value) => Math.abs(value)))
     );
 
+    this.normalizedSegmentsCache = normalizedSegments;
+
+    this.allTracksCache = allTracks;
+
     this.zoomSegmentData = {
       labels: Array.from({ length: normalizedSegments[0][0].length }, (_, i) => i.toString()),
       datasets: normalizedSegments.map((t: any, i: number) => ({
         label: allTracks.map((tn) => tn.split('/')[allTracks.length - 1] ?? tn)[i % normalizedSegments.length],
-        data: t[0],
+        data: t[Number(this.sampleMaskSelectedChannel)],
         tension: 0.25,
         borderColor: colors[i % colors.length],
         pointRadius: 2,
@@ -420,7 +432,6 @@ export class AnalyserComponent {
     this.zoomSegmentOptions = {
       responsive: true,
       maintainAspectRatio: true,
-      animation: false,
       scales: {
         x: { ticks: { autoSkip: true, maxTicksLimit: 8, color: textColorSecondary } },
         y: {
@@ -440,6 +451,68 @@ export class AnalyserComponent {
         },
         tooltip: { intersect: false, mode: 'index' as const },
       },
+    };
+  }
+
+  private getLeftBound() {
+    const selectedPacketIndex = this.sampleMaskPackets[0].json.indexOf(this.selectedPacket);
+
+    let getBoundRec = (currentLeftIndex: number) => {
+      if (currentLeftIndex == 0) {
+        return currentLeftIndex;
+      }
+      let currentLeft = this.sampleMaskPackets[0].json[currentLeftIndex];
+      let nextLeft = this.sampleMaskPackets[0].json[currentLeftIndex - 1];
+      if (Math.abs(currentLeft - nextLeft) > this.sampleMaskPacketSizes[0]) {
+        return currentLeftIndex;
+      }
+      return getBoundRec(currentLeftIndex - 1);
+    };
+
+    return this.sampleMaskPackets[0].json[getBoundRec(selectedPacketIndex)];
+  }
+
+  private getRightBound() {
+    const selectedPacketIndex = this.sampleMaskPackets[0].json.indexOf(this.selectedPacket);
+
+    if (selectedPacketIndex === this.sampleMaskPackets[0].json.length - 1) {
+      return this.selectedPacket;
+    }
+
+    let getBoundRec = (currentRightIndex: number) => {
+      if (currentRightIndex === this.sampleMaskPackets[0].json.length - 1) {
+        return currentRightIndex;
+      }
+      let currentRight = this.sampleMaskPackets[0].json[currentRightIndex];
+      let nextRight = this.sampleMaskPackets[0].json[currentRightIndex + 1];
+      if (Math.abs(currentRight - nextRight) > this.sampleMaskPacketSizes[0]) {
+        return currentRightIndex;
+      }
+      return getBoundRec(currentRightIndex + 1);
+    };
+
+    return this.sampleMaskPackets[0].json[getBoundRec(selectedPacketIndex)];
+  }
+
+  public onChannelToggle(): void {
+    this.buildZoomSegmentData();
+  }
+
+  private buildZoomSegmentData(): void {
+    if (!this.normalizedSegmentsCache.length) return;
+
+    this.zoomSegmentData = {
+      labels: Array.from({ length: this.normalizedSegmentsCache[0][0].length }, (_, i) => i.toString()),
+      datasets: this.normalizedSegmentsCache.map((t: any, i: number) => ({
+        label: this.allTracksCache.map((tn) => tn.split('/')[this.allTracksCache.length - 1] ?? tn)[
+          i % this.normalizedSegmentsCache.length
+        ],
+        data: t[Number(this.sampleMaskSelectedChannel)],
+        tension: 0.25,
+        borderColor: colors[i % colors.length],
+        pointRadius: 2,
+        fill: false,
+      })),
     };
   }
 }

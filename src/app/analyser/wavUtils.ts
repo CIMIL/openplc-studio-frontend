@@ -39,8 +39,9 @@ export function stripWavBinarySegment(
   // Convert left and right from sample indexes to byte indexes
   const bytesPerSample = bitDepth / 8;
   const frameSize = bytesPerSample * channelNumber;
-  const leftByte = (left - padding) * frameSize;
-  const rightByte = (right + padding) * frameSize;
+  const leftByte = Math.max(left - padding, 0) * frameSize;
+
+  const rightByte = Math.min(right * frameSize + padding * frameSize, data.length);
   return new Uint8Array(data.subarray(leftByte, rightByte));
 }
 
