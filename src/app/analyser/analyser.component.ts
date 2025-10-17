@@ -1,7 +1,7 @@
-import { Component, ElementRef, QueryList, ViewChildren } from '@angular/core';
+import { Component } from '@angular/core';
 import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrapper.component';
 import { RunsClient } from '../shared/clients/runs.client';
-import { BehaviorSubject, combineLatest, from, map, of, ReplaySubject, Subject, switchMap, take, tap } from 'rxjs';
+import { combineLatest, debounceTime, filter, from, map, of, ReplaySubject, Subject, switchMap, take, tap } from 'rxjs';
 import { FileDescription, parseTar } from 'tarparser';
 import { AnalysisService } from '../shared/services/analysis.service';
 import { DropdownModule } from 'primeng/dropdown';
@@ -284,6 +284,15 @@ export class AnalyserComponent {
         })
       )
       .subscribe();
+
+    this.analysisService.selectedPacketBounds
+      .asObservable()
+      .pipe(
+        debounceTime(150),
+        filter((bounds: number[]) => Array.isArray(bounds) && bounds.length === 2),
+        tap(([lb, rb, ...blank]) => this.giantMess(lb, rb))
+      )
+      .subscribe();
   }
 
   public onTrackChange(track: { name: string } | null): void {
@@ -377,7 +386,7 @@ export class AnalyserComponent {
     return { ...file, json };
   }
 
-  public giantMess() {
+  public giantMess(leftBound: number, rightBound: number) {
     const selectedOriginalTrack: string = this.selectedOriginalTrack;
 
     const foundTrackGroup = this.trackGroups.find((t) => t.originalTrack === selectedOriginalTrack);
@@ -391,10 +400,6 @@ export class AnalyserComponent {
     const bitDepth = extractBitDepthFromWavHeader(trackBinaryData[0]);
 
     const channelNumber = extractChannelNumberFromWavHeader(trackBinaryData[0]);
-
-    const leftBound = this.getLeftBound();
-
-    const rightBound = this.getRightBound() + maskPacketSize;
 
     const segments = trackBinaryData
       .map(stripWavHeader)
@@ -452,46 +457,6 @@ export class AnalyserComponent {
         tooltip: { intersect: false, mode: 'index' as const },
       },
     };
-  }
-
-  private getLeftBound() {
-    const selectedPacketIndex = this.sampleMaskPackets[0].json.indexOf(this.selectedPacket);
-
-    let getBoundRec = (currentLeftIndex: number) => {
-      if (currentLeftIndex == 0) {
-        return currentLeftIndex;
-      }
-      let currentLeft = this.sampleMaskPackets[0].json[currentLeftIndex];
-      let nextLeft = this.sampleMaskPackets[0].json[currentLeftIndex - 1];
-      if (Math.abs(currentLeft - nextLeft) > this.sampleMaskPacketSizes[0]) {
-        return currentLeftIndex;
-      }
-      return getBoundRec(currentLeftIndex - 1);
-    };
-
-    return this.sampleMaskPackets[0].json[getBoundRec(selectedPacketIndex)];
-  }
-
-  private getRightBound() {
-    const selectedPacketIndex = this.sampleMaskPackets[0].json.indexOf(this.selectedPacket);
-
-    if (selectedPacketIndex === this.sampleMaskPackets[0].json.length - 1) {
-      return this.selectedPacket;
-    }
-
-    let getBoundRec = (currentRightIndex: number) => {
-      if (currentRightIndex === this.sampleMaskPackets[0].json.length - 1) {
-        return currentRightIndex;
-      }
-      let currentRight = this.sampleMaskPackets[0].json[currentRightIndex];
-      let nextRight = this.sampleMaskPackets[0].json[currentRightIndex + 1];
-      if (Math.abs(currentRight - nextRight) > this.sampleMaskPacketSizes[0]) {
-        return currentRightIndex;
-      }
-      return getBoundRec(currentRightIndex + 1);
-    };
-
-    return this.sampleMaskPackets[0].json[getBoundRec(selectedPacketIndex)];
   }
 
   public onChannelToggle(): void {

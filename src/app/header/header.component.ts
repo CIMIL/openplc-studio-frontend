@@ -5,6 +5,7 @@ import { ToggleButtonModule } from 'primeng/togglebutton';
 import { LocalStorageService } from '../shared/services/local-storage.service';
 import { Toolbar } from 'primeng/toolbar';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'plc-header',
@@ -14,7 +15,7 @@ import { CommonModule } from '@angular/common';
 export class HeaderComponent {
   private _isDarkMode = false;
 
-  constructor(private readonly localStorageService: LocalStorageService) {}
+  constructor(private readonly localStorageService: LocalStorageService, private readonly router: Router) {}
 
   ngOnInit(): void {
     this.isDarkMode = this.localStorageService.get<boolean>('isDarkMode') ?? false;
@@ -41,5 +42,9 @@ export class HeaderComponent {
     } else {
       element?.classList.remove('my-app-dark');
     }
+  }
+
+  public nagivateToBacklog() {
+    this.router.navigate(['backlog']);
   }
 }

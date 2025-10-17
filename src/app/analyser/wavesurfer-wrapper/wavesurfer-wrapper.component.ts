@@ -15,7 +15,7 @@ import {
 import WaveSurfer from 'wavesurfer.js';
 import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';
 import Spectrogram from 'wavesurfer.js/dist/plugins/spectrogram';
-import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions';
+import RegionsPlugin, { Region } from 'wavesurfer.js/dist/plugins/regions';
 import { CommonModule } from '@angular/common';
 import { AnalysisService } from '../../shared/services/analysis.service';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -25,7 +25,7 @@ import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
   selector: 'plc-wavesurfer-wrapper',
   imports: [CommonModule, SkeletonModule],
   templateUrl: './wavesurfer-wrapper.component.html',
-  styleUrl: './wavesurfer-wrapper.component.scss',
+  styleUrls: ['./wavesurfer-wrapper.component.scss'],
 })
 export class WavesurferWrapperComponent implements OnDestroy {
   private _waveformRef?: ElementRef;
@@ -155,9 +155,9 @@ export class WavesurferWrapperComponent implements OnDestroy {
     this.wavesurfer.registerPlugin(lens);
 
     // Add region click event listener
-    lens.on('region-clicked', (region, event) => {
+    lens.on('region-clicked', (region: Region, event) => {
       event.stopPropagation(); // Prevent click from propagating to other elements
-      console.log('Region clicked:', region);
+      // console.log('Region clicked:', region);
       this.onRegionClick(region);
     });
 
@@ -180,11 +180,25 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
           leftBounds[sampleMaskIndex].forEach((lb: number, idx: number) => {
             const rb: number = rightBounds[sampleMaskIndex][idx];
-            lens.addRegion({
+            const region = lens.addRegion({
               start: lb / sampleRate,
               end: rb / sampleRate,
               drag: false,
               resize: false,
+              color: '#fff',
+              content: `${lb}|${rb}`,
+            });
+            const regionElement = region.element as HTMLElement;
+            regionElement.classList.add('ws-region');
+
+            const contentEl = regionElement.querySelector('[part="region-content"]') as HTMLElement | null;
+            if (contentEl) {
+              contentEl.style.visibility = 'hidden';
+            }
+
+            region.on('content-changed', () => {
+              const c = region.element?.querySelector('[part="region-content"]') as HTMLElement | null;
+              if (c) c.style.visibility = 'hidden';
             });
           });
         })
@@ -192,19 +206,20 @@ export class WavesurferWrapperComponent implements OnDestroy {
       .subscribe();
   }
 
-  private onRegionClick(region: any): void {
+  private onRegionClick(region: Region): void {
     // Handle region click
-    console.log('Region clicked:', {
-      start: region.start,
-      end: region.end,
-      duration: region.end - region.start,
-    });
 
-    // You can add more functionality here, such as:
-    // - Playing the audio segment: this.wavesurfer.play(region.start, region.end);
-    // - Highlighting the region
-    // - Showing region details
-    // - Emitting an event to parent component
+    const sampleRate = this.analysisService.originalTrackSampleRates.value[0];
+    const content = region.content as HTMLElement;
+    const [lb, rb, ...blank] = content
+      .getHTML()
+      .split('|')
+      .map((b) => Number(b));
+    // console.log('Region clicked:', {
+    //   start: region.start * sampleRate,
+    //   end: region.end * sampleRate,
+    // });
+    this.analysisService.selectedPacketBounds.next([lb, rb]);
   }
 
   private destroyWavesurfer() {

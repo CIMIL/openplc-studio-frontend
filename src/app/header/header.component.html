@@ -1,5 +1,5 @@
 <p-toolbar [style]="{ 'border-radius': '0px', padding: '1rem 1rem 1rem 1.5rem' }">
-  <ng-template #start> PLC Testbench :) </ng-template>
+  <ng-template #start> <div style="cursor: pointer" (click)="nagivateToBacklog()">PLC Testbench :)</div> </ng-template>
   <ng-template #center> </ng-template>
   <ng-template #end>
     <button (click)="toggleDarkMode()">

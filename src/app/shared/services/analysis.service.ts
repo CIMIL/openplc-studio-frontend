@@ -15,6 +15,8 @@ export class AnalysisService {
 
   public selectedSampleMaskIndex = new BehaviorSubject<number>(0);
 
+  public selectedPacketBounds = new BehaviorSubject<number[]>([]);
+
   public get audioBlob$(): Observable<Blob | null> {
     return this.currentAudioBlobSubject.asObservable();
   }
@@ -67,5 +69,45 @@ export class AnalysisService {
 
   private isPacketGap(currentPacket: number, otherPacket: number, packetSize: number): boolean {
     return Math.abs(currentPacket - otherPacket) > packetSize;
+  }
+
+  public getLeftBound(selectedPacket: number, sampleMask: number[], packetSize: number) {
+    const selectedPacketIndex = sampleMask.indexOf(selectedPacket);
+
+    let getBoundRec = (currentLeftIndex: number) => {
+      if (currentLeftIndex == 0) {
+        return currentLeftIndex;
+      }
+      let currentLeft = sampleMask[currentLeftIndex];
+      let nextLeft = sampleMask[currentLeftIndex - 1];
+      if (Math.abs(currentLeft - nextLeft) > packetSize) {
+        return currentLeftIndex;
+      }
+      return getBoundRec(currentLeftIndex - 1);
+    };
+
+    return sampleMask[getBoundRec(selectedPacketIndex)];
+  }
+
+  public getRightBound(selectedPacket: number, sampleMask: number[], packetSize: number) {
+    const selectedPacketIndex = sampleMask.indexOf(selectedPacket);
+
+    if (selectedPacketIndex === sampleMask.length - 1) {
+      return selectedPacket;
+    }
+
+    let getBoundRec = (currentRightIndex: number) => {
+      if (currentRightIndex === sampleMask.length - 1) {
+        return currentRightIndex;
+      }
+      let currentRight = sampleMask[currentRightIndex];
+      let nextRight = sampleMask[currentRightIndex + 1];
+      if (Math.abs(currentRight - nextRight) > packetSize) {
+        return currentRightIndex;
+      }
+      return getBoundRec(currentRightIndex + 1);
+    };
+
+    return sampleMask[getBoundRec(selectedPacketIndex)];
   }
 }

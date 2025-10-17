@@ -35,17 +35,6 @@
         ></p-toggle-button>
       </div>
 
-      <p-listbox
-        [options]="
-          sampleMaskPackets[
-            analysisService.selectedSampleMaskIndex.value + originalTrackNames.length * indexOfSelectedOriginalTrack
-          ]?.json
-        "
-        [(ngModel)]="selectedPacket"
-        (onChange)="giantMess()"
-        class="w-full md:w-56"
-      />
-
       <div class="bg-surface">
         <p-chart
           [type]="'line'"
