@@ -1,25 +1,12 @@
 import { Component, ElementRef, Input, ViewChild, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import {
-  BehaviorSubject,
-  combineLatest,
-  debounceTime,
-  distinctUntilChanged,
-  filter,
-  fromEvent,
-  fromEventPattern,
-  Subject,
-  Subscription,
-  takeUntil,
-  tap,
-} from 'rxjs';
+import { combineLatest, filter, fromEvent, fromEventPattern, Subject, Subscription, takeUntil, tap } from 'rxjs';
 import WaveSurfer from 'wavesurfer.js';
 import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';
 import Spectrogram from 'wavesurfer.js/dist/plugins/spectrogram';
 import RegionsPlugin, { Region } from 'wavesurfer.js/dist/plugins/regions';
 import { CommonModule } from '@angular/common';
-import { AnalysisService } from '../../shared/services/analysis.service';
+import { AnalysisService } from '../analysis.service';
 import { SkeletonModule } from 'primeng/skeleton';
-import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
 
 @Component({
   selector: 'plc-wavesurfer-wrapper',
@@ -57,6 +44,8 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
   private spacebarSubscription?: Subscription;
 
+  private regionsSubscription?: Subscription;
+
   constructor(public readonly analysisService: AnalysisService) {}
 
   public ngAfterViewInit() {
@@ -93,13 +82,13 @@ export class WavesurferWrapperComponent implements OnDestroy {
       backend: 'WebAudio',
       waveColor: 'violet',
       progressColor: 'purple',
-      height: 500,
-      barWidth: 3,
-      barHeight: 1,
-      barRadius: 10,
-      barGap: 2,
+      height: 200,
+      // barWidth: 3,
+      // barHeight: 1,
+      // barRadius: 10,
+      // barGap: 2,
       minPxPerSec: 50,
-      sampleRate: 44100,
+      sampleRate: this.analysisService.selectedTrackPlaybackSampleRate.value,
     });
 
     // define wavesurfer events
@@ -166,7 +155,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
       (handler) => this.wavesurfer.un('decode', handler)
     );
 
-    combineLatest([
+    this.regionsSubscription = combineLatest([
       decodeObservable,
       this.analysisService.packetBurstsLeftBounds.asObservable(),
       this.analysisService.packetBurstsRightBounds.asObservable(),
@@ -178,14 +167,17 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
           lens.clearRegions();
 
-          leftBounds[sampleMaskIndex].forEach((lb: number, idx: number) => {
-            const rb: number = rightBounds[sampleMaskIndex][idx];
+          const left = leftBounds?.[sampleMaskIndex] || [];
+          const right = rightBounds?.[sampleMaskIndex] || [];
+
+          left.forEach((lb: number, idx: number) => {
+            const rb: number = right[idx];
             const region = lens.addRegion({
               start: lb / sampleRate,
               end: rb / sampleRate,
               drag: false,
               resize: false,
-              color: '#fff',
+              color: '#ffffff20',
               content: `${lb}|${rb}`,
             });
             const regionElement = region.element as HTMLElement;
@@ -207,22 +199,20 @@ export class WavesurferWrapperComponent implements OnDestroy {
   }
 
   private onRegionClick(region: Region): void {
-    // Handle region click
-
     const sampleRate = this.analysisService.originalTrackSampleRates.value[0];
     const content = region.content as HTMLElement;
     const [lb, rb, ...blank] = content
       .getHTML()
       .split('|')
       .map((b) => Number(b));
-    // console.log('Region clicked:', {
-    //   start: region.start * sampleRate,
-    //   end: region.end * sampleRate,
-    // });
     this.analysisService.selectedPacketBounds.next([lb, rb]);
   }
 
   private destroyWavesurfer() {
+    if (this.regionsSubscription) {
+      this.regionsSubscription.unsubscribe();
+      this.regionsSubscription = undefined;
+    }
     this.wavesurfer.stop();
     this.wavesurfer.destroy();
   }

@@ -37,8 +37,6 @@ export class BacklogComponent implements OnInit {
   }
 
   public onAnalyse(run: Run) {
-    console.log(run);
-
     this.router.navigate(['analyzer', run.id]);
   }
 }

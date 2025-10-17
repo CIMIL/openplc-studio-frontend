@@ -2,8 +2,8 @@
   <div class="py-4">
     <ng-container *ngIf="trackGroups && trackGroups.length > 0; else trackSelectSkeleton">
       <p-cascadeselect
-        [ngModel]="selectedTrack"
-        (onChange)="onTrackChange($event.value)"
+        [ngModel]="analysisService.selectedTrackPlayback.value"
+        (ngModelChange)="analysisService.selectedTrackPlayback.next($event)"
         [options]="$any(trackGroups)"
         optionLabel="name"
         optionGroupLabel="originalTrack"
@@ -28,7 +28,7 @@
           (ngModelChange)="analysisService.selectedSampleMaskIndex.next($event)"
         ></p-select>
         <p-toggle-button
-          [(ngModel)]="sampleMaskSelectedChannel"
+          [(ngModel)]="zoomLensSelectedChannel"
           offLabel="Left"
           onLabel="Right"
           (ngModelChange)="onChannelToggle()"

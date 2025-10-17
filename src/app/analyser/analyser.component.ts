@@ -1,9 +1,22 @@
 import { Component } from '@angular/core';
 import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrapper.component';
 import { RunsClient } from '../shared/clients/runs.client';
-import { combineLatest, debounceTime, filter, from, map, of, ReplaySubject, Subject, switchMap, take, tap } from 'rxjs';
+import {
+  combineLatest,
+  debounceTime,
+  filter,
+  from,
+  map,
+  of,
+  ReplaySubject,
+  Subject,
+  switchMap,
+  take,
+  takeUntil,
+  tap,
+} from 'rxjs';
 import { FileDescription, parseTar } from 'tarparser';
-import { AnalysisService } from '../shared/services/analysis.service';
+import { AnalysisService } from './analysis.service';
 import { DropdownModule } from 'primeng/dropdown';
 import { FormsModule } from '@angular/forms';
 import { CascadeSelectModule } from 'primeng/cascadeselect';
@@ -28,6 +41,7 @@ import {
   stripWavHeader,
 } from './wavUtils';
 import { ToggleButtonModule } from 'primeng/togglebutton';
+import { decodeJson } from './utils';
 
 Chart.register(zoomPlugin);
 
@@ -55,7 +69,7 @@ const colors = [
   '#facc15', // Yellow
 ];
 
-type FileDescriptionWithJson = FileDescription & { json: any[] };
+export type FileDescriptionWithJson = FileDescription & { json: any[] };
 
 type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
@@ -82,21 +96,19 @@ export class AnalyserComponent {
 
   public originalTracks: FileDescription[] = [];
 
-  public trackGroups: TrackGroup[] = [];
-
   public trackMaps: Record<string, Uint8Array> = {};
+
+  public trackGroups: TrackGroup[] = [];
 
   public reconstructedTracks: FileDescription[] = [];
 
-  public selectedTrack?: { name: string } | null = null;
+  public sampleMask: FileDescriptionWithJson[] = [];
 
-  public sampleMaskPackets: any[] = [];
+  public sampleMaskMaps: Record<string, number[]> = {};
 
-  public sampleMaskSelectedChannel: boolean = false;
+  public zoomLensSelectedChannel: boolean = false;
 
   public selectedOriginalTrack: string = '';
-
-  public selectedPacket: any;
 
   // START METRICS SECTION
   public metrics: any[] = [];
@@ -118,9 +130,11 @@ export class AnalyserComponent {
 
   private allTracksCache: string[] = [];
 
-  public runFetchDone: Subject<void> = new ReplaySubject<void>();
+  public runFetchDone = new ReplaySubject<void>();
 
-  public originalTracksFetchDone: Subject<void> = new ReplaySubject<void>();
+  public originalTracksFetchDone = new ReplaySubject<void>();
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private readonly runsClient: RunsClient,
@@ -145,8 +159,8 @@ export class AnalyserComponent {
 
   get sampleMaskNames(): { label: string; value: number }[] {
     return (
-      this.run?.modules[ModuleType.PacketLossSimulator].map((m: Module, index: number) => ({
-        label: m.name,
+      Object.keys(this.sampleMaskMaps).map((name: string, index: number) => ({
+        label: name.split('-')[0],
         value: index,
       })) ?? []
     );
@@ -167,6 +181,7 @@ export class AnalyserComponent {
       )
       .subscribe();
 
+    // FETCH ORIGINAL TRACKS
     this.runsClient
       .getRunAssets(runId, 0)
       .pipe(
@@ -182,7 +197,8 @@ export class AnalyserComponent {
           );
           // load default track
           if (files[0]) {
-            this.onTrackChange(files[0]);
+            this.analysisService.selectedTrackPlaybackSampleRate.next(extractSampleRateFromWavHeader(files[0].data));
+            this.analysisService.selectedTrackPlayback.next({ name: files[0].name });
           } else {
             this.analysisService.setAudioBlob(null);
           }
@@ -197,7 +213,7 @@ export class AnalyserComponent {
         take(1),
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        map((files: FileDescription[]) => files.map(this.decodeJson))
+        map((files: FileDescription[]) => files.map(decodeJson))
       ),
       this.originalTracksFetchDone.asObservable(),
     ])
@@ -210,12 +226,16 @@ export class AnalyserComponent {
             ...rest,
           }))
         ),
-        tap((files: FileDescriptionWithJson[]) => (this.sampleMaskPackets = files)),
+        tap((files: FileDescriptionWithJson[]) => (this.sampleMask = files)),
+        tap((files: FileDescriptionWithJson[]) =>
+          files.forEach((m: FileDescriptionWithJson) => (this.sampleMaskMaps[m.name.split('-')[0]] = m.json))
+        ),
+        tap(() => console.log()),
         tap(() => {
           const leftBoundsArr: number[][] = [];
           const rightBoundsArr: number[][] = [];
 
-          this.sampleMaskPackets.forEach((maskPacket, i) => {
+          this.sampleMask.forEach((maskPacket, i) => {
             const json = maskPacket?.json;
             const packetSize = this.sampleMaskPacketSizes[i];
             const [left, right] = this.analysisService.calculatePacketBurstBounds(json, packetSize);
@@ -229,6 +249,7 @@ export class AnalyserComponent {
       )
       .subscribe();
 
+    // FETCH RECONSTRUCTED TRACKS
     combineLatest([
       this.runsClient.getRunAssets(runId, 2).pipe(
         take(1),
@@ -262,13 +283,14 @@ export class AnalyserComponent {
       )
       .subscribe();
 
+    // FETCH METRICS
     this.runsClient
       .getRunAssets(runId, 3)
       .pipe(
         take(1),
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        map((files: FileDescription[]) => files.map(this.decodeJson)),
+        map((files: FileDescription[]) => files.map(decodeJson)),
         tap(
           (parsedFiles: FileDescriptionWithJson[]) =>
             (this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest))
@@ -288,9 +310,19 @@ export class AnalyserComponent {
     this.analysisService.selectedPacketBounds
       .asObservable()
       .pipe(
+        takeUntil(this.destroy$),
         debounceTime(150),
         filter((bounds: number[]) => Array.isArray(bounds) && bounds.length === 2),
-        tap(([lb, rb, ...blank]) => this.giantMess(lb, rb))
+        tap(([lb, rb, ...blank]) => this.buildSampleLens(lb, rb))
+      )
+      .subscribe();
+
+    this.analysisService.selectedTrackPlayback
+      .asObservable()
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((track): track is { name: string } => !!track && !!track.name),
+        tap((track) => this.onTrackChange(track))
       )
       .subscribe();
   }
@@ -299,12 +331,18 @@ export class AnalyserComponent {
     if (!track || !track.name) {
       return;
     }
-    const trackNameStem = track.name.split('.')[0].split('/')[0];
+    const trackNameSplit = track.name.split('.')[0].split('/');
+    const trackNameStem = trackNameSplit[0];
     this.selectedOriginalTrack = trackNameStem;
-
     const audioBuffer = new Uint8Array(this.trackMaps[track.name]);
     const blob = new Blob([audioBuffer], { type: 'audio/wave' });
     this.analysisService.setAudioBlob(blob);
+
+    if (trackNameSplit.length > 1) {
+      const sampleMaskName = trackNameSplit[1];
+      const sampleMaskIndex = Object.keys(this.sampleMaskMaps).indexOf(sampleMaskName);
+      this.analysisService.selectedSampleMaskIndex.next(sampleMaskIndex);
+    }
   }
 
   private buildChart(metric: any): any {
@@ -374,24 +412,30 @@ export class AnalyserComponent {
     return { data, options, type: 'bar' as const };
   }
 
-  private decodeJson(file: FileDescription): FileDescriptionWithJson {
-    let json = null;
-    try {
-      const decoder = new TextDecoder('utf-8');
-      const text = decoder.decode(file.data);
-      json = JSON.parse(text);
-    } catch (e) {
-      console.error('Failed to parse file as JSON:', file.name, e);
-    }
-    return { ...file, json };
-  }
-
-  public giantMess(leftBound: number, rightBound: number) {
+  public buildSampleLens(leftBound: number, rightBound: number) {
     const selectedOriginalTrack: string = this.selectedOriginalTrack;
 
     const foundTrackGroup = this.trackGroups.find((t) => t.originalTrack === selectedOriginalTrack);
 
-    const allTracks = foundTrackGroup ? [...foundTrackGroup.reconstructedTracks.map((r) => r.name)] : [];
+    const allTracks = foundTrackGroup
+      ? [
+          ...foundTrackGroup.reconstructedTracks
+            .map((r) => r.name)
+            .filter((name: string) => {
+              const split = name.split('/');
+              if (split.length === 1) {
+                return true;
+              }
+              if (
+                Object.keys(this.sampleMaskMaps).indexOf(split[1]) ===
+                this.analysisService.selectedSampleMaskIndex.value
+              ) {
+                return true;
+              }
+              return false;
+            }),
+        ]
+      : [];
 
     const trackBinaryData = allTracks.map((t) => this.trackMaps[t]);
 
@@ -420,8 +464,8 @@ export class AnalyserComponent {
     this.zoomSegmentData = {
       labels: Array.from({ length: normalizedSegments[0][0].length }, (_, i) => i.toString()),
       datasets: normalizedSegments.map((t: any, i: number) => ({
-        label: allTracks.map((tn) => tn.split('/')[allTracks.length - 1] ?? tn)[i % normalizedSegments.length],
-        data: t[Number(this.sampleMaskSelectedChannel)],
+        label: allTracks.map((tn) => tn.split('/')[tn.split('/').length - 1] ?? tn)[i % normalizedSegments.length],
+        data: t[Number(this.zoomLensSelectedChannel)],
         tension: 0.25,
         borderColor: colors[i % colors.length],
         pointRadius: 2,
@@ -472,12 +516,17 @@ export class AnalyserComponent {
         label: this.allTracksCache.map((tn) => tn.split('/')[this.allTracksCache.length - 1] ?? tn)[
           i % this.normalizedSegmentsCache.length
         ],
-        data: t[Number(this.sampleMaskSelectedChannel)],
+        data: t[Number(this.zoomLensSelectedChannel)],
         tension: 0.25,
         borderColor: colors[i % colors.length],
         pointRadius: 2,
         fill: false,
       })),
     };
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

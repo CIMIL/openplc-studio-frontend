@@ -17,6 +17,10 @@ export class AnalysisService {
 
   public selectedPacketBounds = new BehaviorSubject<number[]>([]);
 
+  public selectedTrackPlayback = new BehaviorSubject<{ name: string } | null>(null);
+
+  public selectedTrackPlaybackSampleRate = new BehaviorSubject<number>(-1);
+
   public get audioBlob$(): Observable<Blob | null> {
     return this.currentAudioBlobSubject.asObservable();
   }
