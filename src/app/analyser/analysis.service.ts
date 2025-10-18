@@ -37,6 +37,8 @@ export class AnalysisService {
 
   public sampleMaskMaps = new BehaviorSubject<Record<string, number[]> | null>(null);
 
+  public metrics = new BehaviorSubject<any[]>([]);
+
   public get audioBlob$(): Observable<Blob | null> {
     return this.currentAudioBlobSubject.asObservable();
   }

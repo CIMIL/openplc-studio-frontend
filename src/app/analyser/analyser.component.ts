@@ -7,33 +7,31 @@ import { AnalysisService, FileDescriptionWithJson } from './analysis.service';
 import { FormsModule } from '@angular/forms';
 import { CascadeSelectModule } from 'primeng/cascadeselect';
 import { ActivatedRoute } from '@angular/router';
-import Chart, { ChartData, ChartOptions } from 'chart.js/auto';
+import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CommonModule } from '@angular/common';
 import { SkeletonModule } from 'primeng/skeleton';
-import { ChartModule } from 'primeng/chart';
 import { ModuleType } from '../shared/enums/module-type.enum';
 import { Module } from '../shared/interfaces/module.interface';
 import { ModuleParameter } from '../shared/interfaces/module-parameters.interface';
 import { extractSampleRateFromWavHeader } from './wavUtils';
-import { DARK_COLORS, decodeJson, LIGHT_COLORS } from './utils';
+import { decodeJson } from './utils';
 import { ZoomLensComponent } from './zoom-lens/zoom-lens.component';
 import { ThemeService } from '../shared/services/theme.service';
+import { MetricsComponent } from './metrics/metrics.component';
 
 Chart.register(zoomPlugin);
-
-const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 
 @Component({
   selector: 'plc-analyser',
   imports: [
     WavesurferWrapperComponent,
     ZoomLensComponent,
+    MetricsComponent,
     FormsModule,
     CascadeSelectModule,
     CommonModule,
     SkeletonModule,
-    ChartModule,
   ],
   templateUrl: './analyser.component.html',
 })
@@ -45,18 +43,6 @@ export class AnalyserComponent {
   public reconstructedTracks: FileDescription[] = [];
 
   public sampleMask: FileDescriptionWithJson[] = [];
-
-  // START METRICS SECTION
-  public metrics: any[] = [];
-
-  public chartsReady: boolean = false;
-
-  public chartData: any[] = [];
-
-  public chartOptions: any[] = [];
-
-  public chartTypes: Array<'line' | 'bar'> = [];
-  // END METRICS SECTION
 
   public runFetchDone = new ReplaySubject<void>();
 
@@ -216,16 +202,7 @@ export class AnalyserComponent {
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         map((files: FileDescription[]) => files.map(decodeJson)),
-        tap((parsedFiles: FileDescriptionWithJson[]) => (this.metrics = parsedFiles)),
-        tap(() => {
-          this.metrics.forEach((metric) => {
-            const { data, options, type } = this.buildChart(metric);
-            this.chartData.push(data);
-            this.chartOptions.push(options);
-            this.chartTypes.push(type);
-          });
-          this.chartsReady = true;
-        }),
+        tap((parsedFiles: FileDescriptionWithJson[]) => this.analysisService.metrics.next(parsedFiles)),
       )
       .subscribe();
 
@@ -255,74 +232,6 @@ export class AnalyserComponent {
       const sampleMaskIndex = Object.keys(this.analysisService.sampleMaskMaps.value ?? {}).indexOf(sampleMaskName);
       this.analysisService.selectedSampleMaskIndex.next(sampleMaskIndex);
     }
-  }
-
-  private buildChart(metric: any): any {
-    const metricModule = metric.name.split('-')[0];
-
-    if (TD_METRICS.includes(metricModule)) {
-      return this.initTDChart(metric);
-      // } else if (FD_METRICS.includes(metricModule)) {
-      //   this.initFDChart(metric);
-    } else if (metricModule === 'PEAQCalculator') {
-      return this.initPEAQChart(metric);
-    }
-  }
-
-  private initTDChart(metric: any): any {
-    const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
-    const data: ChartData = {
-      labels: Array.from({ length: metric.json[0].length }, (_, i) => i.toString()),
-      datasets: metric.json.map((c: any, i: number) => ({
-        label: ['Left', 'Right'][i % 2],
-        data: c,
-        tension: 0.25,
-        borderColor: colorPalette[i % colorPalette.length],
-        backgroundColor: `${colorPalette[i % colorPalette.length]}26`,
-        pointRadius: 2,
-        fill: true,
-      })),
-    };
-
-    const options: ChartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      scales: {
-        x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
-        y: { beginAtZero: true },
-      },
-      plugins: {
-        legend: { display: true },
-        tooltip: { intersect: false, mode: 'index' as const },
-      },
-    };
-    return { data, options, type: 'line' as const };
-  }
-
-  private initFDChart(metric: any): void {
-    console.log('FD', metric);
-  }
-
-  private initPEAQChart(metric: any): any {
-    const data = { labels: ['DI', 'ODG'], datasets: [{ data: metric.json }] };
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      scales: {
-        x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
-        y: {
-          beginAtZero: true,
-          min: -4, // Clip at -4 on the y axis
-        },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: { intersect: false, mode: 'index' as const },
-      },
-    };
-    return { data, options, type: 'bar' as const };
   }
 
   public ngOnDestroy(): void {

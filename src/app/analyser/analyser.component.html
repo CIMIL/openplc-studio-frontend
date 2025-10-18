@@ -9,7 +9,8 @@
         optionGroupLabel="originalTrack"
         [optionGroupChildren]="['reconstructedTracks']"
         [style]="{ minWidth: '14rem' }"
-        placeholder="Select a track" />
+        placeholder="Select a track"
+      />
     } @else {
       <p-skeleton width="auto" height="2.5rem"></p-skeleton>
     }
@@ -18,24 +19,11 @@
     <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
   </div>
 
-  <div>
-    @if (analysisService.selectedPacketBounds.value && analysisService.selectedPacketBounds.value.length > 0) {
-      <plc-zoom-lens></plc-zoom-lens>
-    }
-    @if (!chartsReady) {
-      <p-skeleton width="auto" height="10rem"></p-skeleton>
-    }
-    <div style="width: 100%; height: 240px; margin-top: 1rem">
-      @for (metric of metrics; track metric; let i = $index) {
-        <p-chart
-          [type]="chartTypes[i]"
-          [data]="chartData[i]"
-          [options]="chartOptions[i]"
-          [width]="'100%'"
-          [height]="'400px'" />
-      }
-    </div>
-  </div>
+  @if (analysisService.selectedPacketBounds.value && analysisService.selectedPacketBounds.value.length > 0) {
+    <plc-zoom-lens></plc-zoom-lens>
+  }
+
+  <plc-metrics></plc-metrics>
 </div>
 
 <ng-template #trackSelectSkeleton>
