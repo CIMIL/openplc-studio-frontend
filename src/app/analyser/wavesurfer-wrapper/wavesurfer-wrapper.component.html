@@ -1,15 +1,10 @@
 <div class="waveform-container">
-  <ng-container *ngIf="(analysisService.audioBlob$ | async) != null; else wavesurferSkeleton">
+  @if ((analysisService.audioBlob$ | async) != null) {
     <div #waveform class="waveform"></div>
-  </ng-container>
+  } @else {
+    <p-skeleton width="auto" height="500px"></p-skeleton>
+  }
   <!-- <ng-container *ngIf="isSpectrogramReady; else wavesurferSkeleton">
     <div #spectrogram></div>
   </ng-container> -->
-  <ng-template #noAudio>
-    <div>no audio file available</div>
-  </ng-template>
 </div>
-
-<ng-template #wavesurferSkeleton>
-  <p-skeleton width="auto" height="500px"></p-skeleton>
-</ng-template>

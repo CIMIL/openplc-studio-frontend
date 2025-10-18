@@ -6,6 +6,7 @@ import { LocalStorageService } from '../shared/services/local-storage.service';
 import { Toolbar } from 'primeng/toolbar';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { ThemeService } from '../shared/services/theme.service';
 
 @Component({
   selector: 'plc-header',
@@ -15,7 +16,11 @@ import { Router } from '@angular/router';
 export class HeaderComponent {
   private _isDarkMode = false;
 
-  constructor(private readonly localStorageService: LocalStorageService, private readonly router: Router) {}
+  constructor(
+    private readonly localStorageService: LocalStorageService,
+    private readonly router: Router,
+    private readonly themeService: ThemeService,
+  ) {}
 
   ngOnInit(): void {
     this.isDarkMode = this.localStorageService.get<boolean>('isDarkMode') ?? false;
@@ -29,6 +34,7 @@ export class HeaderComponent {
     this._isDarkMode = value;
     this.localStorageService.put('isDarkMode', value);
     this.setDarkMode(value);
+    this.themeService.isDarkMode.next(value);
   }
 
   public toggleDarkMode(): void {

@@ -1,18 +1,17 @@
 <div class="flex-column gap-6">
   <div class="flex gap-4">
-    <p-select
+    <!-- <p-select
       [options]="sampleMaskNames"
       optionLabel="label"
       optionValue="value"
       [ngModel]="analysisService.selectedSampleMaskIndex.value"
       (ngModelChange)="analysisService.selectedSampleMaskIndex.next($event)"
-    ></p-select>
+    ></p-select> -->
     <p-toggle-button
       [(ngModel)]="zoomLensSelectedChannel"
       offLabel="Left"
       onLabel="Right"
-      (ngModelChange)="onChannelToggle()"
-    ></p-toggle-button>
+      (ngModelChange)="onChannelToggle()"></p-toggle-button>
   </div>
 
   <div class="bg-surface">
@@ -21,7 +20,6 @@
       [data]="zoomSegmentData"
       [options]="zoomSegmentOptions"
       [width]="'100%'"
-      [height]="'600px'"
-    />
+      [height]="'400px'" />
   </div>
 </div>

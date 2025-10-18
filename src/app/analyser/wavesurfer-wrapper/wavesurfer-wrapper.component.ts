@@ -7,6 +7,15 @@ import RegionsPlugin, { Region } from 'wavesurfer.js/dist/plugins/regions';
 import { CommonModule } from '@angular/common';
 import { AnalysisService } from '../analysis.service';
 import { SkeletonModule } from 'primeng/skeleton';
+import { ThemeService } from '../../shared/services/theme.service';
+import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
+
+const WAVESURFER_COLOR_PALETTE = {
+  waveColor: ['#a78bfa', '#c084fc'],
+  progressColor: ['#d946ef', '#e879f9'],
+  regionsColor: ['#00000030', '#ffffff30'],
+  regionsColorHover: ['#00000060', '#ffffff80'],
+};
 
 @Component({
   selector: 'plc-wavesurfer-wrapper',
@@ -15,6 +24,8 @@ import { SkeletonModule } from 'primeng/skeleton';
   styleUrls: ['./wavesurfer-wrapper.component.scss'],
 })
 export class WavesurferWrapperComponent implements OnDestroy {
+  private regionsPlugin?: RegionsPlugin;
+
   private _waveformRef?: ElementRef;
 
   @ViewChild('waveform')
@@ -46,7 +57,10 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
   private regionsSubscription?: Subscription;
 
-  constructor(public readonly analysisService: AnalysisService) {}
+  constructor(
+    public readonly analysisService: AnalysisService,
+    private readonly themeService: ThemeService,
+  ) {}
 
   public ngAfterViewInit() {
     this.analysisService.audioBlob$
@@ -58,18 +72,16 @@ export class WavesurferWrapperComponent implements OnDestroy {
             this.destroyWavesurfer();
           }
           this.initializeWaveSurfer();
-        })
+        }),
       )
       .subscribe();
-  }
 
-  public ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-
-    if (this.wavesurfer) {
-      this.destroyWavesurfer();
-    }
+    this.themeService.isDarkMode
+      .pipe(
+        takeUntil(this.destroy$),
+        tap(() => this.updateWavesurferTheme()),
+      )
+      .subscribe();
   }
 
   private initializeWaveSurfer(): void {
@@ -77,11 +89,13 @@ export class WavesurferWrapperComponent implements OnDestroy {
       return;
     }
 
+    const isDarkMode = this.themeService.isDarkMode.value;
+
     this.wavesurfer = WaveSurfer.create({
       container: this.waveformRef.nativeElement,
       backend: 'WebAudio',
-      waveColor: 'violet',
-      progressColor: 'purple',
+      waveColor: WAVESURFER_COLOR_PALETTE['waveColor'][Number(isDarkMode)],
+      progressColor: WAVESURFER_COLOR_PALETTE['progressColor'][Number(isDarkMode)],
       height: 300,
       minPxPerSec: 50,
       sampleRate: this.analysisService.selectedTrackPlaybackSampleRate.value,
@@ -98,7 +112,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
           tap((event) => {
             event.preventDefault();
             this.wavesurfer.playPause();
-          })
+          }),
         )
         .subscribe();
     }
@@ -118,7 +132,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
     //     frequencyMax: 0,
     //     frequencyMin: 0,
     //     fftSamples: 2048,
-    //   })
+    //   }),
     // );
 
     // spectrogramPlugin.once('ready', () => {
@@ -132,10 +146,12 @@ export class WavesurferWrapperComponent implements OnDestroy {
         scale: 1,
         maxZoom: 20000,
         exponentialZooming: true,
-      })
+      }),
     );
 
     const lens: RegionsPlugin = RegionsPlugin.create();
+
+    this.regionsPlugin = lens;
 
     this.wavesurfer.registerPlugin(lens);
 
@@ -147,7 +163,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
     const decodeObservable = fromEventPattern(
       (handler) => this.wavesurfer.on('decode', handler),
-      (handler) => this.wavesurfer.un('decode', handler)
+      (handler) => this.wavesurfer.un('decode', handler),
     );
 
     this.regionsSubscription = combineLatest([
@@ -172,16 +188,16 @@ export class WavesurferWrapperComponent implements OnDestroy {
               end: rb / sampleRate,
               drag: false,
               resize: false,
-              color: '#ffffff20',
+              color: WAVESURFER_COLOR_PALETTE['regionsColor'][Number(isDarkMode)],
               content: `${lb}|${rb}`,
             });
             const regionElement = region.element as HTMLElement;
             regionElement.style.cursor = 'pointer';
             regionElement.addEventListener('mouseenter', () => {
-              regionElement.style.backgroundColor = '#ffffff60';
+              regionElement.style.backgroundColor = WAVESURFER_COLOR_PALETTE['regionsColorHover'][Number(isDarkMode)];
             });
             regionElement.addEventListener('mouseleave', () => {
-              regionElement.style.backgroundColor = '#ffffff20'; // Reset to original
+              regionElement.style.backgroundColor = WAVESURFER_COLOR_PALETTE['regionsColor'][Number(isDarkMode)]; // Reset to original
             });
 
             const contentEl = regionElement.querySelector('[part="region-content"]') as HTMLElement | null;
@@ -194,19 +210,48 @@ export class WavesurferWrapperComponent implements OnDestroy {
               if (c) c.style.visibility = 'hidden';
             });
           });
-        })
+        }),
       )
       .subscribe();
   }
 
   private onRegionClick(region: Region): void {
-    const sampleRate = this.analysisService.originalTrackSampleRates.value[0];
     const content = region.content as HTMLElement;
     const [lb, rb, ...blank] = content
       .getHTML()
       .split('|')
       .map((b) => Number(b));
     this.analysisService.selectedPacketBounds.next([lb, rb]);
+  }
+
+  private updateWavesurferTheme() {
+    if (!this.wavesurfer) return;
+
+    const isDarkMode = this.themeService.isDarkMode.value;
+
+    this.wavesurfer.setOptions({
+      waveColor: WAVESURFER_COLOR_PALETTE['waveColor'][Number(isDarkMode)],
+      progressColor: WAVESURFER_COLOR_PALETTE['progressColor'][Number(isDarkMode)],
+    });
+
+    if (this.regionsPlugin) {
+      const regions = this.regionsPlugin.getRegions();
+
+      regions.forEach((region) => {
+        const regionElement = region.element as HTMLElement;
+        if (regionElement) {
+          regionElement.style.backgroundColor = WAVESURFER_COLOR_PALETTE['regionsColor'][Number(isDarkMode)];
+
+          // Update the existing hover styles
+          regionElement.addEventListener('mouseenter', () => {
+            regionElement.style.backgroundColor = WAVESURFER_COLOR_PALETTE['regionsColorHover'][Number(isDarkMode)];
+          });
+          regionElement.addEventListener('mouseleave', () => {
+            regionElement.style.backgroundColor = WAVESURFER_COLOR_PALETTE['regionsColor'][Number(isDarkMode)];
+          });
+        }
+      });
+    }
   }
 
   private destroyWavesurfer() {
@@ -216,5 +261,14 @@ export class WavesurferWrapperComponent implements OnDestroy {
     }
     this.wavesurfer.stop();
     this.wavesurfer.destroy();
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+
+    if (this.wavesurfer) {
+      this.destroyWavesurfer();
+    }
   }
 }
