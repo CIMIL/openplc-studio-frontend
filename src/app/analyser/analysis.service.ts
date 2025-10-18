@@ -1,10 +1,20 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { Run } from '../shared/interfaces/run.interface';
+
+export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
 @Injectable({
   providedIn: 'root',
 })
 export class AnalysisService {
+  public run = new BehaviorSubject<Run | null>(null);
+
+  public selectedOriginalTrack = new BehaviorSubject<string>('');
+
+  public trackGroups = new BehaviorSubject<TrackGroup[]>([]);
+  public trackMaps = new BehaviorSubject<Record<string, Uint8Array>>({});
+
   private currentAudioBlobSubject = new BehaviorSubject<Blob | null>(null);
 
   public packetBurstsLeftBounds = new BehaviorSubject<number[][]>([]);
@@ -20,6 +30,8 @@ export class AnalysisService {
   public selectedTrackPlayback = new BehaviorSubject<{ name: string } | null>(null);
 
   public selectedTrackPlaybackSampleRate = new BehaviorSubject<number>(-1);
+
+  public sampleMaskMaps = new BehaviorSubject<Record<string, number[]> | null>(null);
 
   public get audioBlob$(): Observable<Blob | null> {
     return this.currentAudioBlobSubject.asObservable();
