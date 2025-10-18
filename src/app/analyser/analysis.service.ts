@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Run } from '../shared/interfaces/run.interface';
+import { FileDescription } from 'tarparser';
+
+export type FileDescriptionWithJson = Omit<FileDescription, 'data' | 'text'> & { json: any[] };
 
 export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
@@ -13,6 +16,7 @@ export class AnalysisService {
   public selectedOriginalTrack = new BehaviorSubject<string>('');
 
   public trackGroups = new BehaviorSubject<TrackGroup[]>([]);
+
   public trackMaps = new BehaviorSubject<Record<string, Uint8Array>>({});
 
   private currentAudioBlobSubject = new BehaviorSubject<Blob | null>(null);
@@ -85,46 +89,6 @@ export class AnalysisService {
 
   private isPacketGap(currentPacket: number, otherPacket: number, packetSize: number): boolean {
     return Math.abs(currentPacket - otherPacket) > packetSize;
-  }
-
-  public getLeftBound(selectedPacket: number, sampleMask: number[], packetSize: number) {
-    const selectedPacketIndex = sampleMask.indexOf(selectedPacket);
-
-    let getBoundRec = (currentLeftIndex: number) => {
-      if (currentLeftIndex == 0) {
-        return currentLeftIndex;
-      }
-      let currentLeft = sampleMask[currentLeftIndex];
-      let nextLeft = sampleMask[currentLeftIndex - 1];
-      if (Math.abs(currentLeft - nextLeft) > packetSize) {
-        return currentLeftIndex;
-      }
-      return getBoundRec(currentLeftIndex - 1);
-    };
-
-    return sampleMask[getBoundRec(selectedPacketIndex)];
-  }
-
-  public getRightBound(selectedPacket: number, sampleMask: number[], packetSize: number) {
-    const selectedPacketIndex = sampleMask.indexOf(selectedPacket);
-
-    if (selectedPacketIndex === sampleMask.length - 1) {
-      return selectedPacket;
-    }
-
-    let getBoundRec = (currentRightIndex: number) => {
-      if (currentRightIndex === sampleMask.length - 1) {
-        return currentRightIndex;
-      }
-      let currentRight = sampleMask[currentRightIndex];
-      let nextRight = sampleMask[currentRightIndex + 1];
-      if (Math.abs(currentRight - nextRight) > packetSize) {
-        return currentRightIndex;
-      }
-      return getBoundRec(currentRightIndex + 1);
-    };
-
-    return sampleMask[getBoundRec(selectedPacketIndex)];
   }
 
   public resetAnalyzerData() {

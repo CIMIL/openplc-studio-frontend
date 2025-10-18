@@ -1,8 +1,18 @@
 {
-    "printWidth": 120,
-    "singleQuote": true,
-    "useTabs": false,
-    "tabWidth": 2,
-    "semi": true,
-    "bracketSpacing": true
+  "printWidth": 120,
+  "singleQuote": true,
+  "useTabs": false,
+  "tabWidth": 2,
+  "semi": true,
+  "bracketSpacing": true,
+  "htmlWhitespaceSensitivity": "ignore",
+
+  "overrides": [
+    {
+      "files": "*.html",
+      "options": {
+        "parser": "angular"
+      }
+    }
+  ]
 }

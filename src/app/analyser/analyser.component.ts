@@ -3,8 +3,7 @@ import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrap
 import { RunsClient } from '../shared/clients/runs.client';
 import { combineLatest, filter, from, map, of, ReplaySubject, Subject, switchMap, take, takeUntil, tap } from 'rxjs';
 import { FileDescription, parseTar } from 'tarparser';
-import { AnalysisService, TrackGroup } from './analysis.service';
-import { DropdownModule } from 'primeng/dropdown';
+import { AnalysisService, FileDescriptionWithJson } from './analysis.service';
 import { FormsModule } from '@angular/forms';
 import { CascadeSelectModule } from 'primeng/cascadeselect';
 import { ActivatedRoute } from '@angular/router';
@@ -13,40 +12,28 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { CommonModule } from '@angular/common';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ChartModule } from 'primeng/chart';
-import { ListboxModule } from 'primeng/listbox';
-import { Run } from '../shared/interfaces/run.interface';
 import { ModuleType } from '../shared/enums/module-type.enum';
 import { Module } from '../shared/interfaces/module.interface';
 import { ModuleParameter } from '../shared/interfaces/module-parameters.interface';
-import { SelectModule } from 'primeng/select';
 import { extractSampleRateFromWavHeader } from './wavUtils';
-import { ToggleButtonModule } from 'primeng/togglebutton';
-import { COLORS, decodeJson } from './utils';
+import { DARK_COLORS, decodeJson, LIGHT_COLORS } from './utils';
 import { ZoomLensComponent } from './zoom-lens/zoom-lens.component';
+import { ThemeService } from '../shared/services/theme.service';
 
 Chart.register(zoomPlugin);
 
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
-const FD_METRICS = ['SpectralEnergyCalculator', 'PerceptualCalculator'];
-// const SCALAR_METRICS = ['PEAQCalculator', 'WindowedPEAQCalculator'];
-const SCALAR_METRICS = ['PEAQCalculator'];
-
-export type FileDescriptionWithJson = FileDescription & { json: any[] };
 
 @Component({
   selector: 'plc-analyser',
   imports: [
     WavesurferWrapperComponent,
-    DropdownModule,
+    ZoomLensComponent,
     FormsModule,
     CascadeSelectModule,
     CommonModule,
     SkeletonModule,
-    ListboxModule,
-    SelectModule,
     ChartModule,
-    ToggleButtonModule,
-    ZoomLensComponent,
   ],
   templateUrl: './analyser.component.html',
 })
@@ -80,24 +67,15 @@ export class AnalyserComponent {
   constructor(
     private readonly runsClient: RunsClient,
     public readonly analysisService: AnalysisService,
-    private readonly route: ActivatedRoute
+    private readonly themeService: ThemeService,
+    private readonly route: ActivatedRoute,
   ) {}
-
-  get originalTrackNames() {
-    return this.analysisService.run.value?.tracks;
-  }
 
   get sampleMaskPacketSizes(): any[] {
     return (
       this.analysisService.run.value?.modules[ModuleType.PacketLossSimulator].map(
-        (m: Module) => m.settings.filter((mp: ModuleParameter) => mp.name === 'packet_size')[0].value
+        (m: Module) => m.settings.filter((mp: ModuleParameter) => mp.name === 'packet_size')[0].value,
       ) ?? []
-    );
-  }
-
-  get indexOfSelectedOriginalTrack(): number {
-    return (
-      this.analysisService.run.value?.tracks.indexOf(`${this.analysisService.selectedOriginalTrack.value}.wav`) ?? 0
     );
   }
 
@@ -108,7 +86,7 @@ export class AnalyserComponent {
       .getRun(runId)
       .pipe(
         tap((run) => this.analysisService.run.next(run)),
-        tap(() => this.runFetchDone.next())
+        tap(() => this.runFetchDone.next()),
       )
       .subscribe();
 
@@ -127,7 +105,7 @@ export class AnalyserComponent {
           });
 
           this.analysisService.originalTrackSampleRates.next(
-            this.originalTracks.map((t) => extractSampleRateFromWavHeader(t.data))
+            this.originalTracks.map((t) => extractSampleRateFromWavHeader(t.data)),
           );
           // load default track
           if (files[0]) {
@@ -137,7 +115,7 @@ export class AnalyserComponent {
             this.analysisService.setAudioBlob(null);
           }
         }),
-        tap(() => this.originalTracksFetchDone.next())
+        tap(() => this.originalTracksFetchDone.next()),
       )
       .subscribe();
 
@@ -147,7 +125,7 @@ export class AnalyserComponent {
         take(1),
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        map((files: FileDescription[]) => files.map(decodeJson))
+        map((files: FileDescription[]) => files.map(decodeJson)),
       ),
       this.originalTracksFetchDone.asObservable(),
     ])
@@ -156,10 +134,10 @@ export class AnalyserComponent {
           files.map(({ json, ...rest }, index: number) => ({
             json: json.filter(
               (value: any) =>
-                value % this.sampleMaskPacketSizes[index % (this.analysisService.run.value?.tracks.length ?? 0)] === 0
+                value % this.sampleMaskPacketSizes[index % (this.analysisService.run.value?.tracks.length ?? 0)] === 0,
             ),
             ...rest,
-          }))
+          })),
         ),
         tap((files: FileDescriptionWithJson[]) => (this.sampleMask = files)),
         tap((files: FileDescriptionWithJson[]) => {
@@ -184,7 +162,7 @@ export class AnalyserComponent {
 
           this.analysisService.packetBurstsLeftBounds.next(leftBoundsArr);
           this.analysisService.packetBurstsRightBounds.next(rightBoundsArr);
-        })
+        }),
       )
       .subscribe();
 
@@ -193,7 +171,7 @@ export class AnalyserComponent {
       this.runsClient.getRunAssets(runId, 2).pipe(
         take(1),
         switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
-        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader')))
+        switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
       ),
       this.originalTracksFetchDone.asObservable(),
     ])
@@ -205,10 +183,13 @@ export class AnalyserComponent {
             this.analysisService.trackMaps.next({ ...currentMaps, [t.name]: t.data });
           });
 
-          const tracks = this.originalTracks.reduce((acc, { name }) => {
-            acc[name.split('.')[0]] = { reconstructedTracks: [{ name }] };
-            return acc;
-          }, {} as Record<string, { reconstructedTracks: { name: string }[] }>);
+          const tracks = this.originalTracks.reduce(
+            (acc, { name }) => {
+              acc[name.split('.')[0]] = { reconstructedTracks: [{ name }] };
+              return acc;
+            },
+            {} as Record<string, { reconstructedTracks: { name: string }[] }>,
+          );
 
           this.reconstructedTracks.forEach((t: FileDescription) => {
             const originalTrackStem = t.name.split('/')[0];
@@ -221,9 +202,9 @@ export class AnalyserComponent {
             Object.keys(tracks).map((key) => ({
               originalTrack: key,
               reconstructedTracks: tracks[key].reconstructedTracks,
-            }))
+            })),
           );
-        })
+        }),
       )
       .subscribe();
 
@@ -235,10 +216,7 @@ export class AnalyserComponent {
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         map((files: FileDescription[]) => files.map(decodeJson)),
-        tap(
-          (parsedFiles: FileDescriptionWithJson[]) =>
-            (this.metrics = parsedFiles.map(({ data, text, ...rest }) => rest))
-        ),
+        tap((parsedFiles: FileDescriptionWithJson[]) => (this.metrics = parsedFiles)),
         tap(() => {
           this.metrics.forEach((metric) => {
             const { data, options, type } = this.buildChart(metric);
@@ -247,7 +225,7 @@ export class AnalyserComponent {
             this.chartTypes.push(type);
           });
           this.chartsReady = true;
-        })
+        }),
       )
       .subscribe();
 
@@ -256,7 +234,7 @@ export class AnalyserComponent {
       .pipe(
         takeUntil(this.destroy$),
         filter((track): track is { name: string } => !!track && !!track.name),
-        tap((track) => this.onTrackChange(track))
+        tap((track) => this.onTrackChange(track)),
       )
       .subscribe();
   }
@@ -286,20 +264,21 @@ export class AnalyserComponent {
       return this.initTDChart(metric);
       // } else if (FD_METRICS.includes(metricModule)) {
       //   this.initFDChart(metric);
-    } else if (SCALAR_METRICS.includes(metricModule)) {
-      return this.initScalarChart(metric);
+    } else if (metricModule === 'PEAQCalculator') {
+      return this.initPEAQChart(metric);
     }
   }
 
   private initTDChart(metric: any): any {
+    const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
     const data: ChartData = {
       labels: Array.from({ length: metric.json[0].length }, (_, i) => i.toString()),
       datasets: metric.json.map((c: any, i: number) => ({
         label: ['Left', 'Right'][i % 2],
         data: c,
         tension: 0.25,
-        borderColor: COLORS[i % COLORS.length],
-        backgroundColor: `${COLORS[i % COLORS.length]}26`,
+        borderColor: colorPalette[i % colorPalette.length],
+        backgroundColor: `${colorPalette[i % colorPalette.length]}26`,
         pointRadius: 2,
         fill: true,
       })),
@@ -325,7 +304,7 @@ export class AnalyserComponent {
     console.log('FD', metric);
   }
 
-  private initScalarChart(metric: any): any {
+  private initPEAQChart(metric: any): any {
     const data = { labels: ['DI', 'ODG'], datasets: [{ data: metric.json }] };
     const options = {
       responsive: true,
