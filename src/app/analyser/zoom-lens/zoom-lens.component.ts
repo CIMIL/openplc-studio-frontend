@@ -52,7 +52,7 @@ export class ZoomLensComponent {
   get sampleMaskNames(): { label: string; value: number }[] {
     return (
       Object.keys(this.analysisService.sampleMaskMaps.value ?? {}).map((name: string, index: number) => ({
-        label: name.split('-')[0],
+        label: name.split('.')[0],
         value: index,
       })) ?? []
     );
@@ -112,7 +112,7 @@ export class ZoomLensComponent {
     const segments = trackBinaryData
       .map(stripWavHeader)
       .map((data) =>
-        stripWavBinarySegment(data, leftBound, rightBound, bitDepth, channelNumber, Math.min(maskPacketSize, 100))
+        stripWavBinarySegment(data, leftBound, rightBound, bitDepth, channelNumber, Math.round(maskPacketSize * 1.5))
       );
 
     let normalizedSegments = segments.map((seg) => normalizePcmSegment(seg, bitDepth, channelNumber));

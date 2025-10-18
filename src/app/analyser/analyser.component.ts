@@ -95,15 +95,6 @@ export class AnalyserComponent {
     );
   }
 
-  get sampleMaskNames(): { label: string; value: number }[] {
-    return (
-      Object.keys(this.analysisService.sampleMaskMaps.value ?? {}).map((name: string, index: number) => ({
-        label: name.split('-')[0],
-        value: index,
-      })) ?? []
-    );
-  }
-
   get indexOfSelectedOriginalTrack(): number {
     return (
       this.analysisService.run.value?.tracks.indexOf(`${this.analysisService.selectedOriginalTrack.value}.wav`) ?? 0
@@ -174,7 +165,7 @@ export class AnalyserComponent {
         tap((files: FileDescriptionWithJson[]) => {
           const sampleMaskMaps: Record<string, number[]> = {};
           files.forEach((m: FileDescriptionWithJson) => {
-            sampleMaskMaps[m.name.split('-')[0]] = m.json;
+            sampleMaskMaps[m.name.split('.')[0]] = m.json;
           });
           this.analysisService.sampleMaskMaps.next(sampleMaskMaps);
         }),
