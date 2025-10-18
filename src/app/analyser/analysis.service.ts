@@ -126,4 +126,20 @@ export class AnalysisService {
 
     return sampleMask[getBoundRec(selectedPacketIndex)];
   }
+
+  public resetAnalyzerData() {
+    this.run.next(null);
+    this.selectedOriginalTrack.next('');
+    this.trackGroups.next([]);
+    this.trackMaps.next({});
+    this.packetBurstsLeftBounds.next([]);
+    this.packetBurstsRightBounds.next([]);
+    this.originalTrackSampleRates.next([]);
+    this.selectedSampleMaskIndex.next(0);
+    this.selectedPacketBounds.next([]);
+    this.selectedTrackPlayback.next(null);
+    this.selectedTrackPlaybackSampleRate.next(-1);
+    this.sampleMaskMaps.next(null);
+    this.setAudioBlob(null);
+  }
 }

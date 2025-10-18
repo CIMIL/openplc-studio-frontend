@@ -82,11 +82,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
       backend: 'WebAudio',
       waveColor: 'violet',
       progressColor: 'purple',
-      height: 200,
-      // barWidth: 3,
-      // barHeight: 1,
-      // barRadius: 10,
-      // barGap: 2,
+      height: 300,
       minPxPerSec: 50,
       sampleRate: this.analysisService.selectedTrackPlaybackSampleRate.value,
     });
@@ -145,8 +141,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
     // Add region click event listener
     lens.on('region-clicked', (region: Region, event) => {
-      event.stopPropagation(); // Prevent click from propagating to other elements
-      // console.log('Region clicked:', region);
+      event.stopPropagation();
       this.onRegionClick(region);
     });
 
@@ -181,7 +176,13 @@ export class WavesurferWrapperComponent implements OnDestroy {
               content: `${lb}|${rb}`,
             });
             const regionElement = region.element as HTMLElement;
-            regionElement.classList.add('ws-region');
+            regionElement.style.cursor = 'pointer';
+            regionElement.addEventListener('mouseenter', () => {
+              regionElement.style.backgroundColor = '#ffffff60';
+            });
+            regionElement.addEventListener('mouseleave', () => {
+              regionElement.style.backgroundColor = '#ffffff20'; // Reset to original
+            });
 
             const contentEl = regionElement.querySelector('[part="region-content"]') as HTMLElement | null;
             if (contentEl) {

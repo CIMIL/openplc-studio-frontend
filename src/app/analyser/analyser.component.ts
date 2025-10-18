@@ -356,6 +356,7 @@ export class AnalyserComponent {
   }
 
   public ngOnDestroy(): void {
+    this.analysisService.resetAnalyzerData();
     this.destroy$.next();
     this.destroy$.complete();
   }

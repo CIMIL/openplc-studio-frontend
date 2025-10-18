@@ -19,8 +19,6 @@ import {
 import { ModuleType } from '../../shared/enums/module-type.enum';
 import { ModuleParameter } from '../../shared/interfaces/module-parameters.interface';
 import { Module } from '../../shared/interfaces/module.interface';
-import { BehaviorSubject } from 'rxjs';
-import { Run } from '../../shared/interfaces/run.interface';
 
 @Component({
   selector: 'plc-zoom-lens',
@@ -119,18 +117,33 @@ export class ZoomLensComponent {
 
     let normalizedSegments = segments.map((seg) => normalizePcmSegment(seg, bitDepth, channelNumber));
 
-    const maxAbsoluteValue = Math.max(
-      ...normalizedSegments.flatMap((segment) => segment[0].map((value) => Math.abs(value)))
-    );
-
     this.normalizedSegmentsCache = normalizedSegments;
 
     this.allTracksCache = allTracks;
 
+    this.buildZoomSegmentData();
+  }
+
+  private buildZoomSegmentData(): void {
+    if (!this.normalizedSegmentsCache.length) return;
+
+    const documentStyle = getComputedStyle(document.documentElement);
+    const textColor = documentStyle.getPropertyValue('--p-text-color');
+    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
+    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
+
+    const maxAbsoluteValue = Math.max(
+      ...this.normalizedSegmentsCache.flatMap((segment) =>
+        segment[Number(this.zoomLensSelectedChannel)].map((value: number) => Math.abs(value))
+      )
+    );
+
     this.zoomSegmentData = {
-      labels: Array.from({ length: normalizedSegments[0][0].length }, (_, i) => i.toString()),
-      datasets: normalizedSegments.map((t: any, i: number) => ({
-        label: allTracks.map((tn) => tn.split('/')[tn.split('/').length - 1] ?? tn)[i % normalizedSegments.length],
+      labels: Array.from({ length: this.normalizedSegmentsCache[0][0].length }, (_, i) => i.toString()),
+      datasets: this.normalizedSegmentsCache.map((t: any, i: number) => ({
+        label: this.allTracksCache.map((tn) => tn.split('/')[tn.split('/').length - 1] ?? tn)[
+          i % this.normalizedSegmentsCache.length
+        ],
         data: t[Number(this.zoomLensSelectedChannel)],
         tension: 0.25,
         borderColor: COLORS[i % COLORS.length],
@@ -138,11 +151,6 @@ export class ZoomLensComponent {
         fill: false,
       })),
     };
-
-    const documentStyle = getComputedStyle(document.documentElement);
-    const textColor = documentStyle.getPropertyValue('--p-text-color');
-    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
-    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
 
     this.zoomSegmentOptions = {
       responsive: true,
@@ -166,24 +174,6 @@ export class ZoomLensComponent {
         },
         tooltip: { intersect: false, mode: 'index' as const },
       },
-    };
-  }
-
-  private buildZoomSegmentData(): void {
-    if (!this.normalizedSegmentsCache.length) return;
-
-    this.zoomSegmentData = {
-      labels: Array.from({ length: this.normalizedSegmentsCache[0][0].length }, (_, i) => i.toString()),
-      datasets: this.normalizedSegmentsCache.map((t: any, i: number) => ({
-        label: this.allTracksCache.map((tn) => tn.split('/')[this.allTracksCache.length - 1] ?? tn)[
-          i % this.normalizedSegmentsCache.length
-        ],
-        data: t[Number(this.zoomLensSelectedChannel)],
-        tension: 0.25,
-        borderColor: COLORS[i % COLORS.length],
-        pointRadius: 2,
-        fill: false,
-      })),
     };
   }
 
