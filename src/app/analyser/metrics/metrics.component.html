@@ -1,14 +1,30 @@
 <!-- @if (!chartsReady) {
   <p-skeleton width="auto" height="10rem"></p-skeleton>
 } -->
+
+<p-multiselect
+  [options]="metricsWithLabels"
+  [(ngModel)]="displayMetrics"
+  placeholder="Select Metrics"
+  display="chip"
+  styleClass="w-full"
+  optionLabel="displayName"
+>
+  <ng-template pTemplate="item" let-option>
+    {{ option | metricLabel }}
+  </ng-template>
+</p-multiselect>
 <div #chartContainer style="width: 100%; height: 240px; margin-top: 1rem">
-  @for (chartData of chartData; track chartData; let i = $index) {
-    <p-chart
-      [type]="chartTypes[i]"
-      [data]="chartData"
-      [options]="chartOptions[i]"
-      [width]="'100%'"
-      [height]="'400px'"
-    />
+  @for (chartData of filteredChartData; track chartData; let i = $index) {
+    <div>
+      <h1 class="text-center w-full">{{ displayMetrics[i] | metricLabel }}</h1>
+      <p-chart
+        [type]="filteredChartTypes[i]"
+        [data]="chartData"
+        [options]="filteredChartOptions[i]"
+        [width]="'100%'"
+        [height]="'400px'"
+      />
+    </div>
   }
 </div>

@@ -9,17 +9,21 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { ChartModule } from 'primeng/chart';
 import { debounceTime, filter, map, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { SelectModule } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { MetricLabelPipe, metricLabelTransform } from './metric-label.pipe';
 
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 
 @Component({
   selector: 'plc-metrics',
-  imports: [CommonModule, FormsModule, SkeletonModule, ChartModule],
+  imports: [CommonModule, FormsModule, SkeletonModule, ChartModule, MultiSelectModule, MetricLabelPipe],
   templateUrl: './metrics.component.html',
   //   styleUrls: ['./metrics.component.scss'],
 })
 export class MetricsComponent {
   public metrics!: MetricRaw[];
+
+  public displayMetrics: MetricRaw[] = [];
 
   public chartsReady: boolean = false;
 
@@ -38,6 +42,40 @@ export class MetricsComponent {
     public readonly analysisService: AnalysisService,
     private readonly themeService: ThemeService,
   ) {}
+
+  get filteredChartData(): ChartData[] {
+    return this.displayMetrics
+      .map((metric) => {
+        const index = this.metrics.findIndex((m) => m.name === metric.name);
+        return index !== -1 ? this.chartData[index] : null;
+      })
+      .filter((data) => data !== null);
+  }
+
+  get filteredChartOptions(): ChartOptions[] {
+    return this.displayMetrics
+      .map((metric) => {
+        const index = this.metrics.findIndex((m) => m.name === metric.name);
+        return index !== -1 ? this.chartOptions[index] : null;
+      })
+      .filter((options) => options !== null);
+  }
+
+  get filteredChartTypes(): Array<'line' | 'bar'> {
+    return this.displayMetrics
+      .map((metric) => {
+        const index = this.metrics.findIndex((m) => m.name === metric.name);
+        return index !== -1 ? this.chartTypes[index] : null;
+      })
+      .filter((type) => type !== null);
+  }
+
+  get metricsWithLabels() {
+    return this.metrics.map((metric) => ({
+      ...metric,
+      displayName: metricLabelTransform(metric),
+    }));
+  }
 
   public ngOnInit() {
     this.themeService.isDarkMode
