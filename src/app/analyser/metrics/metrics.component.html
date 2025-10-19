@@ -1,11 +1,11 @@
-@if (!chartsReady) {
+<!-- @if (!chartsReady) {
   <p-skeleton width="auto" height="10rem"></p-skeleton>
-}
-<div style="width: 100%; height: 240px; margin-top: 1rem">
-  @for (metric of analysisService.metrics.value; track metric; let i = $index) {
+} -->
+<div #chartContainer style="width: 100%; height: 240px; margin-top: 1rem">
+  @for (chartData of chartData; track chartData; let i = $index) {
     <p-chart
       [type]="chartTypes[i]"
-      [data]="chartData[i]"
+      [data]="chartData"
       [options]="chartOptions[i]"
       [width]="'100%'"
       [height]="'400px'"

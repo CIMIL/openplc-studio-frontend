@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../shared/services/theme.service';
-import { AnalysisService, MetricsRaw } from '../analysis.service';
+import { AnalysisService, MetricRaw } from '../analysis.service';
 import { Chart, ChartData, ChartOptions } from 'chart.js';
 import { DARK_COLORS, LIGHT_COLORS } from '../utils';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ChartModule } from 'primeng/chart';
-import { debounceTime, map, Subject, takeUntil, tap } from 'rxjs';
+import { debounceTime, filter, map, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
+import { SelectModule } from 'primeng/select';
 
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 
@@ -37,21 +38,6 @@ export class MetricsComponent {
   ) {}
 
   public ngOnInit() {
-    this.analysisService.metrics
-      .asObservable()
-      .pipe(
-        tap((metrics: MetricsRaw[]) => {
-          metrics.forEach((metric) => {
-            const { data, options, type } = this.buildChart(metric);
-            this.chartData.push(data);
-            this.chartOptions.push(options);
-            this.chartTypes.push(type);
-          });
-          this.chartsReady = true;
-        }),
-      )
-      .subscribe();
-
     this.themeService.isDarkMode.asObservable().pipe(takeUntil(this.destroy$)).subscribe();
 
     this.analysisService.wsZoomBounds
@@ -77,10 +63,32 @@ export class MetricsComponent {
         }),
       )
       .subscribe();
+
+    this.analysisService.selectedTrackPlayback
+      .asObservable()
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((track): track is { name: string } => !!track && !!track.name),
+        switchMap((track: { name: string }) =>
+          of(this.analysisService.playbaleTrackToMetricsMap.value[track.name.split('.')[0]]),
+        ),
+        filter((metrics: MetricRaw[]) => Array.isArray(metrics) && metrics.length > 0),
+        tap((metrics: MetricRaw[]) => this.destroyCharts()),
+        tap((metrics: MetricRaw[]) => {
+          metrics.forEach((metric) => {
+            const { data, options, type } = this.buildChart(metric);
+            this.chartData.push(data);
+            this.chartOptions.push(options);
+            this.chartTypes.push(type);
+          });
+          this.chartsReady = true;
+        }),
+      )
+      .subscribe();
   }
 
-  private buildChart(metric: any): any {
-    const metricModule = metric.name.split('-')[0];
+  private buildChart(metric: MetricRaw): any {
+    const metricModule = metric.name.split('/').pop()!.split('-')[0];
 
     if (TD_METRICS.includes(metricModule)) {
       return this.initTDChart(metric);
@@ -153,14 +161,8 @@ export class MetricsComponent {
         {
           data: metric.json,
           tension: 0.25,
-          borderColor: [
-            colorPalette[0], // First bar border
-            colorPalette[1], // Second bar border
-          ],
-          backgroundColor: [
-            `${colorPalette[0]}26`, // First bar color
-            `${colorPalette[1]}26`, // Second bar color
-          ],
+          borderColor: [colorPalette[0], colorPalette[1]],
+          backgroundColor: [`${colorPalette[0]}26`, `${colorPalette[1]}26`],
           borderWidth: 1,
           fill: true,
         },
@@ -185,6 +187,12 @@ export class MetricsComponent {
       },
     };
     return { data, options, type: 'bar' as const };
+  }
+
+  public destroyCharts(): void {
+    this.chartData = [];
+    this.chartOptions = [];
+    this.chartTypes = [];
   }
 
   public ngOnDestroy(): void {

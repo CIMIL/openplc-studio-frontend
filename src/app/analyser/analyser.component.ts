@@ -3,7 +3,7 @@ import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrap
 import { RunsClient } from '../shared/clients/runs.client';
 import { combineLatest, filter, from, map, of, ReplaySubject, Subject, switchMap, take, takeUntil, tap } from 'rxjs';
 import { FileDescription, parseTar } from 'tarparser';
-import { AnalysisService, FileDescriptionWithJson } from './analysis.service';
+import { AnalysisService, FileDescriptionWithJson, MetricRaw } from './analysis.service';
 import { FormsModule } from '@angular/forms';
 import { CascadeSelectModule } from 'primeng/cascadeselect';
 import { ActivatedRoute } from '@angular/router';
@@ -48,13 +48,14 @@ export class AnalyserComponent {
 
   public originalTracksFetchDone = new ReplaySubject<void>();
 
+  public reconstructedTracksFetchDone = new ReplaySubject<void>();
+
   private destroy$ = new Subject<void>();
 
   constructor(
     private readonly runsClient: RunsClient,
-    public readonly analysisService: AnalysisService,
-    private readonly themeService: ThemeService,
     private readonly route: ActivatedRoute,
+    public readonly analysisService: AnalysisService,
   ) {}
 
   public ngOnInit(): void {
@@ -108,7 +109,7 @@ export class AnalyserComponent {
       this.originalTracksFetchDone.asObservable(),
     ])
       .pipe(
-        map(([files, blank]: [FileDescriptionWithJson[], any]) =>
+        map(([files, blank]: [FileDescriptionWithJson[], void]) =>
           files.map(({ json, ...rest }, index: number) => ({
             json: json.filter(
               (value: any) =>
@@ -157,7 +158,7 @@ export class AnalyserComponent {
       this.originalTracksFetchDone.asObservable(),
     ])
       .pipe(
-        tap(([files, blank]: [FileDescription[], any]) => {
+        tap(([files, blank]: [FileDescription[], void]) => {
           this.reconstructedTracks = files;
           this.reconstructedTracks.forEach((t) => {
             const currentMaps = this.analysisService.trackMaps.value;
@@ -186,18 +187,43 @@ export class AnalyserComponent {
             })),
           );
         }),
+        tap(() => this.reconstructedTracksFetchDone.next()),
       )
       .subscribe();
 
     // FETCH METRICS
-    this.runsClient
-      .getRunAssets(runId, 3)
-      .pipe(
+    combineLatest([
+      this.runsClient.getRunAssets(runId, 3).pipe(
         take(1),
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
         map((files: FileDescription[]) => files.map(decodeJson)),
-        tap((parsedFiles: FileDescriptionWithJson[]) => this.analysisService.metrics.next(parsedFiles)),
+      ),
+      this.reconstructedTracksFetchDone.asObservable(),
+    ])
+      .pipe(
+        tap(([parsedFiles, blank]: [MetricRaw[], void]) => {
+          const trackGroups = this.analysisService.trackGroups.value;
+          const trackToMetricsMap: Record<string, MetricRaw[]> = {};
+
+          trackGroups.forEach((group) => {
+            group.reconstructedTracks.forEach((reconstructedTrack) => {
+              const reconstructedTrackName = reconstructedTrack.name.split('.')[0];
+
+              const matchingMetrics = parsedFiles.filter((file) => {
+                const parts = file.name.split('/');
+                const metricName = parts.pop()!;
+                const parentReconstructedTrackName = parts.join('/');
+                return parentReconstructedTrackName === reconstructedTrackName;
+              });
+
+              if (Array.isArray(matchingMetrics) && matchingMetrics.length > 0)
+                trackToMetricsMap[reconstructedTrackName] = matchingMetrics;
+            });
+          });
+          this.analysisService.playbaleTrackToMetricsMap.next(trackToMetricsMap);
+        }),
+        tap(([parsedFiles, blank]: [MetricRaw[], void]) => this.analysisService.metrics.next(parsedFiles)),
       )
       .subscribe();
 

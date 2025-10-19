@@ -8,7 +8,7 @@ import { ModuleType } from '../shared/enums/module-type.enum';
 
 export type FileDescriptionWithJson = Omit<FileDescription, 'data' | 'text'> & { json: any[] };
 
-export type MetricsRaw = FileDescriptionWithJson;
+export type MetricRaw = FileDescriptionWithJson;
 
 export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
@@ -18,13 +18,15 @@ export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: s
 export class AnalysisService {
   public run = new BehaviorSubject<Run | null>(null);
 
-  public metrics = new BehaviorSubject<MetricsRaw[]>([]);
+  public metrics = new BehaviorSubject<MetricRaw[]>([]);
 
   public selectedOriginalTrack = new BehaviorSubject<string>('');
 
   public trackGroups = new BehaviorSubject<TrackGroup[]>([]);
 
   public trackMaps = new BehaviorSubject<Record<string, Uint8Array>>({});
+
+  public playbaleTrackToMetricsMap = new BehaviorSubject<Record<string, MetricRaw[]>>({});
 
   private currentAudioBlobSubject = new BehaviorSubject<Blob | null>(null);
 
@@ -64,7 +66,7 @@ export class AnalysisService {
     ) {
       return [];
     }
-    return runValue.modules[ModuleType.OutputAnalyser].map((module: any) => {
+    return runValue.modules[ModuleType.OutputAnalyser].map((module: Module) => {
       if (!Array.isArray(module.settings)) return {};
       const paramsObj: { [key: string]: any } = {};
       module.settings.forEach((param: any) => {
@@ -84,7 +86,7 @@ export class AnalysisService {
     this.currentAudioBlobSubject.next(null);
   }
 
-  get sampleMaskPacketSizes(): any[] {
+  get sampleMaskPacketSizes(): number[] {
     return (
       this.run.value?.modules[ModuleType.PacketLossSimulator].map(
         (m: Module) => m.settings.filter((mp: ModuleParameter) => mp.name === 'packet_size')[0].value,
@@ -145,6 +147,7 @@ export class AnalysisService {
     this.sampleMaskMaps.next(null);
     this.metrics.next([]);
     this.wsZoomBounds.next([]);
+    this.playbaleTrackToMetricsMap.next({});
     this.setAudioBlob(null);
   }
 }
