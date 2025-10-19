@@ -19,6 +19,8 @@ const TD_METRICS = ['MSECalculator', 'MAECalculator'];
   //   styleUrls: ['./metrics.component.scss'],
 })
 export class MetricsComponent {
+  public metrics!: MetricRaw[];
+
   public chartsReady: boolean = false;
 
   public chartData: ChartData[] = [];
@@ -38,7 +40,14 @@ export class MetricsComponent {
   ) {}
 
   public ngOnInit() {
-    this.themeService.isDarkMode.asObservable().pipe(takeUntil(this.destroy$)).subscribe();
+    this.themeService.isDarkMode
+      .asObservable()
+      .pipe(
+        takeUntil(this.destroy$),
+        filter(() => this.chartsReady), // Only rebuild if charts are already ready
+        tap(() => this.rebuildChartsForTheme()),
+      )
+      .subscribe();
 
     this.analysisService.wsZoomBounds
       .asObservable()
@@ -77,17 +86,20 @@ export class MetricsComponent {
         ),
         filter((metrics: MetricRaw[]) => Array.isArray(metrics) && metrics.length > 0),
         tap((metrics: MetricRaw[]) => this.destroyCharts()),
-        tap((metrics: MetricRaw[]) => {
-          metrics.forEach((metric) => {
-            const { data, options, type } = this.buildChart(metric);
-            this.chartData.push(data);
-            this.chartOptions.push(options);
-            this.chartTypes.push(type);
-          });
-          this.chartsReady = true;
-        }),
+        tap((metrics: MetricRaw[]) => (this.metrics = metrics)),
+        tap(() => this.buildAllCharts()),
+        tap(() => (this.chartsReady = true)),
       )
       .subscribe();
+  }
+
+  private buildAllCharts(): void {
+    this.metrics.forEach((metric) => {
+      const { data, options, type } = this.buildChart(metric);
+      this.chartData.push(data);
+      this.chartOptions.push(options);
+      this.chartTypes.push(type);
+    });
   }
 
   private buildChart(metric: MetricRaw): any {
@@ -190,6 +202,13 @@ export class MetricsComponent {
       },
     };
     return { data, options, type: 'bar' as const };
+  }
+
+  private rebuildChartsForTheme(): void {
+    if (!this.chartsReady || !this.chartData.length) return;
+
+    this.destroyCharts();
+    this.buildAllCharts();
   }
 
   public destroyCharts(): void {

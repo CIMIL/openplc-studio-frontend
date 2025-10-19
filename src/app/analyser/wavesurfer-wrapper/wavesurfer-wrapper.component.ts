@@ -21,12 +21,16 @@ import { ThemeService } from '../../shared/services/theme.service';
 import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
 
 import Hover from 'wavesurfer.js/dist/plugins/hover';
+import HoverPlugin from 'wavesurfer.js/dist/plugins/hover';
 
 const WAVESURFER_COLOR_PALETTE = {
   waveColor: ['#a78bfa', '#c084fc'],
   progressColor: ['#d946ef', '#e879f9'],
   regionsColor: ['#00000030', '#ffffff30'],
   regionsColorHover: ['#00000060', '#ffffff80'],
+  hoverLineColor: ['#178a42', '#4cd07d'],
+  hoverLabelBackground: ['#1f2937', '#374151'],
+  hoverLabelColor: ['#f9fafb', '#f3f4f6'],
 };
 
 @Component({
@@ -37,6 +41,8 @@ const WAVESURFER_COLOR_PALETTE = {
 })
 export class WavesurferWrapperComponent implements OnDestroy {
   private regionsPlugin?: RegionsPlugin;
+
+  private hoverPlugin?: HoverPlugin;
 
   private _waveformRef?: ElementRef;
 
@@ -111,21 +117,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
       progressColor: WAVESURFER_COLOR_PALETTE['progressColor'][Number(isDarkMode)],
       height: 300,
       minPxPerSec: 50,
-      plugins: [
-        Hover.create({
-          lineColor: '#ff0000',
-          lineWidth: 2,
-          labelBackground: '#555',
-          labelColor: '#fff',
-          labelSize: '11px',
-          labelPreferLeft: false,
-          formatTimeCallback: (time: number) => {
-            // Show time in seconds and in milliseconds
-            const ms = Math.round(time * 1000);
-            return `${time.toFixed(2)}s (${ms} ms)`;
-          },
-        }),
-      ],
+
       sampleRate: sampleRate,
     });
 
@@ -176,18 +168,19 @@ export class WavesurferWrapperComponent implements OnDestroy {
     //   this.spectrogramRef?.nativeElement.appendChild(wrapper);
     // });
 
-    const zoomPlugin: ZoomPlugin = ZoomPlugin.create({
-      scale: 1,
-      maxZoom: 20000,
-      exponentialZooming: true,
-    });
+    this.wavesurfer.registerPlugin(
+      ZoomPlugin.create({
+        scale: 1,
+        maxZoom: 20000,
+        exponentialZooming: true,
+      }),
+    );
 
-    this.wavesurfer.registerPlugin(zoomPlugin);
+    this.hoverPlugin = this.getHoverPlugin(isDarkMode);
+    this.wavesurfer.registerPlugin(this.hoverPlugin);
 
     const lens: RegionsPlugin = RegionsPlugin.create();
-
     this.regionsPlugin = lens;
-
     this.wavesurfer.registerPlugin(lens);
 
     // Add region click event listener
@@ -268,6 +261,10 @@ export class WavesurferWrapperComponent implements OnDestroy {
       progressColor: WAVESURFER_COLOR_PALETTE['progressColor'][Number(isDarkMode)],
     });
 
+    this.hoverPlugin?.destroy();
+    this.hoverPlugin = this.getHoverPlugin(isDarkMode);
+    this.wavesurfer.registerPlugin(this.hoverPlugin);
+
     if (this.regionsPlugin) {
       const regions = this.regionsPlugin.getRegions();
 
@@ -286,6 +283,21 @@ export class WavesurferWrapperComponent implements OnDestroy {
         }
       });
     }
+  }
+
+  private getHoverPlugin(isDarkMode: boolean): HoverPlugin {
+    return Hover.create({
+      lineColor: WAVESURFER_COLOR_PALETTE['hoverLineColor'][Number(isDarkMode)],
+      lineWidth: 2,
+      labelBackground: WAVESURFER_COLOR_PALETTE['hoverLabelBackground'][Number(isDarkMode)],
+      labelColor: WAVESURFER_COLOR_PALETTE['hoverLabelColor'][Number(isDarkMode)],
+      labelSize: '11px',
+      labelPreferLeft: false,
+      formatTimeCallback: (time: number) => {
+        const ms = Math.round(time * 1000);
+        return `${time.toFixed(2)}s (${ms} ms)`;
+      },
+    });
   }
 
   private destroyWavesurfer() {
