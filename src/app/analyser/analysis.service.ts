@@ -1,9 +1,14 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Run } from '../shared/interfaces/run.interface';
 import { FileDescription } from 'tarparser';
+import { Module } from '../shared/interfaces/module.interface';
+import { ModuleParameter } from '../shared/interfaces/module-parameters.interface';
+import { ModuleType } from '../shared/enums/module-type.enum';
 
 export type FileDescriptionWithJson = Omit<FileDescription, 'data' | 'text'> & { json: any[] };
+
+export type MetricsRaw = FileDescriptionWithJson;
 
 export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
@@ -12,6 +17,8 @@ export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: s
 })
 export class AnalysisService {
   public run = new BehaviorSubject<Run | null>(null);
+
+  public metrics = new BehaviorSubject<MetricsRaw[]>([]);
 
   public selectedOriginalTrack = new BehaviorSubject<string>('');
 
@@ -37,7 +44,7 @@ export class AnalysisService {
 
   public sampleMaskMaps = new BehaviorSubject<Record<string, number[]> | null>(null);
 
-  public metrics = new BehaviorSubject<any[]>([]);
+  public wsZoomBounds = new BehaviorSubject<number[]>([]);
 
   public get audioBlob$(): Observable<Blob | null> {
     return this.currentAudioBlobSubject.asObservable();
@@ -47,12 +54,42 @@ export class AnalysisService {
     return this.currentAudioBlobSubject.value;
   }
 
+  public get outputAnalyserParameters(): any[] {
+    const runValue = this.run.value;
+    if (
+      !runValue ||
+      !runValue.modules ||
+      !runValue.modules[ModuleType.OutputAnalyser] ||
+      !Array.isArray(runValue.modules[ModuleType.OutputAnalyser])
+    ) {
+      return [];
+    }
+    return runValue.modules[ModuleType.OutputAnalyser].map((module: any) => {
+      if (!Array.isArray(module.settings)) return {};
+      const paramsObj: { [key: string]: any } = {};
+      module.settings.forEach((param: any) => {
+        paramsObj[param.name] = param.value;
+      });
+      return {
+        [module.name]: [paramsObj],
+      };
+    });
+  }
+
   public setAudioBlob(blob: Blob | null): void {
     this.currentAudioBlobSubject.next(blob);
   }
 
   public clearAudioBlob(): void {
     this.currentAudioBlobSubject.next(null);
+  }
+
+  get sampleMaskPacketSizes(): any[] {
+    return (
+      this.run.value?.modules[ModuleType.PacketLossSimulator].map(
+        (m: Module) => m.settings.filter((mp: ModuleParameter) => mp.name === 'packet_size')[0].value,
+      ) ?? []
+    );
   }
 
   public calculatePacketBurstBounds(sampleMask: number[], packetSize: number): number[][] {
@@ -106,6 +143,8 @@ export class AnalysisService {
     this.selectedTrackPlayback.next(null);
     this.selectedTrackPlaybackSampleRate.next(-1);
     this.sampleMaskMaps.next(null);
+    this.metrics.next([]);
+    this.wsZoomBounds.next([]);
     this.setAudioBlob(null);
   }
 }

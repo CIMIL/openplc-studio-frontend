@@ -187,6 +187,9 @@ export class ZoomLensComponent {
             color: textColor,
           },
         },
+        zoom: {
+          zoom: { mode: 'x', wheel: { enabled: true } },
+        },
         tooltip: { intersect: false, mode: 'index' as const },
       },
     };

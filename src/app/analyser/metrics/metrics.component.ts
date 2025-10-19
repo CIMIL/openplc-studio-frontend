@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../shared/services/theme.service';
-import { AnalysisService } from '../analysis.service';
-import { ChartData, ChartOptions } from 'chart.js';
+import { AnalysisService, MetricsRaw } from '../analysis.service';
+import { Chart, ChartData, ChartOptions } from 'chart.js';
 import { DARK_COLORS, LIGHT_COLORS } from '../utils';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ChartModule } from 'primeng/chart';
-import { tap } from 'rxjs';
+import { debounceTime, map, Subject, takeUntil, tap } from 'rxjs';
 
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 
@@ -20,11 +20,16 @@ const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 export class MetricsComponent {
   public chartsReady: boolean = false;
 
-  public chartData: any[] = [];
+  public chartData: ChartData[] = [];
 
-  public chartOptions: any[] = [];
+  public chartOptions: ChartOptions[] = [];
 
   public chartTypes: Array<'line' | 'bar'> = [];
+
+  private destroy$ = new Subject<void>();
+
+  @ViewChild('chartContainer', { static: false })
+  public chartContainer!: ElementRef;
 
   constructor(
     public readonly analysisService: AnalysisService,
@@ -35,9 +40,7 @@ export class MetricsComponent {
     this.analysisService.metrics
       .asObservable()
       .pipe(
-        tap((metrics: any[]) => {
-          console.log(metrics);
-
+        tap((metrics: MetricsRaw[]) => {
           metrics.forEach((metric) => {
             const { data, options, type } = this.buildChart(metric);
             this.chartData.push(data);
@@ -45,6 +48,32 @@ export class MetricsComponent {
             this.chartTypes.push(type);
           });
           this.chartsReady = true;
+        }),
+      )
+      .subscribe();
+
+    this.themeService.isDarkMode.asObservable().pipe(takeUntil(this.destroy$)).subscribe();
+
+    this.analysisService.wsZoomBounds
+      .asObservable()
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(300),
+        map((bounds) =>
+          bounds.map((b) =>
+            Math.round((b * this.analysisService.selectedTrackPlaybackSampleRate.value - 1024) / 512 + 1),
+          ),
+        ),
+        tap(([leftBound, rightBound]) => {
+          const chartElements = this.chartContainer?.nativeElement?.querySelectorAll('canvas');
+          chartElements?.forEach((canvas: HTMLCanvasElement) => {
+            const chart = Chart.getChart(canvas);
+            if (chart && chart.options?.scales?.['x']) {
+              chart.options.scales['x'].min = leftBound;
+              chart.options.scales['x'].max = rightBound;
+              chart.update('none');
+            }
+          });
         }),
       )
       .subscribe();
@@ -64,6 +93,12 @@ export class MetricsComponent {
 
   private initTDChart(metric: any): any {
     const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
+
+    const documentStyle = getComputedStyle(document.documentElement);
+    const textColor = documentStyle.getPropertyValue('--p-text-color');
+    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
+    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
+
     const data: ChartData = {
       labels: Array.from({ length: metric.json[0].length }, (_, i) => i.toString()),
       datasets: metric.json.map((c: any, i: number) => ({
@@ -82,11 +117,19 @@ export class MetricsComponent {
       maintainAspectRatio: false,
       animation: false,
       scales: {
-        x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
-        y: { beginAtZero: true },
+        x: { ticks: { autoSkip: true, maxTicksLimit: 8, color: textColorSecondary }, grid: { color: surfaceBorder } },
+        y: { beginAtZero: true, ticks: { color: textColorSecondary }, grid: { color: surfaceBorder } },
       },
       plugins: {
-        legend: { display: true },
+        legend: {
+          display: true,
+          labels: {
+            color: textColor,
+          },
+        },
+        zoom: {
+          zoom: { mode: 'x', wheel: { enabled: true } },
+        },
         tooltip: { intersect: false, mode: 'index' as const },
       },
     };
@@ -98,16 +141,42 @@ export class MetricsComponent {
   }
 
   private initPEAQChart(metric: any): any {
-    const data = { labels: ['DI', 'ODG'], datasets: [{ data: metric.json }] };
+    const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
+
+    const documentStyle = getComputedStyle(document.documentElement);
+    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
+    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
+
+    const data: ChartData = {
+      labels: ['DI', 'ODG'],
+      datasets: [
+        {
+          data: metric.json,
+          tension: 0.25,
+          borderColor: [
+            colorPalette[0], // First bar border
+            colorPalette[1], // Second bar border
+          ],
+          backgroundColor: [
+            `${colorPalette[0]}26`, // First bar color
+            `${colorPalette[1]}26`, // Second bar color
+          ],
+          borderWidth: 1,
+          fill: true,
+        },
+      ],
+    };
     const options = {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
       scales: {
-        x: { ticks: { autoSkip: true, maxTicksLimit: 8 } },
+        x: { ticks: { autoSkip: true, maxTicksLimit: 8, color: textColorSecondary }, grid: { color: surfaceBorder } },
         y: {
           beginAtZero: true,
           min: -4, // Clip at -4 on the y axis
+          ticks: { color: textColorSecondary },
+          grid: { color: surfaceBorder },
         },
       },
       plugins: {
@@ -116,5 +185,10 @@ export class MetricsComponent {
       },
     };
     return { data, options, type: 'bar' as const };
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

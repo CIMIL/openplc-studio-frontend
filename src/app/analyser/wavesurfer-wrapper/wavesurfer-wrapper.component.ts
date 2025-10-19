@@ -1,5 +1,15 @@
 import { Component, ElementRef, Input, ViewChild, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { combineLatest, filter, fromEvent, fromEventPattern, Subject, Subscription, takeUntil, tap } from 'rxjs';
+import {
+  combineLatest,
+  filter,
+  fromEvent,
+  fromEventPattern,
+  sample,
+  Subject,
+  Subscription,
+  takeUntil,
+  tap,
+} from 'rxjs';
 import WaveSurfer from 'wavesurfer.js';
 import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';
 import Spectrogram from 'wavesurfer.js/dist/plugins/spectrogram';
@@ -9,6 +19,8 @@ import { AnalysisService } from '../analysis.service';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ThemeService } from '../../shared/services/theme.service';
 import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
+
+import Hover from 'wavesurfer.js/dist/plugins/hover';
 
 const WAVESURFER_COLOR_PALETTE = {
   waveColor: ['#a78bfa', '#c084fc'],
@@ -98,10 +110,32 @@ export class WavesurferWrapperComponent implements OnDestroy {
       progressColor: WAVESURFER_COLOR_PALETTE['progressColor'][Number(isDarkMode)],
       height: 300,
       minPxPerSec: 50,
+      plugins: [
+        Hover.create({
+          lineColor: '#ff0000',
+          lineWidth: 2,
+          labelBackground: '#555',
+          labelColor: '#fff',
+          labelSize: '11px',
+          labelPreferLeft: false,
+          formatTimeCallback: (time: number) => {
+            // Show time in seconds and in milliseconds
+            const ms = Math.round(time * 1000);
+            return `${time.toFixed(2)}s (${ms} ms)`;
+          },
+        }),
+      ],
       sampleRate: this.analysisService.selectedTrackPlaybackSampleRate.value,
     });
 
     // define wavesurfer events
+
+    this.wavesurfer.on(
+      'scroll',
+      (visibleStartTime: number, visibleEndTime: number, scrollLeft: number, scrollRight: number) => {
+        this.analysisService.wsZoomBounds.next([visibleStartTime, visibleEndTime]);
+      },
+    );
 
     // play with spacebar
     if (!this.spacebarSubscription) {
@@ -141,13 +175,13 @@ export class WavesurferWrapperComponent implements OnDestroy {
     //   this.spectrogramRef?.nativeElement.appendChild(wrapper);
     // });
 
-    this.wavesurfer.registerPlugin(
-      ZoomPlugin.create({
-        scale: 1,
-        maxZoom: 20000,
-        exponentialZooming: true,
-      }),
-    );
+    const zoomPlugin: ZoomPlugin = ZoomPlugin.create({
+      scale: 1,
+      maxZoom: 20000,
+      exponentialZooming: true,
+    });
+
+    this.wavesurfer.registerPlugin(zoomPlugin);
 
     const lens: RegionsPlugin = RegionsPlugin.create();
 

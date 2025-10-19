@@ -57,14 +57,6 @@ export class AnalyserComponent {
     private readonly route: ActivatedRoute,
   ) {}
 
-  get sampleMaskPacketSizes(): any[] {
-    return (
-      this.analysisService.run.value?.modules[ModuleType.PacketLossSimulator].map(
-        (m: Module) => m.settings.filter((mp: ModuleParameter) => mp.name === 'packet_size')[0].value,
-      ) ?? []
-    );
-  }
-
   public ngOnInit(): void {
     const runId = this.route.snapshot.paramMap.get('id') || '';
 
@@ -120,7 +112,11 @@ export class AnalyserComponent {
           files.map(({ json, ...rest }, index: number) => ({
             json: json.filter(
               (value: any) =>
-                value % this.sampleMaskPacketSizes[index % (this.analysisService.run.value?.tracks.length ?? 0)] === 0,
+                value %
+                  this.analysisService.sampleMaskPacketSizes[
+                    index % (this.analysisService.run.value?.tracks.length ?? 0)
+                  ] ===
+                0,
             ),
             ...rest,
           })),
@@ -133,14 +129,13 @@ export class AnalyserComponent {
           });
           this.analysisService.sampleMaskMaps.next(sampleMaskMaps);
         }),
-        tap(() => console.log()),
         tap(() => {
           const leftBoundsArr: number[][] = [];
           const rightBoundsArr: number[][] = [];
 
           this.sampleMask.forEach((maskPacket, i) => {
             const json = maskPacket?.json;
-            const packetSize = this.sampleMaskPacketSizes[i];
+            const packetSize = this.analysisService.sampleMaskPacketSizes[i];
             const [left, right] = this.analysisService.calculatePacketBurstBounds(json, packetSize);
             leftBoundsArr.push(left);
             rightBoundsArr.push(right);
