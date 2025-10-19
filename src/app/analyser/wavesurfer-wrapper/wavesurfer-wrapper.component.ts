@@ -102,6 +102,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
     }
 
     const isDarkMode = this.themeService.isDarkMode.value;
+    const sampleRate = this.analysisService.selectedTrackPlaybackSampleRate.value;
 
     this.wavesurfer = WaveSurfer.create({
       container: this.waveformRef.nativeElement,
@@ -125,7 +126,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
           },
         }),
       ],
-      sampleRate: this.analysisService.selectedTrackPlaybackSampleRate.value,
+      sampleRate: sampleRate,
     });
 
     // define wavesurfer events
@@ -208,8 +209,6 @@ export class WavesurferWrapperComponent implements OnDestroy {
     ])
       .pipe(
         tap(([blank, leftBounds, rightBounds, sampleMaskIndex]) => {
-          const sampleRate = this.analysisService.originalTrackSampleRates.value[0];
-
           lens.clearRegions();
 
           const left = leftBounds?.[sampleMaskIndex] || [];
@@ -225,6 +224,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
               color: WAVESURFER_COLOR_PALETTE['regionsColor'][Number(isDarkMode)],
               content: `${lb}|${rb}`,
             });
+
             const regionElement = region.element as HTMLElement;
             regionElement.style.cursor = 'pointer';
             regionElement.addEventListener('mouseenter', () => {

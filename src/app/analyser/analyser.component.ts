@@ -244,7 +244,11 @@ export class AnalyserComponent {
     const trackNameSplit = track.name.split('.')[0].split('/');
     const trackNameStem = trackNameSplit[0];
     this.analysisService.selectedOriginalTrack.next(trackNameStem);
-    const audioBuffer = new Uint8Array(this.analysisService.trackMaps.value[track.name]);
+
+    const trackData = this.analysisService.trackMaps.value[track.name];
+    this.analysisService.selectedTrackPlaybackSampleRate.next(extractSampleRateFromWavHeader(trackData));
+
+    const audioBuffer = new Uint8Array(trackData);
     const blob = new Blob([audioBuffer], { type: 'audio/wave' });
     this.analysisService.setAudioBlob(blob);
 

@@ -45,15 +45,18 @@ export class MetricsComponent {
       .pipe(
         takeUntil(this.destroy$),
         debounceTime(300),
-        map((bounds) =>
-          bounds.map((b) =>
-            Math.round((b * this.analysisService.selectedTrackPlaybackSampleRate.value - 1024) / 512 + 1),
-          ),
-        ),
-        tap(([leftBound, rightBound]) => {
+        tap((bounds) => {
           const chartElements = this.chartContainer?.nativeElement?.querySelectorAll('canvas');
-          chartElements?.forEach((canvas: HTMLCanvasElement) => {
+          chartElements?.forEach((canvas: HTMLCanvasElement, index: number) => {
             const chart = Chart.getChart(canvas);
+
+            const windowLength = this.analysisService.outputAnalyserParameters[index]['N'];
+            const hopSize = this.analysisService.outputAnalyserParameters[index]['hop'] ?? windowLength / 2;
+
+            const [leftBound, rightBound] = bounds.map((b) =>
+              Math.round((b * this.analysisService.selectedTrackPlaybackSampleRate.value - windowLength) / hopSize + 1),
+            );
+
             if (chart && chart.options?.scales?.['x']) {
               chart.options.scales['x'].min = leftBound;
               chart.options.scales['x'].max = rightBound;

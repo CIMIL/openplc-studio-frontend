@@ -72,9 +72,7 @@ export class AnalysisService {
       module.settings.forEach((param: any) => {
         paramsObj[param.name] = param.value;
       });
-      return {
-        [module.name]: [paramsObj],
-      };
+      return paramsObj;
     });
   }
 
