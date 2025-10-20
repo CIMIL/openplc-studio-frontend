@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { WavesurferWrapperComponent } from './wavesurfer-wrapper/wavesurfer-wrapper.component';
 import { RunsClient } from '../shared/clients/runs.client';
 import { combineLatest, filter, from, map, of, ReplaySubject, Subject, switchMap, take, takeUntil, tap } from 'rxjs';
@@ -11,16 +11,19 @@ import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CommonModule } from '@angular/common';
 import { SkeletonModule } from 'primeng/skeleton';
-import { ModuleType } from '../shared/enums/module-type.enum';
-import { Module } from '../shared/interfaces/module.interface';
-import { ModuleParameter } from '../shared/interfaces/module-parameters.interface';
 import { extractSampleRateFromWavHeader } from './wavUtils';
 import { decodeJson } from './utils';
 import { ZoomLensComponent } from './zoom-lens/zoom-lens.component';
-import { ThemeService } from '../shared/services/theme.service';
 import { MetricsComponent } from './metrics/metrics.component';
+import { AccordionModule } from 'primeng/accordion';
 
 Chart.register(zoomPlugin);
+
+enum AccordionPanels {
+  SPECTROGRAM = 'spectrogram',
+  ZOOM_LENS = 'zoomLens',
+  METRICS = 'metrics',
+}
 
 @Component({
   selector: 'plc-analyser',
@@ -32,6 +35,7 @@ Chart.register(zoomPlugin);
     CascadeSelectModule,
     CommonModule,
     SkeletonModule,
+    AccordionModule,
   ],
   templateUrl: './analyser.component.html',
 })
@@ -49,6 +53,10 @@ export class AnalyserComponent {
   public originalTracksFetchDone = new ReplaySubject<void>();
 
   public reconstructedTracksFetchDone = new ReplaySubject<void>();
+
+  public activePanels: string[] = [];
+
+  public AccordionPanels: typeof AccordionPanels = AccordionPanels;
 
   private destroy$ = new Subject<void>();
 
@@ -235,12 +243,24 @@ export class AnalyserComponent {
         tap((track) => this.onTrackChange(track)),
       )
       .subscribe();
+
+    this.analysisService.selectedPacketBounds
+      .asObservable()
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((bounds: number[]) => Array.isArray(bounds) && bounds.length === 2),
+        tap(() => this.openPanel(AccordionPanels.ZOOM_LENS)),
+      )
+      .subscribe();
   }
 
   public onTrackChange(track: { name: string } | null): void {
     if (!track || !track.name) {
       return;
     }
+
+    this.analysisService.selectedPacketBounds.next([]);
+
     const trackNameSplit = track.name.split('.')[0].split('/');
     const trackNameStem = trackNameSplit[0];
     this.analysisService.selectedOriginalTrack.next(trackNameStem);
@@ -257,6 +277,20 @@ export class AnalyserComponent {
       const sampleMaskIndex = Object.keys(this.analysisService.sampleMaskMaps.value ?? {}).indexOf(sampleMaskName);
       this.analysisService.selectedSampleMaskIndex.next(sampleMaskIndex);
     }
+  }
+
+  public openPanel(value: AccordionPanels): void {
+    if (!this.activePanels.includes(value)) {
+      this.activePanels = [...this.activePanels, value];
+    }
+  }
+
+  public openOnly(value: AccordionPanels): void {
+    this.activePanels = [value];
+  }
+
+  public closePanel(value: AccordionPanels): void {
+    this.activePanels = this.activePanels.filter((v) => v !== value);
   }
 
   public ngOnDestroy(): void {

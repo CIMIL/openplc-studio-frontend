@@ -71,7 +71,7 @@ export class MetricsComponent {
   }
 
   get metricsWithLabels() {
-    return this.metrics.map((metric) => ({
+    return (this.metrics ?? []).map((metric) => ({
       ...metric,
       displayName: metricLabelTransform(metric),
     }));
@@ -82,7 +82,7 @@ export class MetricsComponent {
       .asObservable()
       .pipe(
         takeUntil(this.destroy$),
-        filter(() => this.chartsReady), // Only rebuild if charts are already ready
+        filter(() => this.chartsReady),
         tap(() => this.rebuildChartsForTheme()),
       )
       .subscribe();
@@ -124,8 +124,10 @@ export class MetricsComponent {
         ),
         filter((metrics: MetricRaw[]) => Array.isArray(metrics) && metrics.length > 0),
         tap((metrics: MetricRaw[]) => this.destroyCharts()),
+        tap((metrics: MetricRaw[]) => (this.displayMetrics = [])),
         tap((metrics: MetricRaw[]) => (this.metrics = metrics)),
         tap(() => this.buildAllCharts()),
+        tap(() => this.displayMetrics.push(this.metricsWithLabels[0])),
         tap(() => (this.chartsReady = true)),
       )
       .subscribe();

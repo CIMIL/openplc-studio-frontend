@@ -80,6 +80,15 @@ export class ZoomLensComponent {
         tap(() => this.buildZoomSegmentData()),
       )
       .subscribe();
+
+    this.analysisService.selectedTrackPlayback
+      .asObservable()
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((track): track is { name: string } => !!track && !!track.name),
+        tap(() => this.destroyZoomLens()),
+      )
+      .subscribe();
   }
 
   public onChannelToggle(): void {
@@ -195,7 +204,13 @@ export class ZoomLensComponent {
     };
   }
 
+  private destroyZoomLens() {
+    this.zoomSegmentData = null;
+    this.zoomSegmentOptions = null;
+  }
+
   public ngOnDestroy(): void {
+    this.destroyZoomLens();
     this.destroy$.next();
     this.destroy$.complete();
   }

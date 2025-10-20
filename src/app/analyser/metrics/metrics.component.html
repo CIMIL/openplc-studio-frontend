@@ -14,7 +14,7 @@
     {{ option | metricLabel }}
   </ng-template>
 </p-multiselect>
-<div #chartContainer style="width: 100%; height: 240px; margin-top: 1rem">
+<div #chartContainer>
   @for (chartData of filteredChartData; track chartData; let i = $index) {
     <div>
       <h1 class="text-center w-full">{{ displayMetrics[i] | metricLabel }}</h1>

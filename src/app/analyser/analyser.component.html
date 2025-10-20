@@ -1,31 +1,47 @@
-<div class="">
+<div class="w-full">
   <div class="py-4">
     @if (analysisService.trackGroups.value && analysisService.trackGroups.value.length > 0) {
-      <p-cascadeselect
-        [ngModel]="analysisService.selectedTrackPlayback.value"
-        (ngModelChange)="analysisService.selectedTrackPlayback.next($event)"
-        [options]="$any(analysisService.trackGroups.value)"
-        optionLabel="name"
-        optionGroupLabel="originalTrack"
-        [optionGroupChildren]="['reconstructedTracks']"
-        [style]="{ minWidth: '14rem' }"
-        placeholder="Select a track"
-      />
+      <div class="w-2/4 mx-auto">
+        <p-cascadeselect
+          [ngModel]="analysisService.selectedTrackPlayback.value"
+          (ngModelChange)="analysisService.selectedTrackPlayback.next($event)"
+          [options]="$any(analysisService.trackGroups.value)"
+          optionLabel="name"
+          optionGroupLabel="originalTrack"
+          [optionGroupChildren]="['reconstructedTracks']"
+          styleClass="w-full"
+          placeholder="Select a track"
+        />
+      </div>
     } @else {
       <p-skeleton width="auto" height="2.5rem"></p-skeleton>
     }
   </div>
+
   <div>
     <plc-wavesurfer-wrapper></plc-wavesurfer-wrapper>
   </div>
 
-  @if (analysisService.selectedPacketBounds.value && analysisService.selectedPacketBounds.value.length > 0) {
-    <plc-zoom-lens></plc-zoom-lens>
-  }
-
-  <plc-metrics></plc-metrics>
+  <p-accordion [value]="activePanels" [multiple]="true">
+    <p-accordion-panel [value]="AccordionPanels.SPECTROGRAM">
+      <p-accordion-header>Spectrogram</p-accordion-header>
+      <p-accordion-content><div #spectrogram></div></p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel [value]="AccordionPanels.ZOOM_LENS">
+      <p-accordion-header>Zoom Lens</p-accordion-header>
+      <p-accordion-content>
+        @if (analysisService.selectedPacketBounds.value && analysisService.selectedPacketBounds.value.length > 0) {
+          <plc-zoom-lens></plc-zoom-lens>
+        } @else {
+          <p>Select a sample for analysis</p>
+        }
+      </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel [value]="AccordionPanels.METRICS">
+      <p-accordion-header>Metrics</p-accordion-header>
+      <p-accordion-content>
+        <plc-metrics></plc-metrics>
+      </p-accordion-content>
+    </p-accordion-panel>
+  </p-accordion>
 </div>
-
-<ng-template #trackSelectSkeleton>
-  <p-skeleton width="auto" height="2.5rem"></p-skeleton>
-</ng-template>
