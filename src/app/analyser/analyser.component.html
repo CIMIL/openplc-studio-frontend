@@ -29,7 +29,7 @@
         @if (!isSpectrogramReady) {
           <p-skeleton height="400px"></p-skeleton>
         }
-        <div #spectrogram></div>
+        <div #spectrogram id="wave-spectrogram"></div>
       </p-accordion-content>
     </p-accordion-panel>
     <p-accordion-panel [value]="AccordionPanels.ZOOM_LENS">

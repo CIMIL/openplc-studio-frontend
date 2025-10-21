@@ -38,6 +38,7 @@ enum AccordionPanels {
     AccordionModule,
   ],
   templateUrl: './analyser.component.html',
+  styleUrls: ['./analyser.component.scss'],
 })
 export class AnalyserComponent {
   public runId?: string;

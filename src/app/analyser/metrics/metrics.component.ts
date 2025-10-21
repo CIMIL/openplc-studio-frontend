@@ -122,10 +122,10 @@ export class MetricsComponent {
         switchMap((track: { name: string }) =>
           of(this.analysisService.playbaleTrackToMetricsMap.value[track.name.split('.')[0]]),
         ),
-        filter((metrics: MetricRaw[]) => Array.isArray(metrics) && metrics.length > 0),
         tap((metrics: MetricRaw[]) => this.destroyCharts()),
         tap((metrics: MetricRaw[]) => (this.displayMetrics = [])),
         tap((metrics: MetricRaw[]) => (this.metrics = metrics)),
+        filter((metrics: MetricRaw[]) => Array.isArray(metrics) && metrics.length > 0),
         tap(() => this.buildAllCharts()),
         tap(() => this.displayMetrics.push(this.metricsWithLabels[0])),
         tap(() => (this.chartsReady = true)),

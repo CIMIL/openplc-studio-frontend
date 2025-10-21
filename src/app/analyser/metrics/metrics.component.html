@@ -1,3 +1,7 @@
+@if (!this.metrics) {
+  Select a Reconstructed track to analyze metrics
+}
+
 <p-multiselect
   [options]="metricsWithLabels"
   [(ngModel)]="displayMetrics"
@@ -6,11 +10,13 @@
   styleClass="w-full"
   optionLabel="displayName"
   appendTo="body"
+  [style]="{ visibility: metrics ? 'visible' : 'hidden' }"
 >
   <ng-template pTemplate="item" let-option>
     {{ option | metricLabel }}
   </ng-template>
 </p-multiselect>
+
 <div #chartContainer>
   @for (chartData of filteredChartData; track chartData; let i = $index) {
     <div>
