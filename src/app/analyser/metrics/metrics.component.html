@@ -1,7 +1,3 @@
-<!-- @if (!chartsReady) {
-  <p-skeleton width="auto" height="10rem"></p-skeleton>
-} -->
-
 <p-multiselect
   [options]="metricsWithLabels"
   [(ngModel)]="displayMetrics"
@@ -9,6 +5,7 @@
   display="chip"
   styleClass="w-full"
   optionLabel="displayName"
+  appendTo="body"
 >
   <ng-template pTemplate="item" let-option>
     {{ option | metricLabel }}

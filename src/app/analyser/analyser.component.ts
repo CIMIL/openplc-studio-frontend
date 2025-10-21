@@ -60,6 +60,19 @@ export class AnalyserComponent {
 
   private destroy$ = new Subject<void>();
 
+  public isSpectrogramReady: boolean = false;
+
+  private _spectrogramRef?: ElementRef;
+
+  @ViewChild('spectrogram', { static: false })
+  set spectrogramRef(ref: ElementRef | undefined) {
+    this._spectrogramRef = ref;
+  }
+
+  get spectrogramRef() {
+    return this._spectrogramRef;
+  }
+
   constructor(
     private readonly runsClient: RunsClient,
     private readonly route: ActivatedRoute,
@@ -250,6 +263,18 @@ export class AnalyserComponent {
         takeUntil(this.destroy$),
         filter((bounds: number[]) => Array.isArray(bounds) && bounds.length === 2),
         tap(() => this.openPanel(AccordionPanels.ZOOM_LENS)),
+      )
+      .subscribe();
+  }
+
+  public ngAfterViewInit() {
+    this.analysisService.spectrogramWrapper
+      .asObservable()
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((wrapper: HTMLElement | null) => !!wrapper),
+        tap((wrapper: HTMLElement) => this.spectrogramRef?.nativeElement.appendChild(wrapper)),
+        tap(() => (this.isSpectrogramReady = true)),
       )
       .subscribe();
   }

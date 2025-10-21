@@ -58,15 +58,6 @@ export class WavesurferWrapperComponent implements OnDestroy {
     return this._waveformRef;
   }
 
-  public isSpectrogramReady: boolean = false;
-
-  private _spectrogramRef?: ElementRef;
-
-  @ViewChild('spectrogram', { static: false })
-  set spectrogramRef(ref: ElementRef | undefined) {
-    this._spectrogramRef = ref;
-  }
-
   private wavesurfer!: WaveSurfer;
 
   private destroy$ = new Subject<void>();
@@ -150,23 +141,23 @@ export class WavesurferWrapperComponent implements OnDestroy {
       this.wavesurfer.loadBlob(audio);
     }
 
-    // const spectrogramPlugin: SpectrogramPlugin = this.wavesurfer.registerPlugin(
-    //   Spectrogram.create({
-    //     labels: true,
-    //     height: 400,
-    //     splitChannels: false,
-    //     scale: 'mel',
-    //     frequencyMax: 0,
-    //     frequencyMin: 0,
-    //     fftSamples: 2048,
-    //   }),
-    // );
+    const spectrogramPlugin: SpectrogramPlugin = this.wavesurfer.registerPlugin(
+      Spectrogram.create({
+        labels: true,
+        height: 400,
+        splitChannels: false,
+        scale: 'mel',
+        frequencyMax: 0,
+        frequencyMin: 0,
+        fftSamples: 2048,
+        useWebWorker: true,
+      }),
+    );
 
-    // spectrogramPlugin.once('ready', () => {
-    //   this.isSpectrogramReady = true;
-    //   const wrapper = (spectrogramPlugin as any).wrapper as HTMLElement; // plugin's root element
-    //   this.spectrogramRef?.nativeElement.appendChild(wrapper);
-    // });
+    spectrogramPlugin.once('ready', () => {
+      const wrapper = (spectrogramPlugin as any).wrapper as HTMLElement;
+      this.analysisService.spectrogramWrapper.next(wrapper);
+    });
 
     this.wavesurfer.registerPlugin(
       ZoomPlugin.create({

@@ -48,6 +48,8 @@ export class AnalysisService {
 
   public wsZoomBounds = new BehaviorSubject<number[]>([]);
 
+  public spectrogramWrapper = new BehaviorSubject<HTMLElement | null>(null);
+
   public get audioBlob$(): Observable<Blob | null> {
     return this.currentAudioBlobSubject.asObservable();
   }
