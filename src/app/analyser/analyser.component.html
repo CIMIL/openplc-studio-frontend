@@ -23,15 +23,6 @@
   </div>
 
   <p-accordion [value]="activePanels" [multiple]="true">
-    <p-accordion-panel [value]="AccordionPanels.SPECTROGRAM">
-      <p-accordion-header>Spectrogram</p-accordion-header>
-      <p-accordion-content>
-        @if (!isSpectrogramReady) {
-          <p-skeleton height="400px"></p-skeleton>
-        }
-        <div #spectrogram id="wave-spectrogram"></div>
-      </p-accordion-content>
-    </p-accordion-panel>
     <p-accordion-panel [value]="AccordionPanels.ZOOM_LENS">
       <p-accordion-header>Zoom Lens</p-accordion-header>
       <p-accordion-content>
@@ -46,6 +37,15 @@
       <p-accordion-header>Metrics</p-accordion-header>
       <p-accordion-content>
         <plc-metrics></plc-metrics>
+      </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel [value]="AccordionPanels.SPECTROGRAM">
+      <p-accordion-header>Spectrogram</p-accordion-header>
+      <p-accordion-content>
+        @if (!isSpectrogramReady) {
+          <p-skeleton height="400px"></p-skeleton>
+        }
+        <div #spectrogram id="wave-spectrogram"></div>
       </p-accordion-content>
     </p-accordion-panel>
   </p-accordion>

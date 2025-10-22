@@ -285,6 +285,8 @@ export class AnalyserComponent {
       return;
     }
 
+    this.isSpectrogramReady = false;
+
     this.analysisService.selectedPacketBounds.next([]);
 
     const trackNameSplit = track.name.split('.')[0].split('/');

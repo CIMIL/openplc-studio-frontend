@@ -4,6 +4,7 @@ import { RunConfiguratorComponent } from './run-configurator/run-configurator.co
 import { BacklogComponent } from './backlog/backlog.component';
 
 export const routes: Routes = [
+  { path: '', redirectTo: 'backlog', pathMatch: 'full' },
   {
     path: 'analyzer/:id',
     component: AnalyserComponent,
