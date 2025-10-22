@@ -50,7 +50,7 @@
   <p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
     <div class="p-4">
       <h3 class="text-lg font-semibold mb-4">
-        {{ getMetricsNameFromRawName(displayMetrics[currentDisplayMetricsParametersIndex]?.name) }} Parameters
+        {{ displayMetrics[currentDisplayMetricsParametersIndex] | metricLabel }}
       </h3>
 
       <div class="space-y-3">

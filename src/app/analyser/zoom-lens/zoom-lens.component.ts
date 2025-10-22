@@ -183,8 +183,8 @@ export class ZoomLensComponent {
         x: { ticks: { autoSkip: true, maxTicksLimit: 8, color: textColorSecondary }, grid: { display: false } },
         y: {
           beginAtZero: true,
-          min: -maxAbsoluteValue,
-          max: maxAbsoluteValue,
+          min: -maxAbsoluteValue * 1.1,
+          max: maxAbsoluteValue * 1.1,
           ticks: { color: textColorSecondary },
           grid: { color: surfaceBorder },
         },

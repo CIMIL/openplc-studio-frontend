@@ -47,7 +47,7 @@ export class AnalyserComponent {
 
   public reconstructedTracks: FileDescription[] = [];
 
-  public sampleMask: FileDescriptionWithJson[] = [];
+  public sampleMasks: FileDescriptionWithJson[] = [];
 
   public runFetchDone = new ReplaySubject<void>();
 
@@ -108,13 +108,6 @@ export class AnalyserComponent {
           this.analysisService.originalTrackSampleRates.next(
             this.originalTracks.map((t) => extractSampleRateFromWavHeader(t.data)),
           );
-          // load default track
-          if (files[0]) {
-            this.analysisService.selectedTrackPlaybackSampleRate.next(extractSampleRateFromWavHeader(files[0].data));
-            this.analysisService.selectedTrackPlayback.next({ name: files[0].name });
-          } else {
-            this.analysisService.setAudioBlob(null);
-          }
         }),
         tap(() => this.originalTracksFetchDone.next()),
       )
@@ -144,7 +137,7 @@ export class AnalyserComponent {
             ...rest,
           })),
         ),
-        tap((files: FileDescriptionWithJson[]) => (this.sampleMask = files)),
+        tap((files: FileDescriptionWithJson[]) => (this.sampleMasks = files)),
         tap((files: FileDescriptionWithJson[]) => {
           const sampleMaskMaps: Record<string, number[]> = {};
           files.forEach((m: FileDescriptionWithJson) => {
@@ -156,7 +149,7 @@ export class AnalyserComponent {
           const leftBoundsArr: number[][] = [];
           const rightBoundsArr: number[][] = [];
 
-          this.sampleMask.forEach((maskPacket, i) => {
+          this.sampleMasks.forEach((maskPacket, i) => {
             const json = maskPacket?.json;
             const packetSize = this.analysisService.sampleMaskPacketSizes[i];
             const [left, right] = this.analysisService.calculatePacketBurstBounds(json, packetSize);
@@ -209,6 +202,7 @@ export class AnalyserComponent {
             })),
           );
         }),
+        tap(() => this.onTrackChange(this.originalTracks[0])),
         tap(() => this.reconstructedTracksFetchDone.next()),
       )
       .subscribe();

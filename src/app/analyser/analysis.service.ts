@@ -58,6 +58,30 @@ export class AnalysisService {
     return this.currentAudioBlobSubject.value;
   }
 
+  public get sampleMaskParameters(): Record<string, Record<string, any>> {
+    const runValue = this.run.value;
+    if (
+      !runValue ||
+      !runValue.modules ||
+      !runValue.modules[ModuleType.PacketLossSimulator] ||
+      !Array.isArray(runValue.modules[ModuleType.PacketLossSimulator])
+    ) {
+      return {};
+    }
+    return runValue.modules[ModuleType.PacketLossSimulator].reduce(
+      (acc: Record<string, Record<string, any>>, module: Module) => {
+        if (!Array.isArray(module.settings)) return acc;
+        const paramsObj: Record<string, any> = {};
+        module.settings.forEach((param: any) => {
+          paramsObj[param.name] = param.value;
+        });
+        acc[module.name] = paramsObj;
+        return acc;
+      },
+      {},
+    );
+  }
+
   public get outputAnalyserParameters(): Record<string, Record<string, any>> {
     const runValue = this.run.value;
     if (
