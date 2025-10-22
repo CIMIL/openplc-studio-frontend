@@ -24,6 +24,10 @@
     & > div {
       border-radius: 0px;
       border: none !important;
+
+      & > .p-listbox-list-container {
+        max-height: 100% !important;
+      }
     }
   }
 }
@@ -49,13 +53,26 @@
 }
 
 :host::ng-deep {
-  p-autocomplete > div.p-autocomplete {
+  p-autocomplete.module-selection-autocomplete > div.p-autocomplete {
     & > input.p-inputtext {
       border-bottom-left-radius: 0px;
     }
     & > button.p-autocomplete-dropdown {
       border-bottom-right-radius: 0px;
       border-top-right-radius: 0px;
+    }
+  }
+}
+
+:host::ng-deep {
+  p-autocomplete.advanced-plc-autocomplete > div.p-autocomplete {
+    & > input.p-inputtext {
+      border-bottom-left-radius: 0px;
+      border-top-left-radius: 0px;
+    }
+    & > ul.p-autocomplete-input-multiple {
+      border-bottom-left-radius: 0px;
+      border-top-left-radius: 0px;
     }
   }
 }

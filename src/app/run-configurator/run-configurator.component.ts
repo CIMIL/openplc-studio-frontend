@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ModuleConfiguratorComponent } from './module-configurator/module-configurator.component';
+import { ModuleConfiguratorComponent, ModuleWithCount } from './module-configurator/module-configurator.component';
 import { ModuleType } from '../shared/enums/module-type.enum';
 import { StepperModule } from 'primeng/stepper';
 import { ButtonModule } from 'primeng/button';
@@ -16,6 +16,8 @@ import { tap } from 'rxjs';
 import { AudioTrackPickerComponent } from './audio-track-picker/audio-track-picker.component';
 import { Router } from '@angular/router';
 import { ModuleParameter, ModuleParameterSpec } from '../shared/interfaces/module-parameters.interface';
+import { InputGroupModule } from 'primeng/inputgroup';
+import { RunConfiguratorService } from './run-configurator.service';
 
 @Component({
   selector: 'plc-run-configurator',
@@ -29,6 +31,7 @@ import { ModuleParameter, ModuleParameterSpec } from '../shared/interfaces/modul
     ButtonModule,
     InputTextModule,
     AudioTrackPickerComponent,
+    InputGroupModule,
   ],
   providers: [],
 })
@@ -39,17 +42,24 @@ export class RunConfiguratorComponent implements OnInit {
 
   private _audioTracksConfig: string[] = [];
 
-  private _packetLossSimulatorsConfig: Module[] = [];
-
-  private _PLCAlgorithmsConfig: Module[] = [];
-
-  private _outputAnalysersConfig: Module[] = [];
-
   constructor(
     private readonly runsClient: RunsClient,
     private readonly messageService: MessageService,
-    private readonly router: Router
+    private readonly router: Router,
+    public runConfigService: RunConfiguratorService,
   ) {}
+
+  get packetLossSimulatorConfig(): ModuleWithCount[] {
+    return this.runConfigService.modulesSelection.value[ModuleType.PacketLossSimulator];
+  }
+
+  get PLCAlgorithmConfig(): ModuleWithCount[] {
+    return this.runConfigService.modulesSelection.value[ModuleType.PacketLossSimulator];
+  }
+
+  get outputAnalyserConfig(): ModuleWithCount[] {
+    return this.runConfigService.modulesSelection.value[ModuleType.PacketLossSimulator];
+  }
 
   public get audioTracksConfig(): string[] {
     return this._audioTracksConfig;
@@ -59,30 +69,6 @@ export class RunConfiguratorComponent implements OnInit {
     this._audioTracksConfig = value;
   }
 
-  public get packetLossSimulatorsConfig(): Module[] {
-    return this._packetLossSimulatorsConfig;
-  }
-
-  public set packetLossSimulatorsConfig(value: Module[]) {
-    this._packetLossSimulatorsConfig = value;
-  }
-
-  public get PLCAlgorithmsConfig(): Module[] {
-    return this._PLCAlgorithmsConfig;
-  }
-
-  public set PLCAlgorithmsConfig(value: Module[]) {
-    this._PLCAlgorithmsConfig = value;
-  }
-
-  public get outputAnalysersConfig(): Module[] {
-    return this._outputAnalysersConfig;
-  }
-
-  public set outputAnalysersConfig(value: Module[]) {
-    this._outputAnalysersConfig = value;
-  }
-
   public updateAudioTracksConfig(tracks: string[]): void {
     this.audioTracksConfig = tracks;
   }
@@ -90,9 +76,9 @@ export class RunConfiguratorComponent implements OnInit {
   get isConfigurationValid(): boolean {
     if (
       this.audioTracksConfig.length < 1 ||
-      this.packetLossSimulatorsConfig.length < 1 ||
-      this.PLCAlgorithmsConfig.length < 1 ||
-      this.outputAnalysersConfig.length < 1
+      this.packetLossSimulatorConfig.length < 1 ||
+      this.PLCAlgorithmConfig.length < 1 ||
+      this.outputAnalyserConfig.length < 1
     ) {
       return false;
     }
@@ -151,9 +137,9 @@ export class RunConfiguratorComponent implements OnInit {
       status: RunStatus.CREATED,
       tracks: this.audioTracksConfig,
       modules: {
-        [ModuleType.PacketLossSimulator]: this.mapSpecToConfig(this.packetLossSimulatorsConfig),
-        [ModuleType.PLCAlgorithm]: this.mapSpecToConfig(this.PLCAlgorithmsConfig),
-        [ModuleType.OutputAnalyser]: this.mapSpecToConfig(this.outputAnalysersConfig),
+        [ModuleType.PacketLossSimulator]: this.mapSpecToConfig(this.packetLossSimulatorConfig),
+        [ModuleType.PLCAlgorithm]: this.mapSpecToConfig(this.PLCAlgorithmConfig),
+        [ModuleType.OutputAnalyser]: this.mapSpecToConfig(this.outputAnalyserConfig),
       },
     };
 
@@ -165,11 +151,11 @@ export class RunConfiguratorComponent implements OnInit {
             severity: 'info',
             summary: 'Created',
             detail: `Run ${createdRun.name} was created`,
-          })
+          }),
         ),
         tap(() => {
           this.router.navigate(['/backlog']);
-        })
+        }),
       )
       .subscribe();
   }

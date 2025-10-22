@@ -1,0 +1,6 @@
+:host::ng-deep p-button.create-run-button {
+  min-width: 5rem;
+  & > button {
+    min-width: 5rem;
+  }
+}

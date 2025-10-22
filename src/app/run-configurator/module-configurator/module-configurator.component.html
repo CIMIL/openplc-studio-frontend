@@ -5,7 +5,7 @@
         [(ngModel)]="selectedModuleProxy"
         [suggestions]="availableModulesFilter"
         [optionLabel]="'name'"
-        class="flex-1"
+        class="flex-1 module-selection-autocomplete"
         (completeMethod)="searchModules($event)"
         (onSelect)="addModule(selectedModuleProxy)"
         appendTo="body"
@@ -247,165 +247,180 @@
               </ng-template>
 
               <ng-template #bandSettingsInput>
-                <div *ngIf="isAdvancedPLCLinked()" class="flex flex-row w-full">
-                  <div class="flex-1">Linked</div>
-                  <p-autocomplete
-                    [(ngModel)]="bandSettingsSelectedModuleProxy"
-                    [suggestions]="availableModulesFilter"
-                    [optionLabel]="'name'"
-                    class="flex-1"
-                    (completeMethod)="searchModules($event)"
-                    (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'linked')"
-                    appendTo="body"
-                    typeahead="false"
-                    [dropdown]="true"
-                  >
-                  </p-autocomplete>
+                <div *ngIf="isAdvancedPLCLinked()" class="flex flex-row w-full gap-5">
+                  <!-- <div class="flex-none">Linked</div> -->
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Linked</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="bandSettingsSelectedModuleProxy"
+                      [suggestions]="availableModulesFilter"
+                      [optionLabel]="'name'"
+                      class="w-full advanced-plc-autocomplete"
+                      (completeMethod)="searchModules($event)"
+                      (onSelect)="
+                        addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'linked')
+                      "
+                      appendTo="body"
+                      typeahead="false"
+                      [dropdown]="true"
+                    ></p-autocomplete>
+                  </p-inputgroup>
                 </div>
                 <div
                   *ngIf="!isAdvancedPLCLinked() && getAdvancedPLCStereoImageProcessingValue() === 'mid_side'"
-                  class="flex flex-row w-full"
+                  class="flex flex-row w-full gap-5"
                 >
-                  <div class="flex-1">Mid</div>
-                  <p-autocomplete
-                    [(ngModel)]="bandSettingsSelectedModuleProxy"
-                    [suggestions]="availableModulesFilter"
-                    [optionLabel]="'name'"
-                    class="flex-1"
-                    (completeMethod)="searchModules($event)"
-                    (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'mid')"
-                    appendTo="body"
-                    typeahead="false"
-                    [dropdown]="true"
-                  >
-                  </p-autocomplete>
-                  <div class="flex-1">Side</div>
-                  <p-autocomplete
-                    [(ngModel)]="bandSettingsSelectedModuleProxy"
-                    [suggestions]="availableModulesFilter"
-                    [optionLabel]="'name'"
-                    class="flex-1"
-                    (completeMethod)="searchModules($event)"
-                    (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'side')"
-                    appendTo="body"
-                    typeahead="false"
-                    [dropdown]="true"
-                  >
-                  </p-autocomplete>
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Mid</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="bandSettingsSelectedModuleProxy"
+                      [suggestions]="availableModulesFilter"
+                      [optionLabel]="'name'"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchModules($event)"
+                      (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'mid')"
+                      appendTo="body"
+                      typeahead="false"
+                      [dropdown]="true"
+                    ></p-autocomplete>
+                  </p-inputgroup>
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Side</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="bandSettingsSelectedModuleProxy"
+                      [suggestions]="availableModulesFilter"
+                      [optionLabel]="'name'"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchModules($event)"
+                      (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'side')"
+                      appendTo="body"
+                      typeahead="false"
+                      [dropdown]="true"
+                    ></p-autocomplete>
+                  </p-inputgroup>
                 </div>
                 <div
                   *ngIf="!isAdvancedPLCLinked() && getAdvancedPLCStereoImageProcessingValue() === 'dual_mono'"
-                  class="flex flex-row w-full"
+                  class="flex flex-row w-full gap-5"
                 >
-                  <div class="flex-1">Left</div>
-                  <p-autocomplete
-                    [(ngModel)]="bandSettingsSelectedModuleProxy"
-                    [suggestions]="availableModulesFilter"
-                    [optionLabel]="'name'"
-                    class="flex-1"
-                    (completeMethod)="searchModules($event)"
-                    (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'left')"
-                    appendTo="body"
-                    typeahead="false"
-                    [dropdown]="true"
-                  >
-                  </p-autocomplete>
-                  <div class="flex-1">Right</div>
-                  <p-autocomplete
-                    [(ngModel)]="bandSettingsSelectedModuleProxy"
-                    [suggestions]="availableModulesFilter"
-                    [optionLabel]="'name'"
-                    class="flex-1"
-                    (completeMethod)="searchModules($event)"
-                    (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'right')"
-                    appendTo="body"
-                    typeahead="false"
-                    [dropdown]="true"
-                  >
-                  </p-autocomplete>
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Left</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="bandSettingsSelectedModuleProxy"
+                      [suggestions]="availableModulesFilter"
+                      [optionLabel]="'name'"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchModules($event)"
+                      (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'left')"
+                      appendTo="body"
+                      typeahead="false"
+                      [dropdown]="true"
+                    ></p-autocomplete>
+                  </p-inputgroup>
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Right</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="bandSettingsSelectedModuleProxy"
+                      [suggestions]="availableModulesFilter"
+                      [optionLabel]="'name'"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchModules($event)"
+                      (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'right')"
+                      appendTo="body"
+                      typeahead="false"
+                      [dropdown]="true"
+                    ></p-autocomplete>
+                  </p-inputgroup>
                 </div>
               </ng-template>
 
               <ng-template #bandFrequenciesInput>
-                <div *ngIf="isAdvancedPLCLinked()" class="flex flex-row w-full">
-                  <div class="flex-1">Linked</div>
-                  <p-autocomplete
-                    [(ngModel)]="param.value['linked']"
-                    [suggestions]="suggestedBands"
-                    class="flex-1"
-                    (completeMethod)="searchBands($event)"
-                    appendTo="body"
-                    multiple
-                    typeahead="false"
-                    [dropdown]="true"
-                    type="number"
-                  >
-                  </p-autocomplete>
+                <div *ngIf="isAdvancedPLCLinked()" class="flex flex-row w-full gap-5">
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Linked</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="param.value['linked']"
+                      [suggestions]="suggestedBands"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchBands($event)"
+                      appendTo="body"
+                      multiple
+                      typeahead="false"
+                      [dropdown]="true"
+                      type="number"
+                    ></p-autocomplete>
+                  </p-inputgroup>
                 </div>
                 <div
                   *ngIf="!isAdvancedPLCLinked() && getAdvancedPLCStereoImageProcessingValue() === 'mid_side'"
-                  class="flex flex-row w-full"
+                  class="flex flex-row w-full gap-5"
                 >
-                  <div class="flex-1">Mid</div>
-                  <p-autocomplete
-                    [(ngModel)]="param.value['mid']"
-                    [suggestions]="suggestedBands"
-                    class="flex-1"
-                    (completeMethod)="searchBands($event)"
-                    appendTo="body"
-                    multiple
-                    typeahead="false"
-                    [dropdown]="true"
-                    type="number"
-                  >
-                  </p-autocomplete>
-                  <div class="flex-1">Side</div>
-                  <p-autocomplete
-                    [(ngModel)]="param.value['side']"
-                    [suggestions]="suggestedBands"
-                    class="flex-1"
-                    (completeMethod)="searchBands($event)"
-                    appendTo="body"
-                    multiple
-                    typeahead="false"
-                    [dropdown]="true"
-                    type="number"
-                  >
-                  </p-autocomplete>
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Mid</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="param.value['mid']"
+                      [suggestions]="suggestedBands"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchBands($event)"
+                      appendTo="body"
+                      multiple
+                      typeahead="false"
+                      [dropdown]="true"
+                      type="number"
+                    ></p-autocomplete>
+                  </p-inputgroup>
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Side</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="param.value['side']"
+                      [suggestions]="suggestedBands"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchBands($event)"
+                      appendTo="body"
+                      multiple
+                      typeahead="false"
+                      [dropdown]="true"
+                      type="number"
+                    ></p-autocomplete>
+                  </p-inputgroup>
                 </div>
                 <div
                   *ngIf="!isAdvancedPLCLinked() && getAdvancedPLCStereoImageProcessingValue() === 'dual_mono'"
-                  class="flex flex-row w-full"
+                  class="flex flex-row w-full gap-5"
                 >
-                  <div class="flex-1">Left</div>
-                  <p-autocomplete
-                    [(ngModel)]="param.value['left']"
-                    [suggestions]="suggestedBands"
-                    class="flex-1"
-                    (completeMethod)="searchBands($event)"
-                    appendTo="body"
-                    multiple
-                    typeahead="false"
-                    [dropdown]="true"
-                    type="number"
-                  >
-                  </p-autocomplete>
-                  <div class="flex-1">Right</div>
-                  <p-autocomplete
-                    [(ngModel)]="param.value['right']"
-                    [suggestions]="suggestedBands"
-                    class="flex-1"
-                    (completeMethod)="searchBands($event)"
-                    appendTo="body"
-                    multiple
-                    typeahead="false"
-                    [dropdown]="true"
-                    type="number"
-                  ></p-autocomplete>
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Left</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="param.value['left']"
+                      [suggestions]="suggestedBands"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchBands($event)"
+                      appendTo="body"
+                      multiple
+                      typeahead="false"
+                      [dropdown]="true"
+                      type="number"
+                    ></p-autocomplete>
+                  </p-inputgroup>
+                  <p-inputgroup class="flex-1">
+                    <p-inputgroup-addon>Right</p-inputgroup-addon>
+                    <p-autocomplete
+                      [(ngModel)]="param.value['right']"
+                      [suggestions]="suggestedBands"
+                      class="flex-1 advanced-plc-autocomplete"
+                      (completeMethod)="searchBands($event)"
+                      appendTo="body"
+                      multiple
+                      typeahead="false"
+                      [dropdown]="true"
+                      type="number"
+                    ></p-autocomplete>
+                  </p-inputgroup>
                 </div>
               </ng-template>
-            </div> </ng-container
-        ></ng-container>
+            </div>
+          </ng-container>
+        </ng-container>
       </div>
     </div>
   </ng-container>

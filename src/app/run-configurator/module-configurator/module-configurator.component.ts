@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { ModulesClient } from '../../shared/clients/modules.client';
-import { BehaviorSubject, filter, map, Subject, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, filter, map, Observable, Subject, takeUntil, tap } from 'rxjs';
 import { StepperModule } from 'primeng/stepper';
 import { SplitterModule } from 'primeng/splitter';
 import { ListboxModule } from 'primeng/listbox';
@@ -19,6 +19,7 @@ import { Module } from '../../shared/interfaces/module.interface';
 import { ModuleType } from '../../shared/enums/module-type.enum';
 import { SelectModule } from 'primeng/select';
 import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
+import { RunConfiguratorService } from '../run-configurator.service';
 
 const suggestedBands: number[] = [200, 1000, 2000];
 
@@ -58,13 +59,7 @@ export class ModuleConfiguratorComponent implements OnInit {
   @Input()
   public moduleType!: ModuleType;
 
-  @Input()
-  public modulesSelection!: ModuleWithCount[];
-
   public crossfadeModulesSelection!: ModuleWithCount[];
-
-  @Output()
-  public modulesSelectionChange = new EventEmitter<Module[]>();
 
   public modules: BehaviorSubject<ModuleWithCount[]> = new BehaviorSubject<ModuleWithCount[]>([]);
 
@@ -96,7 +91,14 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   private readonly unsubAll$ = new Subject<void>();
 
-  constructor(private readonly modulesService: ModulesClient) {}
+  constructor(
+    private readonly modulesClient: ModulesClient,
+    public runConfigService: RunConfiguratorService,
+  ) {}
+
+  get modulesSelection(): ModuleWithCount[] {
+    return this.runConfigService.modulesSelection.value[this.moduleType];
+  }
 
   get availableModules(): ModuleWithCount[] {
     return this.modules.value;
@@ -123,7 +125,7 @@ export class ModuleConfiguratorComponent implements OnInit {
     return !!this.moduleFocus?.settings.some(
       (setting) =>
         crossfadeNameParameters.includes(setting.name) &&
-        (Array.isArray(setting.value) ? setting.value.length > 0 : false)
+        (Array.isArray(setting.value) ? setting.value.length > 0 : false),
     );
   }
 
@@ -147,22 +149,22 @@ export class ModuleConfiguratorComponent implements OnInit {
         })),
       }));
 
-    this.modulesService
+    this.modulesClient
       .getModuleTypes(this.moduleType)
       .pipe(
         takeUntil(this.unsubAll$),
         map(transformModules),
-        tap((modules: ModuleWithCount[]) => this.modules.next(modules))
+        tap((modules: ModuleWithCount[]) => this.modules.next(modules)),
       )
       .subscribe();
 
     if (this.moduleType === ModuleType.PLCAlgorithm) {
-      this.modulesService
+      this.modulesClient
         .getModuleTypes(ModuleType.CrossfadeSettings)
         .pipe(
           takeUntil(this.unsubAll$),
           map(transformModules),
-          tap((modules: ModuleWithCount[]) => this.crossfadeModules.next(modules))
+          tap((modules: ModuleWithCount[]) => this.crossfadeModules.next(modules)),
         )
         .subscribe();
     }
@@ -191,6 +193,11 @@ export class ModuleConfiguratorComponent implements OnInit {
       id: this.selectedModuleCounter++,
     });
 
+    this.runConfigService.modulesSelection.next({
+      ...this.runConfigService.modulesSelection.value,
+      [this.moduleType]: this.modulesSelection,
+    });
+
     this.selectedModuleProxy = null;
   }
 
@@ -198,12 +205,15 @@ export class ModuleConfiguratorComponent implements OnInit {
     if (this.modulesSelection[moduleIndex]?.id === this.moduleFocus?.id) {
       this.moduleFocus = null;
     }
-    this.modulesSelection.splice(moduleIndex, 1);
+    this.runConfigService.modulesSelection.next({
+      ...this.runConfigService.modulesSelection.value,
+      [this.moduleType]: this.modulesSelection.filter((_, idx) => idx !== moduleIndex),
+    });
   }
 
   public searchCrossfadeModules(event: AutoCompleteCompleteEvent) {
     this.availableCrossfadeModulesFilter = this.availableCrossfadeModules.filter((m) =>
-      m.name.toLocaleLowerCase().includes(event.query)
+      m.name.toLocaleLowerCase().includes(event.query),
     );
   }
 
@@ -271,8 +281,6 @@ export class ModuleConfiguratorComponent implements OnInit {
   }
 
   ngOnDestroy(): void {
-    this.modulesSelectionChange.emit(this.modulesSelection);
-
     this.unsubAll$.next();
     this.unsubAll$.complete();
   }
@@ -296,7 +304,7 @@ export class ModuleConfiguratorComponent implements OnInit {
   public addAdvancedPLCBandSettingModule(
     bandSettingModule: ModuleWithCount | null,
     paramName: string,
-    bandLabel: string
+    bandLabel: string,
   ) {
     if (!bandSettingModule) {
       return;
