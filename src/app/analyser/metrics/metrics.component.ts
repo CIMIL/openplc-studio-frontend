@@ -8,15 +8,27 @@ import { DARK_COLORS, LIGHT_COLORS } from '../utils';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ChartModule } from 'primeng/chart';
 import { debounceTime, filter, map, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
-import { SelectModule } from 'primeng/select';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { MetricLabelPipe, metricLabelTransform } from './metric-label.pipe';
+import { DrawerModule } from 'primeng/drawer';
+import { ButtonModule } from 'primeng/button';
+import { DividerModule } from 'primeng/divider';
 
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 
 @Component({
   selector: 'plc-metrics',
-  imports: [CommonModule, FormsModule, SkeletonModule, ChartModule, MultiSelectModule, MetricLabelPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    SkeletonModule,
+    ChartModule,
+    MultiSelectModule,
+    MetricLabelPipe,
+    DrawerModule,
+    ButtonModule,
+    DividerModule,
+  ],
   templateUrl: './metrics.component.html',
   //   styleUrls: ['./metrics.component.scss'],
 })
@@ -32,6 +44,12 @@ export class MetricsComponent {
   public chartOptions: ChartOptions[] = [];
 
   public chartTypes: Array<'line' | 'bar'> = [];
+
+  public infoDrawerVisible: boolean = false;
+
+  public displayMetricsParametersArray: string[][] = [];
+
+  public currentDisplayMetricsParametersIndex: number = 0;
 
   private destroy$ = new Subject<void>();
 
@@ -73,7 +91,7 @@ export class MetricsComponent {
   get metricsWithLabels() {
     return (this.metrics ?? []).map((metric) => ({
       ...metric,
-      displayName: metricLabelTransform(metric),
+      displayName: metricLabelTransform(metric.name),
     }));
   }
 
@@ -97,8 +115,10 @@ export class MetricsComponent {
           chartElements?.forEach((canvas: HTMLCanvasElement, index: number) => {
             const chart = Chart.getChart(canvas);
 
-            const windowLength = this.analysisService.outputAnalyserParameters[index]['N'];
-            const hopSize = this.analysisService.outputAnalyserParameters[index]['hop'] ?? windowLength / 2;
+            const metricsParameters = Object.values(this.analysisService.outputAnalyserParameters);
+
+            const windowLength = metricsParameters[index]['N'] ?? 0;
+            const hopSize = metricsParameters[index]['hop'] ?? windowLength / 2;
 
             const [leftBound, rightBound] = bounds.map((b) =>
               Math.round((b * this.analysisService.selectedTrackPlaybackSampleRate.value - windowLength) / hopSize + 1),
@@ -128,9 +148,22 @@ export class MetricsComponent {
         filter((metrics: MetricRaw[]) => Array.isArray(metrics) && metrics.length > 0),
         tap(() => this.buildAllCharts()),
         tap(() => this.displayMetrics.push(this.metricsWithLabels[0])),
+        tap(() => this.updateDisplayMetricsParametersArray()),
         tap(() => (this.chartsReady = true)),
       )
       .subscribe();
+  }
+
+  public updateDisplayMetricsParametersArray(): void {
+    const displayMetricsParametersArray = this.displayMetrics.map((m) => {
+      const moduleName = this.getMetricsNameFromRawName(m.name);
+      const parameters = this.analysisService.outputAnalyserParameters[moduleName];
+      return parameters ? Object.keys(parameters) : [];
+    });
+    if (displayMetricsParametersArray.length <= this.currentDisplayMetricsParametersIndex) {
+      this.currentDisplayMetricsParametersIndex = 0;
+    }
+    this.displayMetricsParametersArray = displayMetricsParametersArray;
   }
 
   private buildAllCharts(): void {
@@ -249,6 +282,11 @@ export class MetricsComponent {
 
     this.destroyCharts();
     this.buildAllCharts();
+  }
+
+  public getMetricsNameFromRawName(rawName: string | undefined) {
+    if (!rawName) return '';
+    return metricLabelTransform(rawName).split('-')[0];
   }
 
   public destroyCharts(): void {

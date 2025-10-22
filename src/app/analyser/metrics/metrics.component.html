@@ -10,6 +10,7 @@
   styleClass="w-full"
   optionLabel="displayName"
   appendTo="body"
+  (ngModelChange)="updateDisplayMetricsParametersArray()"
   [style]="{ visibility: metrics ? 'visible' : 'hidden' }"
 >
   <ng-template pTemplate="item" let-option>
@@ -19,8 +20,21 @@
 
 <div #chartContainer>
   @for (chartData of filteredChartData; track chartData; let i = $index) {
+    <p-divider></p-divider>
     <div>
-      <h1 class="text-center w-full">{{ displayMetrics[i] | metricLabel }}</h1>
+      <div class="flex flex-row items-center justify-center w-full gap-3">
+        <h1 class="font-sans text-xl">
+          {{ displayMetrics[i] | metricLabel }}
+        </h1>
+        <p-button
+          type="button"
+          (click)="currentDisplayMetricsParametersIndex = i; infoDrawerVisible = true"
+          [rounded]="true"
+          severity="secondary"
+          icon="pi pi-info-circle"
+          size="small"
+        />
+      </div>
       <p-chart
         [type]="filteredChartTypes[i]"
         [data]="chartData"
@@ -31,3 +45,32 @@
     </div>
   }
 </div>
+
+@if (this.displayMetrics && this.displayMetrics.length > 0) {
+  <p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
+    <div class="p-4">
+      <h3 class="text-lg font-semibold mb-4">
+        {{ getMetricsNameFromRawName(displayMetrics[currentDisplayMetricsParametersIndex]?.name) }} Parameters
+      </h3>
+
+      <div class="space-y-3">
+        @for (param of displayMetricsParametersArray[currentDisplayMetricsParametersIndex] || []; track param) {
+          <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+            <div class="flex justify-between items-center">
+              <span class="font-medium text-gray-700 dark:text-gray-300">
+                {{ param }}
+              </span>
+              <span class="text-sm text-gray-600 dark:text-gray-400">
+                {{
+                  analysisService.outputAnalyserParameters[
+                    getMetricsNameFromRawName(displayMetrics[currentDisplayMetricsParametersIndex].name)
+                  ][param] ?? 'null'
+                }}
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </p-drawer>
+}

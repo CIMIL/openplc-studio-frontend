@@ -58,7 +58,7 @@ export class AnalysisService {
     return this.currentAudioBlobSubject.value;
   }
 
-  public get outputAnalyserParameters(): any[] {
+  public get outputAnalyserParameters(): Record<string, Record<string, any>> {
     const runValue = this.run.value;
     if (
       !runValue ||
@@ -66,16 +66,20 @@ export class AnalysisService {
       !runValue.modules[ModuleType.OutputAnalyser] ||
       !Array.isArray(runValue.modules[ModuleType.OutputAnalyser])
     ) {
-      return [];
+      return {};
     }
-    return runValue.modules[ModuleType.OutputAnalyser].map((module: Module) => {
-      if (!Array.isArray(module.settings)) return {};
-      const paramsObj: { [key: string]: any } = {};
-      module.settings.forEach((param: any) => {
-        paramsObj[param.name] = param.value;
-      });
-      return paramsObj;
-    });
+    return runValue.modules[ModuleType.OutputAnalyser].reduce(
+      (acc: Record<string, Record<string, any>>, module: Module) => {
+        if (!Array.isArray(module.settings)) return acc;
+        const paramsObj: Record<string, any> = {};
+        module.settings.forEach((param: any) => {
+          paramsObj[param.name] = param.value;
+        });
+        acc[module.name] = paramsObj;
+        return acc;
+      },
+      {},
+    );
   }
 
   public setAudioBlob(blob: Blob | null): void {
