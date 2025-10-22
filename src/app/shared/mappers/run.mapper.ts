@@ -3,7 +3,7 @@ import { ModuleType } from '../enums/module-type.enum';
 import { Run } from '../interfaces/run.interface';
 
 export class RunMapper {
-  static modelToCreateDto(run: Omit<Run, 'id'>): RunCreateDto {
+  static modelToCreateDto(run: Omit<Run, 'id' | 'created' | 'updated'>): RunCreateDto {
     return {
       author: run.author,
       name: run.name,
@@ -21,6 +21,8 @@ export class RunMapper {
   static dtoToModel(runDto: RunDto): Run {
     return {
       id: runDto.id,
+      created: runDto.created,
+      updated: runDto.updated,
       author: runDto.author,
       name: runDto.name,
       testbenchInternalId: runDto.testbench_internal_id,

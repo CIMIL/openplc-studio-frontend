@@ -1,3 +1,6 @@
+<div class="mx-auto text-center text-2xl">
+  <h1>{{ analysisService.run.value?.name }}</h1>
+</div>
 <div class="w-full">
   <div class="py-4">
     @if (analysisService.trackGroups.value && analysisService.trackGroups.value.length > 0) {
@@ -29,7 +32,7 @@
         @if (analysisService.selectedPacketBounds.value && analysisService.selectedPacketBounds.value.length > 0) {
           <plc-zoom-lens></plc-zoom-lens>
         } @else {
-          <p>Select a sample for analysis</p>
+          <p>Select a packet for analysis</p>
         }
       </p-accordion-content>
     </p-accordion-panel>

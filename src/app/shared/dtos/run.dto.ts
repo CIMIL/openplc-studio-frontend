@@ -4,6 +4,8 @@ import { Module } from '../interfaces/module.interface';
 
 export interface RunDto {
   id: string;
+  created: string;
+  updated: string;
   author: string;
   name: string;
   testbench_internal_id: string;

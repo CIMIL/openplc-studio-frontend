@@ -19,7 +19,10 @@ import { Router } from '@angular/router';
 export class BacklogComponent implements OnInit {
   public runs!: Run[];
 
-  constructor(private runsClient: RunsClient, private router: Router) {}
+  constructor(
+    private runsClient: RunsClient,
+    public router: Router,
+  ) {}
 
   ngOnInit() {
     this.getAllRuns();
@@ -31,7 +34,7 @@ export class BacklogComponent implements OnInit {
       .pipe(
         tap((runs) => {
           this.runs = runs;
-        })
+        }),
       )
       .subscribe();
   }

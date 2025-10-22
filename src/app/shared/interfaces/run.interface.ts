@@ -4,6 +4,8 @@ import { Module } from './module.interface';
 
 export interface Run {
   id: string;
+  created: string;
+  updated: string;
   author: string;
   name: string;
   testbenchInternalId: string;

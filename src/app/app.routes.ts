@@ -5,6 +5,7 @@ import { BacklogComponent } from './backlog/backlog.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'backlog', pathMatch: 'full' },
+  { path: 'analyzer', redirectTo: 'backlog' },
   {
     path: 'analyzer/:id',
     component: AnalyserComponent,
@@ -17,4 +18,5 @@ export const routes: Routes = [
     path: 'backlog',
     component: BacklogComponent,
   },
+  { path: '**', redirectTo: 'backlog' },
 ];

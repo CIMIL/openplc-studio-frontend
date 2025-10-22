@@ -7,6 +7,8 @@ import { Toolbar } from 'primeng/toolbar';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ThemeService } from '../shared/services/theme.service';
+import { MenubarModule } from 'primeng/menubar';
+import { MenuItem } from 'primeng/api';
 
 @Component({
   selector: 'plc-header',
@@ -16,9 +18,11 @@ import { ThemeService } from '../shared/services/theme.service';
 export class HeaderComponent {
   private _isDarkMode = false;
 
+  public items: MenuItem[] | undefined;
+
   constructor(
     private readonly localStorageService: LocalStorageService,
-    private readonly router: Router,
+    public readonly router: Router,
     private readonly themeService: ThemeService,
   ) {}
 
@@ -48,9 +52,5 @@ export class HeaderComponent {
     } else {
       element?.classList.remove('my-app-dark');
     }
-  }
-
-  public nagivateToBacklog() {
-    this.router.navigate(['backlog']);
   }
 }
