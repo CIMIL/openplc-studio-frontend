@@ -20,15 +20,24 @@ import { ModuleType } from '../../shared/enums/module-type.enum';
 import { ModuleParameter } from '../../shared/interfaces/module-parameters.interface';
 import { Module } from '../../shared/interfaces/module.interface';
 import { ThemeService } from '../../shared/services/theme.service';
+import { SelectButtonModule } from 'primeng/selectbutton';
 
 @Component({
   selector: 'plc-zoom-lens',
-  imports: [CommonModule, FormsModule, SkeletonModule, ChartModule, SelectModule, ToggleButtonModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    SkeletonModule,
+    ChartModule,
+    SelectModule,
+    ToggleButtonModule,
+    SelectButtonModule,
+  ],
   templateUrl: './zoom-lens.component.html',
   //   styleUrls: ['./zoom-lens.component.scss'],
 })
 export class ZoomLensComponent {
-  public zoomLensSelectedChannel: boolean = false;
+  public zoomLensSelectedChannel: string = 'Left';
 
   public zoomSegmentData?: ChartData | null = null;
 
@@ -37,6 +46,12 @@ export class ZoomLensComponent {
   private normalizedSegmentsCache: any[] = [];
 
   private allTracksCache: string[] = [];
+
+  // Add this new property:
+  public channelOptions = [
+    { label: 'Left', value: 'Left' },
+    { label: 'Right', value: 'Right' },
+  ];
 
   private destroy$ = new Subject<void>();
 
@@ -150,7 +165,7 @@ export class ZoomLensComponent {
 
     const maxAbsoluteValue = Math.max(
       ...this.normalizedSegmentsCache.flatMap((segment) =>
-        segment[Number(this.zoomLensSelectedChannel)].map((value: number) => Math.abs(value)),
+        segment[this.zoomLensSelectedChannel === 'Right' ? 1 : 0].map((value: number) => Math.abs(value)),
       ),
     );
 
@@ -162,7 +177,7 @@ export class ZoomLensComponent {
         label: this.allTracksCache.map((tn) => tn.split('/')[tn.split('/').length - 1] ?? tn)[
           i % this.normalizedSegmentsCache.length
         ],
-        data: t[Number(this.zoomLensSelectedChannel)],
+        data: t[this.zoomLensSelectedChannel === 'Right' ? 1 : 0],
         tension: 0.25,
         borderColor: colorPalette[i % colorPalette.length],
         pointRadius: 2,
