@@ -54,11 +54,11 @@ export class RunConfiguratorComponent implements OnInit {
   }
 
   get PLCAlgorithmConfig(): ModuleWithCount[] {
-    return this.runConfigService.modulesSelection.value[ModuleType.PacketLossSimulator];
+    return this.runConfigService.modulesSelection.value[ModuleType.PLCAlgorithm];
   }
 
   get outputAnalyserConfig(): ModuleWithCount[] {
-    return this.runConfigService.modulesSelection.value[ModuleType.PacketLossSimulator];
+    return this.runConfigService.modulesSelection.value[ModuleType.OutputAnalyser];
   }
 
   public get audioTracksConfig(): string[] {

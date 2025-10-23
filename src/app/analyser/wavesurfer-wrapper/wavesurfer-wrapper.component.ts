@@ -2,13 +2,14 @@ import { Component, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { combineLatest, filter, fromEvent, fromEventPattern, Subject, Subscription, takeUntil, tap } from 'rxjs';
 import WaveSurfer from 'wavesurfer.js';
 import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';
-import Spectrogram from 'wavesurfer.js/dist/plugins/spectrogram';
 import RegionsPlugin, { Region } from 'wavesurfer.js/dist/plugins/regions';
 import { CommonModule } from '@angular/common';
 import { AnalysisService } from '../analysis.service';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ThemeService } from '../../shared/services/theme.service';
 import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
+
+import SpectrogramPatch from './ws-spectrogram-patch.class';
 
 import Hover from 'wavesurfer.js/dist/plugins/hover';
 import HoverPlugin from 'wavesurfer.js/dist/plugins/hover';
@@ -97,8 +98,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
       waveColor: WAVESURFER_COLOR_PALETTE['waveColor'][Number(isDarkMode)],
       progressColor: WAVESURFER_COLOR_PALETTE['progressColor'][Number(isDarkMode)],
       height: 300,
-      minPxPerSec: 50,
-
+      minPxPerSec: 0,
       sampleRate: sampleRate,
     });
 
@@ -132,7 +132,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
     }
 
     const spectrogramPlugin: SpectrogramPlugin = this.wavesurfer.registerPlugin(
-      Spectrogram.create({
+      SpectrogramPatch.create({
         labels: true,
         height: 400,
         splitChannels: false,
@@ -146,6 +146,8 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
     spectrogramPlugin.once('ready', () => {
       const wrapper = (spectrogramPlugin as any).wrapper as HTMLElement;
+      console.log(this.wavesurfer.getWrapper().offsetWidth);
+      (spectrogramPlugin as any).setWidth(this.wavesurfer.getWrapper().offsetWidth);
       this.analysisService.spectrogramWrapper.next(wrapper);
     });
 
