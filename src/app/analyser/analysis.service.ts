@@ -176,6 +176,7 @@ export class AnalysisService {
     this.metrics.next([]);
     this.wsZoomBounds.next([]);
     this.playbaleTrackToMetricsMap.next({});
+    this.spectrogramWrapper.next(null);
     this.setAudioBlob(null);
   }
 }

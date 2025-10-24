@@ -153,9 +153,8 @@ export class RunConfiguratorComponent implements OnInit {
             detail: `Run ${createdRun.name} was created`,
           }),
         ),
-        tap(() => {
-          this.router.navigate(['/backlog']);
-        }),
+        tap(() => this.runConfigService.resetModuleSelection()),
+        tap(() => this.router.navigate(['/backlog'])),
       )
       .subscribe();
   }

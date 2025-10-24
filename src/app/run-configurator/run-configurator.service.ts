@@ -11,5 +11,13 @@ export class RunConfiguratorService {
     [ModuleType.OutputAnalyser]: [],
     [ModuleType.CrossfadeSettings]: [],
   });
-  public dioporco = new BehaviorSubject<ModuleWithCount[]>([]);
+
+  public resetModuleSelection(): void {
+    this.modulesSelection.next({
+      [ModuleType.PacketLossSimulator]: [],
+      [ModuleType.PLCAlgorithm]: [],
+      [ModuleType.OutputAnalyser]: [],
+      [ModuleType.CrossfadeSettings]: [],
+    });
+  }
 }
