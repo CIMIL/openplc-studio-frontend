@@ -189,7 +189,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
     this.modulesSelection.push({
       ...module,
-      settings: module.settings.map((param) => ({ ...param })),
+      settings: structuredClone(module.settings),
       id: this.selectedModuleCounter++,
     });
 
@@ -227,7 +227,7 @@ export class ModuleConfiguratorComponent implements OnInit {
       parentModuleSetting.value = parentModuleSetting.value || [];
       parentModuleSetting.value.push({
         ...crossfadeModule,
-        settings: crossfadeModule.settings.map((param) => ({ ...param })),
+        settings: structuredClone(crossfadeModule.settings),
         id: this.selectedCrossfadeModuleCounter++,
       });
     }
@@ -315,7 +315,7 @@ export class ModuleConfiguratorComponent implements OnInit {
       parentModuleSetting.value[bandLabel] = parentModuleSetting.value[bandLabel] || [];
       parentModuleSetting.value[bandLabel].push({
         ...bandSettingModule,
-        settings: bandSettingModule.settings
+        settings: structuredClone(bandSettingModule.settings)
           .map((param: any) => ({ ...param }))
           .filter((param) => !bandSettingsOmittedParams.includes(param.name)),
         id: this.bandSettingsSelectedModuleCounter++,
