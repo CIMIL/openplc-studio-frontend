@@ -6,6 +6,8 @@ import RegionsPlugin, { Region } from 'wavesurfer.js/dist/plugins/regions';
 import { CommonModule } from '@angular/common';
 import { AnalysisService } from '../analysis.service';
 import { SkeletonModule } from 'primeng/skeleton';
+import { ButtonModule } from 'primeng/button';
+import { SliderModule } from 'primeng/slider';
 import { ThemeService } from '../../shared/services/theme.service';
 import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
 
@@ -13,6 +15,7 @@ import SpectrogramPatch from './ws-spectrogram-patch.class';
 
 import Hover from 'wavesurfer.js/dist/plugins/hover';
 import HoverPlugin from 'wavesurfer.js/dist/plugins/hover';
+import { FormsModule } from '@angular/forms';
 
 const WAVESURFER_COLOR_PALETTE = {
   waveColor: ['#a78bfa', '#c084fc'],
@@ -26,7 +29,7 @@ const WAVESURFER_COLOR_PALETTE = {
 
 @Component({
   selector: 'plc-wavesurfer-wrapper',
-  imports: [CommonModule, SkeletonModule],
+  imports: [CommonModule, SkeletonModule, ButtonModule, SliderModule, FormsModule],
   templateUrl: './wavesurfer-wrapper.component.html',
   styleUrls: ['./wavesurfer-wrapper.component.scss'],
 })
@@ -36,6 +39,10 @@ export class WavesurferWrapperComponent implements OnDestroy {
   private hoverPlugin?: HoverPlugin;
 
   private _waveformRef?: ElementRef;
+
+  public isPlaying = false;
+
+  public volume = 1.0;
 
   @ViewChild('waveform')
   set waveformRef(ref: ElementRef | undefined) {
@@ -49,7 +56,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
     return this._waveformRef;
   }
 
-  private wavesurfer!: WaveSurfer;
+  public wavesurfer!: WaveSurfer;
 
   private destroy$ = new Subject<void>();
 
@@ -102,8 +109,21 @@ export class WavesurferWrapperComponent implements OnDestroy {
       sampleRate: sampleRate,
     });
 
-    // define wavesurfer events
+    this.wavesurfer.setVolume(this.volume);
 
+    // EVENTS BINDINGS
+
+    this.wavesurfer.on('play', () => {
+      this.isPlaying = true;
+    });
+
+    this.wavesurfer.on('pause', () => {
+      this.isPlaying = false;
+    });
+
+    this.wavesurfer.on('finish', () => {
+      this.isPlaying = false;
+    });
     this.wavesurfer.on(
       'scroll',
       (visibleStartTime: number, visibleEndTime: number, scrollLeft: number, scrollRight: number) => {
@@ -116,10 +136,9 @@ export class WavesurferWrapperComponent implements OnDestroy {
       this.spacebarSubscription = fromEvent<KeyboardEvent>(document, 'keydown')
         .pipe(
           filter((event) => event.code === 'Space' && !!this.wavesurfer),
-          // debounceTime( 200),
           tap((event) => {
             event.preventDefault();
-            this.wavesurfer.playPause();
+            this.playPause();
           }),
         )
         .subscribe();
@@ -223,6 +242,36 @@ export class WavesurferWrapperComponent implements OnDestroy {
         }),
       )
       .subscribe();
+  }
+
+  public playPause(): void {
+    if (this.wavesurfer) {
+      this.wavesurfer.playPause();
+    }
+  }
+
+  public seekToStart(): void {
+    if (this.wavesurfer) {
+      this.wavesurfer.pause();
+      this.wavesurfer.seekTo(0);
+      this.isPlaying = false;
+    }
+  }
+
+  public seekToEnd(): void {
+    if (this.wavesurfer) {
+      this.wavesurfer.pause();
+      const duration = this.wavesurfer.getDuration();
+      this.wavesurfer.seekTo(duration);
+      this.isPlaying = false;
+    }
+  }
+
+  public onVolumeChange(event: any): void {
+    this.volume = event.value;
+    if (this.wavesurfer) {
+      this.wavesurfer.setVolume(this.volume);
+    }
   }
 
   private onRegionClick(region: Region): void {

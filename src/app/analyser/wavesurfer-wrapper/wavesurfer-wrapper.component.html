@@ -1,6 +1,55 @@
 <div class="waveform-container">
   @if ((analysisService.audioBlob$ | async) != null) {
-    <div id="waveform" class="waveform" #waveform></div>
+    <!-- Transport Controls -->
+    <div class="flex justify-between items-center p-3 px-6">
+      <div class="flex items-center gap-2">
+        <p-button
+          class="flex items-center justify-center w-10 h-10 disabled:cursor-not-allowed transition-all duration-200"
+          (click)="seekToStart()"
+          severity="secondary"
+          [rounded]="'true'"
+          [disabled]="!wavesurfer"
+        >
+          <i class="pi pi-step-backward text-sm"></i>
+        </p-button>
+
+        <p-button
+          class="flex items-center justify-center w-10 h-10disabled:cursor-not-allowed transition-all duration-200"
+          (click)="playPause()"
+          [severity]="!isPlaying ? 'primary' : 'info'"
+          [rounded]="'true'"
+          [disabled]="!wavesurfer"
+        >
+          <i class="pi text-sm" [class.pi-play]="!isPlaying" [class.pi-pause]="isPlaying"></i>
+        </p-button>
+
+        <p-button
+          class="flex items-center justify-center w-10 h-10 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          (click)="seekToEnd()"
+          severity="secondary"
+          [rounded]="'true'"
+          [disabled]="!wavesurfer"
+        >
+          <i class="pi pi-step-forward text-sm"></i>
+        </p-button>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="flex items-center">
+          <i class="pi pi-volume-up text-sm mr-1"></i>
+        </label>
+        <p-slider
+          [(ngModel)]="volume"
+          [min]="0"
+          [max]="1"
+          [step]="0.01"
+          [disabled]="!wavesurfer"
+          (onChange)="onVolumeChange($event)"
+          class="w-24"
+        ></p-slider>
+      </div>
+    </div>
+
+    <div id="waveform" #waveform></div>
   } @else {
     <p-skeleton width="auto" height="400px"></p-skeleton>
   }
