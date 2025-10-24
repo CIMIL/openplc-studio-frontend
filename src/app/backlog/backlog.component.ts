@@ -31,11 +31,7 @@ export class BacklogComponent implements OnInit {
   public getAllRuns(): void {
     this.runsClient
       .getAllRuns()
-      .pipe(
-        tap((runs) => {
-          this.runs = runs;
-        }),
-      )
+      .pipe(tap((runs) => (this.runs = runs)))
       .subscribe();
   }
 

@@ -14,6 +14,7 @@ import { MenuItem } from 'primeng/api';
   selector: 'plc-header',
   imports: [CommonModule, ButtonModule, ToggleButtonModule, FormsModule, Toolbar],
   templateUrl: './header.component.html',
+  styleUrl: './header.component.scss',
 })
 export class HeaderComponent {
   private _isDarkMode = false;

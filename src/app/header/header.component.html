@@ -1,7 +1,7 @@
-<p-toolbar class="!rounded-none py-4">
+<p-toolbar class="py-4">
   <ng-template #start>
-    <div class="flex gap-3 items-center">
-      <div style="cursor: pointer">PLC Testbench :)</div>
+    <div class="pr-6" style="cursor: pointer" (click)="this.router.navigate(['backlog'])">PLC Testbench :)</div>
+    <div class="flex gap-1 items-center">
       <p-button
         label="New"
         icon="pi pi-plus"
