@@ -31,7 +31,7 @@ export class AudioTrackPickerComponent implements OnInit, OnDestroy {
   constructor(
     private readonly messageService: MessageService,
     public readonly filesClient: AssetsClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   public ngOnInit(): void {
@@ -40,7 +40,7 @@ export class AudioTrackPickerComponent implements OnInit, OnDestroy {
       .pipe(
         switchMap((filenames: string[]) => of(filenames.filter((f) => !(this.audioTracksSelection ?? []).includes(f)))),
         tap((filenames: string[]) => (this.sourceFilenames = filenames)),
-        tap(() => this.cdr.markForCheck())
+        tap(() => this.cdr.markForCheck()),
       )
       .subscribe();
   }

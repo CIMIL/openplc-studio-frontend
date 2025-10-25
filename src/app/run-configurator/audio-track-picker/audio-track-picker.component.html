@@ -6,7 +6,7 @@
       [url]="filesClient.api"
       (onUpload)="onUpload($event)"
       [multiple]="true"
-      accept="audio/*"
+      accept="audio/wav"
       maxFileSize="100000000"
       mode="advanced"
       class="w-full"
@@ -23,8 +23,6 @@
         </ul>
       </ng-template>
     </p-fileupload>
-
-    <p-toast />
   </ng-template>
 
   <ng-template #panel>

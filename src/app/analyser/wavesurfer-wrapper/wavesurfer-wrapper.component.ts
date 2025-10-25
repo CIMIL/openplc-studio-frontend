@@ -16,6 +16,7 @@ import SpectrogramPatch from './ws-spectrogram-patch.class';
 import Hover from 'wavesurfer.js/dist/plugins/hover';
 import HoverPlugin from 'wavesurfer.js/dist/plugins/hover';
 import { FormsModule } from '@angular/forms';
+import { MessageService } from 'primeng/api';
 
 const WAVESURFER_COLOR_PALETTE = {
   waveColor: ['#a78bfa', '#c084fc'],
@@ -67,6 +68,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
   constructor(
     public readonly analysisService: AnalysisService,
     private readonly themeService: ThemeService,
+    private readonly messageService: MessageService,
   ) {}
 
   public ngAfterViewInit() {
@@ -168,6 +170,8 @@ export class WavesurferWrapperComponent implements OnDestroy {
       console.log(this.wavesurfer.getWrapper().offsetWidth);
       (spectrogramPlugin as any).setWidth(this.wavesurfer.getWrapper().offsetWidth);
       this.analysisService.spectrogramWrapper.next(wrapper);
+
+      this.messageService.add({ summary: 'Spectrogram is ready' });
     });
 
     this.wavesurfer.registerPlugin(
