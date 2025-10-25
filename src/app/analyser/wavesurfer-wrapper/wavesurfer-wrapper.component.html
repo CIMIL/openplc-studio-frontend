@@ -8,7 +8,6 @@
           (click)="seekToStart()"
           severity="secondary"
           [rounded]="'true'"
-          [disabled]="!wavesurfer"
         >
           <i class="pi pi-step-backward text-sm"></i>
         </p-button>
@@ -18,7 +17,6 @@
           (click)="playPause()"
           [severity]="!isPlaying ? 'primary' : 'info'"
           [rounded]="'true'"
-          [disabled]="!wavesurfer"
         >
           <i class="pi text-sm" [class.pi-play]="!isPlaying" [class.pi-pause]="isPlaying"></i>
         </p-button>
@@ -28,7 +26,6 @@
           (click)="seekToEnd()"
           severity="secondary"
           [rounded]="'true'"
-          [disabled]="!wavesurfer"
         >
           <i class="pi pi-step-forward text-sm"></i>
         </p-button>
@@ -42,7 +39,6 @@
           [min]="0"
           [max]="1"
           [step]="0.01"
-          [disabled]="!wavesurfer"
           (onChange)="onVolumeChange($event)"
           class="w-24"
         ></p-slider>

@@ -11,7 +11,7 @@ import { SliderModule } from 'primeng/slider';
 import { ThemeService } from '../../shared/services/theme.service';
 import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
 
-import SpectrogramPatch from './ws-spectrogram-patch.class';
+import SpectrogramPatch from './ws-spectrogram-patch';
 
 import Hover from 'wavesurfer.js/dist/plugins/hover';
 import HoverPlugin from 'wavesurfer.js/dist/plugins/hover';
@@ -167,7 +167,6 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
     spectrogramPlugin.once('ready', () => {
       const wrapper = (spectrogramPlugin as any).wrapper as HTMLElement;
-      console.log(this.wavesurfer.getWrapper().offsetWidth);
       (spectrogramPlugin as any).setWidth(this.wavesurfer.getWrapper().offsetWidth);
       this.analysisService.spectrogramWrapper.next(wrapper);
 
