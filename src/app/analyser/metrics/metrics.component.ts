@@ -47,7 +47,7 @@ export class MetricsComponent {
 
   public infoDrawerVisible: boolean = false;
 
-  public displayMetricsParametersArray: string[][] = [];
+  public metricsParametersArray: string[][] = [];
 
   public currentDisplayMetricsParametersIndex: number = 0;
 
@@ -61,38 +61,15 @@ export class MetricsComponent {
     private readonly themeService: ThemeService,
   ) {}
 
-  get filteredChartData(): ChartData[] {
-    return this.displayMetrics
-      .map((metric) => {
-        const index = this.metrics.findIndex((m) => m.name === metric.name);
-        return index !== -1 ? this.chartData[index] : null;
-      })
-      .filter((data) => data !== null);
-  }
-
-  get filteredChartOptions(): ChartOptions[] {
-    return this.displayMetrics
-      .map((metric) => {
-        const index = this.metrics.findIndex((m) => m.name === metric.name);
-        return index !== -1 ? this.chartOptions[index] : null;
-      })
-      .filter((options) => options !== null);
-  }
-
-  get filteredChartTypes(): Array<'line' | 'bar'> {
-    return this.displayMetrics
-      .map((metric) => {
-        const index = this.metrics.findIndex((m) => m.name === metric.name);
-        return index !== -1 ? this.chartTypes[index] : null;
-      })
-      .filter((type) => type !== null);
-  }
-
   get metricsWithLabels() {
     return (this.metrics ?? []).map((metric) => ({
       ...metric,
       displayName: metricLabelTransform(metric.name),
     }));
+  }
+
+  get displayMetricsIndexes() {
+    return this.displayMetrics.map((m) => m.index);
   }
 
   public ngOnInit() {
@@ -115,10 +92,20 @@ export class MetricsComponent {
           chartElements?.forEach((canvas: HTMLCanvasElement, index: number) => {
             const chart = Chart.getChart(canvas);
 
-            const metricsParameters = Object.values(this.analysisService.outputAnalyserParameters);
+            const chartMetric = this.metrics[index];
 
-            const windowLength = metricsParameters[index]['N'] ?? 0;
-            const hopSize = metricsParameters[index]['hop'] ?? windowLength / 2;
+            if (!chartMetric) {
+              return;
+            }
+
+            const metricName = this.getMetricsNameFromRawName(this.metricsWithLabels[index].displayName);
+
+            if (metricName === 'PEAQCalculator') {
+              return;
+            }
+
+            const windowLength = this.analysisService.outputAnalyserParameters[chartMetric?.index]['N'] ?? 0;
+            const hopSize = this.analysisService.outputAnalyserParameters[chartMetric.index]['hop'] ?? windowLength / 2;
 
             const [leftBound, rightBound] = bounds.map((b) =>
               Math.round((b * this.analysisService.selectedTrackPlaybackSampleRate.value - windowLength) / hopSize + 1),
@@ -155,15 +142,14 @@ export class MetricsComponent {
   }
 
   public updateDisplayMetricsParametersArray(): void {
-    const displayMetricsParametersArray = this.displayMetrics.map((m) => {
-      const moduleName = this.getMetricsNameFromRawName(m.name);
-      const parameters = this.analysisService.outputAnalyserParameters[moduleName];
+    const displayMetricsParametersArray = this.metrics.map((m) => {
+      const parameters = this.analysisService.outputAnalyserParameters[m.index];
       return parameters ? Object.keys(parameters) : [];
     });
     if (displayMetricsParametersArray.length <= this.currentDisplayMetricsParametersIndex) {
       this.currentDisplayMetricsParametersIndex = 0;
     }
-    this.displayMetricsParametersArray = displayMetricsParametersArray;
+    this.metricsParametersArray = displayMetricsParametersArray;
   }
 
   private buildAllCharts(): void {
@@ -176,12 +162,10 @@ export class MetricsComponent {
   }
 
   private buildChart(metric: MetricRaw): any {
-    const metricModule = metric.name.split('/').pop()!.split('-')[0];
+    const metricModule = this.getMetricsNameFromRawName(metric.name.split('/').pop()!);
 
     if (TD_METRICS.includes(metricModule)) {
       return this.initTDChart(metric);
-      // } else if (FD_METRICS.includes(metricModule)) {
-      //   this.initFDChart(metric);
     } else if (metricModule === 'PEAQCalculator') {
       return this.initPEAQChart(metric);
     }
@@ -223,17 +207,13 @@ export class MetricsComponent {
             color: textColor,
           },
         },
-        zoom: {
-          zoom: { mode: 'x', wheel: { enabled: true } },
-        },
+        // zoom: {
+        //   zoom: { mode: 'x', wheel: { enabled: true } },
+        // },
         tooltip: { intersect: false, mode: 'index' as const },
       },
     };
     return { data, options, type: 'line' as const };
-  }
-
-  private initFDChart(metric: any): void {
-    console.log('FD', metric);
   }
 
   private initPEAQChart(metric: any): any {

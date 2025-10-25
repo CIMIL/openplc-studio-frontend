@@ -11,7 +11,7 @@
   optionLabel="displayName"
   appendTo="body"
   (ngModelChange)="updateDisplayMetricsParametersArray()"
-  [style]="{ visibility: metrics ? 'visible' : 'hidden' }"
+  [style]="{ display: metrics ? 'flex' : 'none' }"
 >
   <ng-template pTemplate="item" let-option>
     {{ option | metricLabel }}
@@ -19,29 +19,31 @@
 </p-multiselect>
 
 <div #chartContainer>
-  @for (chartData of filteredChartData; track chartData; let i = $index) {
-    <p-divider></p-divider>
-    <div>
-      <div class="flex flex-row items-center justify-center w-full gap-3">
-        <h1 class="font-sans text-xl">
-          {{ displayMetrics[i] | metricLabel }}
-        </h1>
-        <p-button
-          type="button"
-          (click)="currentDisplayMetricsParametersIndex = i; infoDrawerVisible = true"
-          [rounded]="true"
-          severity="secondary"
-          icon="pi pi-info-circle"
-          size="small"
+  @for (chartData of chartData; track chartData; let i = $index) {
+    <div [style]="{ display: displayMetricsIndexes.includes(i) ? 'block' : 'none' }">
+      <p-divider></p-divider>
+      <div>
+        <div class="flex flex-row items-center justify-center w-full gap-3">
+          <h1 class="font-sans text-xl">
+            {{ metrics[i] | metricLabel }}
+          </h1>
+          <p-button
+            type="button"
+            (click)="currentDisplayMetricsParametersIndex = i; infoDrawerVisible = true"
+            [rounded]="true"
+            severity="secondary"
+            icon="pi pi-info-circle"
+            size="small"
+          />
+        </div>
+        <p-chart
+          [type]="chartTypes[i]"
+          [data]="chartData"
+          [options]="chartOptions[i]"
+          [width]="'100%'"
+          [height]="'400px'"
         />
       </div>
-      <p-chart
-        [type]="filteredChartTypes[i]"
-        [data]="chartData"
-        [options]="filteredChartOptions[i]"
-        [width]="'100%'"
-        [height]="'400px'"
-      />
     </div>
   }
 </div>
@@ -50,11 +52,11 @@
   <p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
     <div class="p-4">
       <h3 class="text-lg font-semibold mb-4">
-        {{ displayMetrics[currentDisplayMetricsParametersIndex] | metricLabel }}
+        {{ metrics[currentDisplayMetricsParametersIndex] | metricLabel }}
       </h3>
 
       <div class="space-y-3">
-        @for (param of displayMetricsParametersArray[currentDisplayMetricsParametersIndex] || []; track param) {
+        @for (param of metricsParametersArray[currentDisplayMetricsParametersIndex] || []; track param) {
           <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
             <div class="flex justify-between items-center">
               <span class="font-medium text-gray-700 dark:text-gray-300">
@@ -62,9 +64,9 @@
               </span>
               <span class="text-sm text-gray-600 dark:text-gray-400">
                 {{
-                  analysisService.outputAnalyserParameters[
-                    getMetricsNameFromRawName(displayMetrics[currentDisplayMetricsParametersIndex].name)
-                  ][param] ?? 'null'
+                  analysisService.outputAnalyserParameters[metrics[currentDisplayMetricsParametersIndex].index][
+                    param
+                  ] ?? 'null'
                 }}
               </span>
             </div>

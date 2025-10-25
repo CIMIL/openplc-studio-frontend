@@ -8,7 +8,7 @@ import { ModuleType } from '../shared/enums/module-type.enum';
 
 export type FileDescriptionWithJson = Omit<FileDescription, 'data' | 'text'> & { json: any[] };
 
-export type MetricRaw = FileDescriptionWithJson;
+export type MetricRaw = FileDescriptionWithJson & { index: number };
 
 export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
@@ -82,7 +82,7 @@ export class AnalysisService {
     );
   }
 
-  public get outputAnalyserParameters(): Record<string, Record<string, any>> {
+  public get outputAnalyserParameters(): Record<string, any>[] {
     const runValue = this.run.value;
     if (
       !runValue ||
@@ -90,20 +90,16 @@ export class AnalysisService {
       !runValue.modules[ModuleType.OutputAnalyser] ||
       !Array.isArray(runValue.modules[ModuleType.OutputAnalyser])
     ) {
-      return {};
+      return [];
     }
-    return runValue.modules[ModuleType.OutputAnalyser].reduce(
-      (acc: Record<string, Record<string, any>>, module: Module) => {
-        if (!Array.isArray(module.settings)) return acc;
-        const paramsObj: Record<string, any> = {};
-        module.settings.forEach((param: any) => {
-          paramsObj[param.name] = param.value;
-        });
-        acc[module.name] = paramsObj;
-        return acc;
-      },
-      {},
-    );
+    return runValue.modules[ModuleType.OutputAnalyser].map((module: Module) => {
+      if (!Array.isArray(module.settings)) return {};
+      const paramsObj: Record<string, any> = {};
+      module.settings.forEach((param: any) => {
+        paramsObj[param.name] = param.value;
+      });
+      return paramsObj;
+    });
   }
 
   public setAudioBlob(blob: Blob | null): void {

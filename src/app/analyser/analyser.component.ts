@@ -218,7 +218,10 @@ export class AnalyserComponent {
       this.reconstructedTracksFetchDone.asObservable(),
     ])
       .pipe(
-        tap(([parsedFiles, blank]: [MetricRaw[], void]) => {
+        map(([parsedFiles, blank]: [FileDescriptionWithJson[], void]) =>
+          parsedFiles.map((m, i) => ({ ...m, index: i })),
+        ),
+        tap((parsedFiles: MetricRaw[]) => {
           const trackGroups = this.analysisService.trackGroups.value;
           const trackToMetricsMap: Record<string, MetricRaw[]> = {};
 
@@ -239,7 +242,7 @@ export class AnalyserComponent {
           });
           this.analysisService.playbaleTrackToMetricsMap.next(trackToMetricsMap);
         }),
-        tap(([parsedFiles, blank]: [MetricRaw[], void]) => this.analysisService.metrics.next(parsedFiles)),
+        tap((parsedFiles: MetricRaw[]) => this.analysisService.metrics.next(parsedFiles)),
       )
       .subscribe();
 
