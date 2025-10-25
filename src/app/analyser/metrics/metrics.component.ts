@@ -16,6 +16,8 @@ import { DividerModule } from 'primeng/divider';
 
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 
+const TD_METRICS_CHANNEL_AGNOSTIC_METRICS = ['WindowedPEAQCalculator', 'PerceptualCalculator'];
+
 @Component({
   selector: 'plc-metrics',
   imports: [
@@ -100,21 +102,36 @@ export class MetricsComponent {
 
             const metricName = this.getMetricsNameFromRawName(this.metricsWithLabels[index].displayName);
 
-            if (metricName === 'PEAQCalculator') {
-              return;
+            if (TD_METRICS.includes(metricName)) {
+              const windowLength = this.analysisService.outputAnalyserParameters[chartMetric?.index]['N'] ?? 0;
+              const hopSize =
+                this.analysisService.outputAnalyserParameters[chartMetric.index]['hop'] ?? windowLength / 2;
+
+              const [leftBound, rightBound] = bounds.map((b) =>
+                Math.round(
+                  (b * this.analysisService.selectedTrackPlaybackSampleRate.value - windowLength) / hopSize + 1,
+                ),
+              );
+
+              if (chart && chart.options?.scales?.['x']) {
+                chart.options.scales['x'].min = leftBound;
+                chart.options.scales['x'].max = rightBound;
+                chart.update('none');
+              }
             }
 
-            const windowLength = this.analysisService.outputAnalyserParameters[chartMetric?.index]['N'] ?? 0;
-            const hopSize = this.analysisService.outputAnalyserParameters[chartMetric.index]['hop'] ?? windowLength / 2;
+            if (TD_METRICS_CHANNEL_AGNOSTIC_METRICS.includes(metricName)) {
+              const packetSize =
+                this.analysisService.sampleMaskPacketSizes[this.analysisService.selectedSampleMaskIndex.value];
+              const [leftBound, rightBound] = bounds.map(
+                (b) => (b * this.analysisService.selectedTrackPlaybackSampleRate.value) / packetSize,
+              );
 
-            const [leftBound, rightBound] = bounds.map((b) =>
-              Math.round((b * this.analysisService.selectedTrackPlaybackSampleRate.value - windowLength) / hopSize + 1),
-            );
-
-            if (chart && chart.options?.scales?.['x']) {
-              chart.options.scales['x'].min = leftBound;
-              chart.options.scales['x'].max = rightBound;
-              chart.update('none');
+              if (chart && chart.options?.scales?.['x']) {
+                chart.options.scales['x'].min = leftBound;
+                chart.options.scales['x'].max = rightBound;
+                chart.update('none');
+              }
             }
           });
         }),
@@ -166,6 +183,8 @@ export class MetricsComponent {
 
     if (TD_METRICS.includes(metricModule)) {
       return this.initTDChart(metric);
+    } else if (TD_METRICS_CHANNEL_AGNOSTIC_METRICS.includes(metricModule)) {
+      return this.initTDCAChart(metric);
     } else if (metricModule === 'PEAQCalculator') {
       return this.initPEAQChart(metric);
     }
@@ -190,6 +209,53 @@ export class MetricsComponent {
         pointRadius: 2,
         fill: true,
       })),
+    };
+
+    const options: ChartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 8, color: textColorSecondary }, grid: { color: surfaceBorder } },
+        y: { beginAtZero: true, ticks: { color: textColorSecondary }, grid: { color: surfaceBorder } },
+      },
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            color: textColor,
+          },
+        },
+        // zoom: {
+        //   zoom: { mode: 'x', wheel: { enabled: true } },
+        // },
+        tooltip: { intersect: false, mode: 'index' as const },
+      },
+    };
+    return { data, options, type: 'line' as const };
+  }
+
+  private initTDCAChart(metric: any): any {
+    const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
+
+    const documentStyle = getComputedStyle(document.documentElement);
+    const textColor = documentStyle.getPropertyValue('--p-text-color');
+    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
+    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
+
+    const data: ChartData = {
+      labels: Array.from({ length: metric.json.length }, (_, i) => i.toString()),
+      datasets: [
+        {
+          label: 'Linked channels',
+          data: metric.json,
+          tension: 0.25,
+          borderColor: colorPalette[0],
+          backgroundColor: `${colorPalette[0]}26`,
+          pointRadius: 2,
+          fill: true,
+        },
+      ],
     };
 
     const options: ChartOptions = {
