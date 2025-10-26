@@ -63,7 +63,8 @@
               </span>
               <span class="text-sm text-gray-600 dark:text-gray-400">
                 {{
-                  analysisService.outputAnalyserParameters[metrics[drawerMetricsParameterIndex].index][param] ?? 'null'
+                  analysisService.outputAnalyserParameters.value[metrics[drawerMetricsParameterIndex].index][param] ??
+                    'null'
                 }}
               </span>
             </div>

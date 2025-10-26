@@ -103,9 +103,9 @@ export class MetricsComponent {
             const metricName = this.getMetricsNameFromRawName(this.metricsWithLabels[index].displayName);
 
             if (TD_METRICS.includes(metricName)) {
-              const windowLength = this.analysisService.outputAnalyserParameters[chartMetric?.index]['N'] ?? 0;
+              const windowLength = this.analysisService.outputAnalyserParameters.value[chartMetric?.index]['N'] ?? 0;
               const hopSize =
-                this.analysisService.outputAnalyserParameters[chartMetric.index]['hop'] ?? windowLength / 2;
+                this.analysisService.outputAnalyserParameters.value[chartMetric.index]['hop'] ?? windowLength / 2;
 
               const [leftBound, rightBound] = bounds.map((b) =>
                 Math.round(
@@ -160,7 +160,7 @@ export class MetricsComponent {
 
   public updateMetricsParametersArray(): void {
     const metricsParametersArray = this.metrics.map((m) => {
-      const parameters = this.analysisService.outputAnalyserParameters[m.index];
+      const parameters = this.analysisService.outputAnalyserParameters.value[m.index];
       return parameters ? Object.keys(parameters) : [];
     });
     if (metricsParametersArray.length <= this.drawerMetricsParameterIndex) {

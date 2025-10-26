@@ -10,6 +10,8 @@ export type FileDescriptionWithJson = Omit<FileDescription, 'data' | 'text'> & {
 
 export type MetricRaw = FileDescriptionWithJson & { index: number };
 
+export type ReconstructedTrackRaw = FileDescription & { index: number };
+
 export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
 @Injectable({
@@ -50,6 +52,12 @@ export class AnalysisService {
 
   public spectrogramWrapper = new BehaviorSubject<HTMLElement | null>(null);
 
+  public sampleMaskParameters = new BehaviorSubject<Record<string, any>[]>([]);
+
+  public plcAlgorithmParameters = new BehaviorSubject<Record<string, any>[]>([]);
+
+  public outputAnalyserParameters = new BehaviorSubject<Record<string, any>[]>([]);
+
   public get audioBlob$(): Observable<Blob | null> {
     return this.currentAudioBlobSubject.asObservable();
   }
@@ -58,17 +66,22 @@ export class AnalysisService {
     return this.currentAudioBlobSubject.value;
   }
 
-  public get sampleMaskParameters(): Record<string, any>[] {
-    const runValue = this.run.value;
+  public updateParametersFromRun(run: Run | null): void {
+    this.sampleMaskParameters.next(this.getSampleMaskParameters(run));
+    this.plcAlgorithmParameters.next(this.getPlcAlgorithmParameters(run));
+    this.outputAnalyserParameters.next(this.getOutputAnalyserParameters(run));
+  }
+
+  public getSampleMaskParameters(run: Run | null): Record<string, any>[] {
     if (
-      !runValue ||
-      !runValue.modules ||
-      !runValue.modules[ModuleType.PacketLossSimulator] ||
-      !Array.isArray(runValue.modules[ModuleType.PacketLossSimulator])
+      !run ||
+      !run.modules ||
+      !run.modules[ModuleType.PacketLossSimulator] ||
+      !Array.isArray(run.modules[ModuleType.PacketLossSimulator])
     ) {
       return [];
     }
-    return runValue.modules[ModuleType.PacketLossSimulator].map((module: Module) => {
+    return run.modules[ModuleType.PacketLossSimulator].map((module: Module) => {
       if (!Array.isArray(module.settings)) return {};
       const paramsObj: Record<string, any> = {};
       module.settings.forEach((param: any) => {
@@ -78,17 +91,38 @@ export class AnalysisService {
     });
   }
 
-  public get outputAnalyserParameters(): Record<string, any>[] {
-    const runValue = this.run.value;
+  public getPlcAlgorithmParameters(run: Run | null): Record<string, any>[] {
     if (
-      !runValue ||
-      !runValue.modules ||
-      !runValue.modules[ModuleType.OutputAnalyser] ||
-      !Array.isArray(runValue.modules[ModuleType.OutputAnalyser])
+      !run ||
+      !run.modules ||
+      !run.modules[ModuleType.PLCAlgorithm] ||
+      !Array.isArray(run.modules[ModuleType.PLCAlgorithm])
     ) {
       return [];
     }
-    return runValue.modules[ModuleType.OutputAnalyser].map((module: Module) => {
+    return run.modules[ModuleType.PLCAlgorithm].map((module: Module) => {
+      if (!Array.isArray(module.settings)) return {};
+      const paramsObj: Record<string, any> = {};
+      module.settings.forEach((param: any) => {
+        if (['crossfade', 'fade_in'].includes(param.name)) {
+          return;
+        }
+        paramsObj[param.name] = param.value;
+      });
+      return paramsObj;
+    });
+  }
+
+  public getOutputAnalyserParameters(run: Run | null): Record<string, any>[] {
+    if (
+      !run ||
+      !run.modules ||
+      !run.modules[ModuleType.OutputAnalyser] ||
+      !Array.isArray(run.modules[ModuleType.OutputAnalyser])
+    ) {
+      return [];
+    }
+    return run.modules[ModuleType.OutputAnalyser].map((module: Module) => {
       if (!Array.isArray(module.settings)) return {};
       const paramsObj: Record<string, any> = {};
       module.settings.forEach((param: any) => {
@@ -170,5 +204,8 @@ export class AnalysisService {
     this.playbaleTrackToMetricsMap.next({});
     this.spectrogramWrapper.next(null);
     this.setAudioBlob(null);
+    this.sampleMaskParameters.next([]);
+    this.plcAlgorithmParameters.next([]);
+    this.outputAnalyserParameters.next([]);
   }
 }

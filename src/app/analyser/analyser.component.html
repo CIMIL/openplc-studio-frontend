@@ -72,19 +72,48 @@
       </h3>
 
       <div class="space-y-3">
-        @for (param of sampleMasksParametersArray[drawerSampleMaskParameterIndex]; track param) {
+        @for (param of sampleMasksParametersArray[analysisService.selectedSampleMaskIndex.value]; track param) {
           <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
             <div class="flex justify-between items-center">
-              <span class="font-medium text-gray-700 dark:text-gray-300">
+              <span class="font-medium">
                 {{ param }}
               </span>
-              <span class="text-sm text-gray-600 dark:text-gray-400">
-                {{ analysisService.sampleMaskParameters[drawerSampleMaskParameterIndex][param] ?? 'null' }}
+              <span class="text-sm">
+                {{
+                  analysisService.sampleMaskParameters.value[analysisService.selectedSampleMaskIndex.value][param] ??
+                    'null'
+                }}
               </span>
             </div>
           </div>
         }
       </div>
     </div>
+
+    @if (
+      analysisService.selectedTrackPlayback.value &&
+      analysisService.selectedTrackPlayback.value.name.split('.')[0].split('/').length > 1
+    ) {
+      <div class="p-4">
+        <h3 class="text-lg font-semibold mb-4">
+          {{ analysisService.selectedTrackPlayback.value | reconstructedTrackLabel }}
+        </h3>
+
+        <div class="space-y-3">
+          @for (param of plcAlgothmParametersArray[selectedTrackIndex]; track param) {
+            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+              <div class="flex justify-between items-center">
+                <span class="font-medium">
+                  {{ param }}
+                </span>
+                <span class="text-sm">
+                  {{ analysisService.plcAlgorithmParameters.value[selectedTrackIndex][param] ?? 'null' }}
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
   </p-drawer>
 }
