@@ -51,7 +51,7 @@ export class MetricsComponent {
 
   public metricsParametersArray: string[][] = [];
 
-  public currentDisplayMetricsParametersIndex: number = 0;
+  public drawerMetricsParameterIndex: number = 0;
 
   private destroy$ = new Subject<void>();
 
@@ -152,21 +152,21 @@ export class MetricsComponent {
         filter((metrics: MetricRaw[]) => Array.isArray(metrics) && metrics.length > 0),
         tap(() => this.buildAllCharts()),
         tap(() => this.displayMetrics.push(this.metricsWithLabels[0])),
-        tap(() => this.updateDisplayMetricsParametersArray()),
+        tap(() => this.updateMetricsParametersArray()),
         tap(() => (this.chartsReady = true)),
       )
       .subscribe();
   }
 
-  public updateDisplayMetricsParametersArray(): void {
-    const displayMetricsParametersArray = this.metrics.map((m) => {
+  public updateMetricsParametersArray(): void {
+    const metricsParametersArray = this.metrics.map((m) => {
       const parameters = this.analysisService.outputAnalyserParameters[m.index];
       return parameters ? Object.keys(parameters) : [];
     });
-    if (displayMetricsParametersArray.length <= this.currentDisplayMetricsParametersIndex) {
-      this.currentDisplayMetricsParametersIndex = 0;
+    if (metricsParametersArray.length <= this.drawerMetricsParameterIndex) {
+      this.drawerMetricsParameterIndex = 0;
     }
-    this.metricsParametersArray = displayMetricsParametersArray;
+    this.metricsParametersArray = metricsParametersArray;
   }
 
   private buildAllCharts(): void {

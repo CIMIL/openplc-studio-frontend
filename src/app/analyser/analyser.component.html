@@ -4,16 +4,26 @@
 <div class="w-full">
   <div class="py-4">
     @if (analysisService.trackGroups.value && analysisService.trackGroups.value.length > 0) {
-      <div class="w-2/4 mx-auto">
-        <p-cascadeselect
-          [ngModel]="analysisService.selectedTrackPlayback.value"
-          (ngModelChange)="analysisService.selectedTrackPlayback.next($event)"
-          [options]="$any(analysisService.trackGroups.value)"
-          optionLabel="name"
-          optionGroupLabel="originalTrack"
-          [optionGroupChildren]="['reconstructedTracks']"
-          styleClass="w-full"
-          placeholder="Select a track"
+      <div class="flex flex-row items-center justify-center w-full gap-3">
+        <div class="w-2/4">
+          <p-cascadeselect
+            [ngModel]="analysisService.selectedTrackPlayback.value"
+            (ngModelChange)="analysisService.selectedTrackPlayback.next($event)"
+            [options]="$any(analysisService.trackGroups.value)"
+            optionLabel="name"
+            optionGroupLabel="originalTrack"
+            [optionGroupChildren]="['reconstructedTracks']"
+            styleClass="w-full"
+            placeholder="Select a track"
+          />
+        </div>
+        <p-button
+          type="button"
+          [rounded]="true"
+          severity="secondary"
+          icon="pi pi-info-circle"
+          size="small"
+          (click)="infoDrawerVisible = true"
         />
       </div>
     } @else {
@@ -53,3 +63,28 @@
     </p-accordion-panel>
   </p-accordion>
 </div>
+
+@if (this.sampleMasks && this.sampleMasks.length > 0) {
+  <p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
+    <div class="p-4">
+      <h3 class="text-lg font-semibold mb-4">
+        {{ sampleMasks[analysisService.selectedSampleMaskIndex.value].name.split('.')[0] }}
+      </h3>
+
+      <div class="space-y-3">
+        @for (param of sampleMasksParametersArray[drawerSampleMaskParameterIndex]; track param) {
+          <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+            <div class="flex justify-between items-center">
+              <span class="font-medium text-gray-700 dark:text-gray-300">
+                {{ param }}
+              </span>
+              <span class="text-sm text-gray-600 dark:text-gray-400">
+                {{ analysisService.sampleMaskParameters[drawerSampleMaskParameterIndex][param] ?? 'null' }}
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </p-drawer>
+}

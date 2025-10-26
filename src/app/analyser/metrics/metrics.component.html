@@ -10,7 +10,6 @@
   styleClass="w-full"
   optionLabel="displayName"
   appendTo="body"
-  (ngModelChange)="updateDisplayMetricsParametersArray()"
   [style]="{ display: metrics ? 'flex' : 'none' }"
 >
   <ng-template pTemplate="item" let-option>
@@ -29,7 +28,7 @@
           </h1>
           <p-button
             type="button"
-            (click)="currentDisplayMetricsParametersIndex = i; infoDrawerVisible = true"
+            (click)="drawerMetricsParameterIndex = i; infoDrawerVisible = true"
             [rounded]="true"
             severity="secondary"
             icon="pi pi-info-circle"
@@ -52,11 +51,11 @@
   <p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
     <div class="p-4">
       <h3 class="text-lg font-semibold mb-4">
-        {{ metrics[currentDisplayMetricsParametersIndex] | metricLabel }}
+        {{ metrics[drawerMetricsParameterIndex] | metricLabel }}
       </h3>
 
       <div class="space-y-3">
-        @for (param of metricsParametersArray[currentDisplayMetricsParametersIndex] || []; track param) {
+        @for (param of metricsParametersArray[drawerMetricsParameterIndex] || []; track param) {
           <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
             <div class="flex justify-between items-center">
               <span class="font-medium text-gray-700 dark:text-gray-300">
@@ -64,9 +63,7 @@
               </span>
               <span class="text-sm text-gray-600 dark:text-gray-400">
                 {{
-                  analysisService.outputAnalyserParameters[metrics[currentDisplayMetricsParametersIndex].index][
-                    param
-                  ] ?? 'null'
+                  analysisService.outputAnalyserParameters[metrics[drawerMetricsParameterIndex].index][param] ?? 'null'
                 }}
               </span>
             </div>

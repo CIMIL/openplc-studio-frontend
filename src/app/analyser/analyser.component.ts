@@ -16,6 +16,8 @@ import { decodeJson } from './utils';
 import { ZoomLensComponent } from './zoom-lens/zoom-lens.component';
 import { MetricsComponent } from './metrics/metrics.component';
 import { AccordionModule } from 'primeng/accordion';
+import { ButtonModule } from 'primeng/button';
+import { DrawerModule } from 'primeng/drawer';
 
 Chart.register(zoomPlugin);
 
@@ -36,6 +38,8 @@ enum AccordionPanels {
     CommonModule,
     SkeletonModule,
     AccordionModule,
+    ButtonModule,
+    DrawerModule,
   ],
   templateUrl: './analyser.component.html',
   styleUrls: ['./analyser.component.scss'],
@@ -49,6 +53,10 @@ export class AnalyserComponent {
 
   public sampleMasks: FileDescriptionWithJson[] = [];
 
+  public sampleMasksParametersArray: string[][] = [];
+
+  public drawerSampleMaskParameterIndex: number = 0;
+
   public runFetchDone = new ReplaySubject<void>();
 
   public originalTracksFetchDone = new ReplaySubject<void>();
@@ -58,6 +66,8 @@ export class AnalyserComponent {
   public activePanels: string[] = [];
 
   public AccordionPanels: typeof AccordionPanels = AccordionPanels;
+
+  public infoDrawerVisible: boolean = false;
 
   private destroy$ = new Subject<void>();
 
@@ -243,6 +253,7 @@ export class AnalyserComponent {
           this.analysisService.playbaleTrackToMetricsMap.next(trackToMetricsMap);
         }),
         tap((parsedFiles: MetricRaw[]) => this.analysisService.metrics.next(parsedFiles)),
+        tap((parsedFiles: MetricRaw[]) => this.updateSampleMaskParametersArray()),
       )
       .subscribe();
 
@@ -302,6 +313,15 @@ export class AnalyserComponent {
       const sampleMaskIndex = Object.keys(this.analysisService.sampleMaskMaps.value ?? {}).indexOf(sampleMaskName);
       this.analysisService.selectedSampleMaskIndex.next(sampleMaskIndex);
     }
+  }
+
+  public updateSampleMaskParametersArray(): void {
+    const sampleMasksParametersArray = this.sampleMasks.map((m, index) => {
+      const parameters = this.analysisService.sampleMaskParameters[index];
+      return parameters ? Object.keys(parameters) : [];
+    });
+
+    this.sampleMasksParametersArray = sampleMasksParametersArray;
   }
 
   public openPanel(value: AccordionPanels): void {
