@@ -160,7 +160,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
         scale: 'mel',
         frequencyMax: 0,
         frequencyMin: 0,
-        fftSamples: 2048,
+        fftSamples: 1024,
         useWebWorker: true,
       }),
     );
