@@ -178,8 +178,10 @@ export class ModuleConfiguratorComponent implements OnInit {
     this.suggestedBands = suggestedBands.map((b) => b.toString()).filter((band) => band.includes(event.query));
   }
 
-  public searchModules(event: AutoCompleteCompleteEvent) {
-    this.availableModulesFilter = this.availableModules.filter((m) => m.name.toLocaleLowerCase().includes(event.query));
+  public searchModules(event: AutoCompleteCompleteEvent, isBandSettings: boolean = false) {
+    this.availableModulesFilter = this.availableModules
+      .filter((m) => m.name.toLocaleLowerCase().includes(event.query))
+      .filter((m) => !(m.name === 'AdvancedPLC' && isBandSettings));
   }
 
   public addModule(module: ModuleWithCount | null): void {
@@ -187,11 +189,14 @@ export class ModuleConfiguratorComponent implements OnInit {
       return;
     }
 
-    this.modulesSelection.push({
+    const moduleToAdd = {
       ...module,
       settings: structuredClone(module.settings),
       id: this.selectedModuleCounter++,
-    });
+    };
+
+    this.modulesSelection.push(moduleToAdd);
+    this.moduleFocus = moduleToAdd;
 
     this.runConfigService.modulesSelection.next({
       ...this.runConfigService.modulesSelection.value,
@@ -315,9 +320,9 @@ export class ModuleConfiguratorComponent implements OnInit {
       parentModuleSetting.value[bandLabel] = parentModuleSetting.value[bandLabel] || [];
       parentModuleSetting.value[bandLabel].push({
         ...bandSettingModule,
-        settings: structuredClone(bandSettingModule.settings)
-          .map((param: any) => ({ ...param }))
-          .filter((param) => !bandSettingsOmittedParams.includes(param.name)),
+        settings: structuredClone(bandSettingModule.settings).filter(
+          (param) => !bandSettingsOmittedParams.includes(param.name),
+        ),
         id: this.bandSettingsSelectedModuleCounter++,
       });
     }

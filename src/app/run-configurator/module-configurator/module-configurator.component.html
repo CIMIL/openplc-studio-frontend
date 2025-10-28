@@ -39,8 +39,8 @@
   <ng-template #panel>
     <ng-container *ngIf="!isAnyCrossfadeModuleSelected && !isAnyBandSettingsModuleSelected">
       <ng-container *ngTemplateOutlet="moduleSettingsTemplate; context: { $implicit: this.moduleFocus }" />
-      <!-- HANDLING CROSSFADE MODULES -->
     </ng-container>
+    <!-- HANDLING CROSSFADE MODULES -->
     <ng-container *ngIf="isAnyCrossfadeModuleSelected">
       <p-splitter layout="vertical" [panelSizes]="[50, 50]">
         <ng-template #panel>
@@ -57,10 +57,11 @@
                 class="w-full !min-h-full"
               >
                 <ng-template let-group #group>
-                  <div class="flex items-center" *ngIf="(group.items ?? []).length > 0">
-                    <span>{{ group.label }}</span>
-                    <!-- <span>{{ group.items.length }}</span> -->
-                  </div>
+                  @if ((group.items ?? []).length > 0) {
+                    <div class="flex items-center">
+                      <span>{{ group.label }}</span>
+                    </div>
+                  }
                 </ng-template>
 
                 <ng-template let-item let-index="index" #item>
@@ -106,7 +107,7 @@
                 class="w-full !min-h-full"
               >
                 <ng-template let-group #group>
-                  <div class="flex items-center" *ngIf="(group.items ?? []).length > 0">
+                  <div class="flex items-center">
                     <span>{{ group.label }}</span>
                   </div>
                 </ng-template>
@@ -256,7 +257,7 @@
                       [suggestions]="availableModulesFilter"
                       [optionLabel]="'name'"
                       class="w-full advanced-plc-autocomplete"
-                      (completeMethod)="searchModules($event)"
+                      (completeMethod)="searchModules($event, true)"
                       (onSelect)="
                         addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'linked')
                       "
@@ -277,7 +278,7 @@
                       [suggestions]="availableModulesFilter"
                       [optionLabel]="'name'"
                       class="flex-1 advanced-plc-autocomplete"
-                      (completeMethod)="searchModules($event)"
+                      (completeMethod)="searchModules($event, true)"
                       (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'mid')"
                       appendTo="body"
                       typeahead="false"
@@ -291,7 +292,7 @@
                       [suggestions]="availableModulesFilter"
                       [optionLabel]="'name'"
                       class="flex-1 advanced-plc-autocomplete"
-                      (completeMethod)="searchModules($event)"
+                      (completeMethod)="searchModules($event, true)"
                       (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'side')"
                       appendTo="body"
                       typeahead="false"
@@ -310,7 +311,7 @@
                       [suggestions]="availableModulesFilter"
                       [optionLabel]="'name'"
                       class="flex-1 advanced-plc-autocomplete"
-                      (completeMethod)="searchModules($event)"
+                      (completeMethod)="searchModules($event, true)"
                       (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'left')"
                       appendTo="body"
                       typeahead="false"
@@ -324,7 +325,7 @@
                       [suggestions]="availableModulesFilter"
                       [optionLabel]="'name'"
                       class="flex-1 advanced-plc-autocomplete"
-                      (completeMethod)="searchModules($event)"
+                      (completeMethod)="searchModules($event, true)"
                       (onSelect)="addAdvancedPLCBandSettingModule(bandSettingsSelectedModuleProxy, param.name, 'right')"
                       appendTo="body"
                       typeahead="false"

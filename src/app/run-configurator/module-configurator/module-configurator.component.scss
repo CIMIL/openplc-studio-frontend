@@ -76,3 +76,9 @@
     }
   }
 }
+
+:host::ng-deep {
+  p-listbox > div.p-listbox {
+    height: 100% !important;
+  }
+}
