@@ -1,0 +1,30 @@
+<div class="w-full">
+  <!-- BREADCRUMBS -->
+  <div class="breadcrumb-container" *ngIf="breadcrumbs.length > 0">
+    <p-breadcrumb
+      [model]="breadcrumbs"
+      [home]="{ icon: 'pi pi-home' }"
+      (onItemClick)="onBreadcrumbClick($event.item)"
+    ></p-breadcrumb>
+  </div>
+
+  <!-- CONTENUTO -->
+  <div class="flex-1 overflow-y-auto p-2">
+    <ng-content></ng-content>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="flex justify-end gap-2 p-2">
+    <p-button
+      label="Annulla"
+      severity="secondary"
+      (onClick)="close()"
+      [style]="{ 'min-width': '140px', height: '45px', 'font-size': '1.1rem' }"
+    ></p-button>
+    <p-button
+      label="Conferma"
+      (onClick)="confirm()"
+      [style]="{ 'min-width': '140px', height: '45px', 'font-size': '1.1rem' }"
+    ></p-button>
+  </div>
+</div>
