@@ -65,6 +65,8 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
   private regionsSubscription?: Subscription;
 
+  private latestWSWrapperScrollLeft: number = 0;
+
   constructor(
     public readonly analysisService: AnalysisService,
     private readonly themeService: ThemeService,
@@ -131,6 +133,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
       (visibleStartTime: number, visibleEndTime: number, scrollLeft: number, scrollRight: number) => {
         this.analysisService.wsZoomBounds.next([visibleStartTime, visibleEndTime]);
         (spectrogramPlugin as any).wrapper.scrollLeft = scrollLeft;
+        this.latestWSWrapperScrollLeft = scrollLeft;
       },
     );
 
@@ -168,10 +171,13 @@ export class WavesurferWrapperComponent implements OnDestroy {
 
     spectrogramPlugin.once('ready', () => {
       const wrapper = (spectrogramPlugin as any).wrapper as HTMLElement;
-      (spectrogramPlugin as any).setWidth(this.wavesurfer.getWrapper().offsetWidth);
       this.analysisService.spectrogramWrapper.next(wrapper);
 
       this.messageService.add({ summary: 'Spectrogram is ready' });
+    });
+
+    spectrogramPlugin.on('ready', () => {
+      (spectrogramPlugin as any).wrapper.scrollLeft = this.latestWSWrapperScrollLeft;
     });
 
     this.wavesurfer.registerPlugin(
