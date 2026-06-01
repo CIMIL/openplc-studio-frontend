@@ -130,6 +130,7 @@ export class WavesurferWrapperComponent implements OnDestroy {
       'scroll',
       (visibleStartTime: number, visibleEndTime: number, scrollLeft: number, scrollRight: number) => {
         this.analysisService.wsZoomBounds.next([visibleStartTime, visibleEndTime]);
+        (spectrogramPlugin as any).wrapper.scrollLeft = scrollLeft;
       },
     );
 
