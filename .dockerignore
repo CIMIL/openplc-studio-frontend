@@ -1,3 +1,18 @@
+# Version control
 .git/
 .gitignore
+
+# Dependencies and local build artifacts
 node_modules/
+dist/
+.angular/
+coverage/
+
+# Editors
+.vscode/
+.idea/
+
+# Docs and logs
+*.md
+*.log
+.DS_Store

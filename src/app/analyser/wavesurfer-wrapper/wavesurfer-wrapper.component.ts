@@ -1,20 +1,20 @@
 import { Component, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { combineLatest, filter, fromEvent, fromEventPattern, Subject, Subscription, takeUntil, tap } from 'rxjs';
 import WaveSurfer from 'wavesurfer.js';
-import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom';
-import RegionsPlugin, { Region } from 'wavesurfer.js/dist/plugins/regions';
+import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom.js';
+import RegionsPlugin, { Region } from 'wavesurfer.js/dist/plugins/regions.js';
 import { CommonModule } from '@angular/common';
 import { AnalysisService } from '../analysis.service';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
 import { SliderModule } from 'primeng/slider';
 import { ThemeService } from '../../shared/services/theme.service';
-import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
+import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram.js';
 
 import SpectrogramPatch from './ws-spectrogram-patch';
 
-import Hover from 'wavesurfer.js/dist/plugins/hover';
-import HoverPlugin from 'wavesurfer.js/dist/plugins/hover';
+import Hover from 'wavesurfer.js/dist/plugins/hover.js';
+import HoverPlugin from 'wavesurfer.js/dist/plugins/hover.js';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 

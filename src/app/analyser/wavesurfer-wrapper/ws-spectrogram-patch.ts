@@ -1,4 +1,4 @@
-import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram';
+import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram.js';
 
 const monkeyPatchWsSpectrogram = (): typeof SpectrogramPlugin => {
   (SpectrogramPlugin as any).prototype.drawSpectrogram = function (frequenciesData: any): void {
