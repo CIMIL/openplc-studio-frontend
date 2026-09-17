@@ -4,8 +4,31 @@ interface BaseWsMessage {
 
 export interface RunCompletionMessage extends BaseWsMessage {
   type: 'run.complete';
+  run_id: string;
   run_name: string;
   success: boolean;
 }
 
-export type WsMessage = RunCompletionMessage | any;
+export interface NodeProgress {
+  description: string;
+  node_id: string | null;
+  current: number;
+  total: number | null;
+}
+
+export interface RunProgressMessage extends BaseWsMessage {
+  type: 'run.progress';
+  run_id: string;
+  run_name: string;
+  nodes: NodeProgress[];
+}
+
+export interface TreeNode {
+  description: string;
+  node_ids: string[];
+  current: number;
+  total: number | null;
+  children: TreeNode[];
+}
+
+export type WsMessage = RunCompletionMessage | RunProgressMessage | any;
