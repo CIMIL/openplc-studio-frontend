@@ -1,46 +1,87 @@
-@if (runs && runs.length > 0) {
-<div class="flex justify-content-between align-items-center mb-4 ml-4">
-  <h2 class="text-2xl font-semibold text-color m-0">Run history</h2>
-</div>
-<p-table [value]="runs" [tableStyle]="{ 'min-width': '50rem' }">
-  <ng-template #header>
-    <tr>
-      <th>Name</th>
-      <th>Created</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>
-  </ng-template>
-  <ng-template #body let-run>
-    <tr>
-      <td>{{ run.name }}</td>
-      <td>{{ run.created | date: 'MMM dd, yyyy HH:mm' }}</td>
-      <td><plc-run-status-badge [runStatus]="run.status"></plc-run-status-badge></td>
-      <td>
-        <p-button type="button" class="p-button-text" severity="info" pTooltip="Go to analysis" tooltipPosition="top"
-          (click)="onAnalyse(run)">
-          <i class="pi pi-chart-bar"></i>
-        </p-button>
-        <p-button type="button" class="p-button-text" severity="info" pTooltip="View progress" tooltipPosition="top"
-          (click)="onViewProgress(run)">
-          <i class="pi pi-spinner"></i>
-        </p-button>
-        <!--button for downloading config-->
-        <p-button type="button" class="p-button-text" severity="info" pTooltip="Download config" tooltipPosition="top"
-          (click)="onDownloadConfig(run)">
-          <i class="pi pi-download"></i>
-        </p-button>
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
-}
-<div *ngIf="!runs || runs.length === 0" class="min-h-[400px] flex items-center justify-center">
-  <div class="text-center">
-    <i class="pi pi-inbox text-6xl mb-4 opacity-60"></i>
-    <h3 class="text-xl font-semibold mb-2">No runs to show</h3>
-    <p class="mb-4">Get started by creating your first run to analyze audio data.</p>
-    <p-button label="Create First Run" icon="pi pi-plus" (click)="router.navigate(['/run-configurator'])"
-      class="p-button-lg"></p-button>
+@if (loaded && totalRecords === 0) {
+  <div class="min-h-[400px] flex items-center justify-center">
+    <div class="text-center">
+      <i class="pi pi-inbox text-6xl mb-4 opacity-60"></i>
+      <h3 class="text-xl font-semibold mb-2">No runs to show</h3>
+      <p class="mb-4">Get started by creating your first run to analyze audio data.</p>
+      <p-button
+        label="Create First Run"
+        icon="pi pi-plus"
+        size="large"
+        (onClick)="router.navigate(['/run-configurator'])"
+      ></p-button>
+    </div>
   </div>
-</div>
+} @else {
+  <div class="flex justify-content-between align-items-center mb-4 ml-4">
+    <h2 class="text-2xl font-semibold text-color m-0">Run history</h2>
+  </div>
+  <p-table
+    [value]="runs"
+    [tableStyle]="{ 'min-width': '50rem' }"
+    styleClass="plc-backlog-table"
+    [lazy]="true"
+    [paginator]="true"
+    [rows]="rows"
+    [totalRecords]="totalRecords"
+    [rowsPerPageOptions]="[10, 25, 50]"
+    [loading]="loading"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} runs"
+    (onLazyLoad)="loadRuns($event)"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Name</th>
+        <th>Created</th>
+        <th>Status</th>
+        <th class="plc-actions-header">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-run>
+      <tr>
+        <td>{{ run.name }}</td>
+        <td>{{ run.created | date: 'MMM dd, yyyy HH:mm' }}</td>
+        <td><plc-run-status-badge [runStatus]="run.status"></plc-run-status-badge></td>
+        <td class="plc-actions-cell">
+          <div class="flex align-items-center justify-content-center gap-1">
+            <p-button
+              icon="pi pi-chart-bar"
+              severity="info"
+              size="small"
+              [text]="true"
+              [rounded]="true"
+              pTooltip="Go to analysis"
+              tooltipPosition="top"
+              ariaLabel="Go to analysis"
+              (onClick)="onAnalyse(run)"
+            ></p-button>
+            <p-button
+              icon="pi pi-eye"
+              severity="info"
+              size="small"
+              [text]="true"
+              [rounded]="true"
+              pTooltip="View progress"
+              tooltipPosition="top"
+              ariaLabel="View progress"
+              (onClick)="onViewProgress(run)"
+            ></p-button>
+            <!--button for downloading config-->
+            <p-button
+              icon="pi pi-download"
+              severity="secondary"
+              size="small"
+              [text]="true"
+              [rounded]="true"
+              pTooltip="Download config"
+              tooltipPosition="top"
+              ariaLabel="Download config"
+              (onClick)="onDownloadConfig(run)"
+            ></p-button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+}

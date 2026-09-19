@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, switchMap } from 'rxjs';
-import { Run } from '../interfaces/run.interface';
+import { Run, RunPage } from '../interfaces/run.interface';
 import { RunMapper } from '../mappers/run.mapper';
-import { RunDto } from '../dtos/run.dto';
+import { RunDto, RunPageDto } from '../dtos/run.dto';
 
 @Injectable({
   providedIn: 'root',
@@ -15,7 +15,7 @@ export class RunsClient {
     Accept: 'application/json',
   };
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   public createRun(run: Omit<Run, 'id' | 'created' | 'updated'>): Observable<Run> {
     return this.http
@@ -29,10 +29,11 @@ export class RunsClient {
       .pipe(switchMap((dto: RunDto) => of(RunMapper.dtoToModel(dto))));
   }
 
-  public getAllRuns(): Observable<Run[]> {
+  public getRunsPage(page: number, pageSize: number): Observable<RunPage> {
+    const params = new HttpParams().set('page', page).set('page_size', pageSize);
     return this.http
-      .get<RunDto[]>(this.api, { headers: this.headers })
-      .pipe(switchMap((dtos: RunDto[]) => of(dtos.map((dto) => RunMapper.dtoToModel(dto)))));
+      .get<RunPageDto>(this.api, { headers: this.headers, params })
+      .pipe(switchMap((dto: RunPageDto) => of(RunMapper.pageDtoToModel(dto))));
   }
 
   public getRunAssets(runId: string, depth: number): Observable<ArrayBuffer> {
@@ -45,7 +46,9 @@ export class RunsClient {
   }
 
   //method to validate run config
-  public validateRunConfig(config: object): Observable<object> {
-    return this.http.post(`${this.api}/config/validate`, config, { headers: this.headers });
+  public validateRunConfig(config: Record<string, unknown>): Observable<Record<string, unknown>> {
+    return this.http.post<Record<string, unknown>>(`${this.api}/config/validate`, config, {
+      headers: this.headers,
+    });
   }
 }

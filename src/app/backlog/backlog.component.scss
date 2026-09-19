@@ -1,0 +1,43 @@
+:host ::ng-deep .plc-backlog-table {
+  // Comfortable, consistent cell padding for every row.
+  .p-datatable-tbody > tr > td {
+    padding: 0.85rem 1.25rem;
+    vertical-align: middle;
+  }
+
+  .plc-actions-header {
+    text-align: center;
+  }
+
+  .plc-actions-cell {
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+
+    // Icon-only buttons: give them breathing room and subtle feedback.
+    .p-button {
+      width: 2.25rem;
+      height: 2.25rem;
+      transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        transform 0.15s ease;
+
+      &:hover {
+        transform: translateY(-1px);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--p-primary-color);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  // Paginator: keep it comfortably spaced and let it wrap on narrow screens.
+  .p-paginator {
+    padding: 0.75rem 0.5rem;
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+    border-top: 1px solid var(--p-content-border-color);
+  }
+}

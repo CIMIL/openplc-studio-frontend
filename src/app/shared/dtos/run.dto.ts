@@ -29,3 +29,10 @@ export interface RunCreateDto {
     [ModuleType.OutputAnalyser]: Module[];
   };
 }
+
+export interface RunPageDto {
+  items: RunDto[];
+  total: number;
+  page: number;
+  page_size: number;
+}

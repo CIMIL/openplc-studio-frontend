@@ -1,6 +1,6 @@
-import { RunCreateDto, RunDto } from '../dtos/run.dto';
+import { RunCreateDto, RunDto, RunPageDto } from '../dtos/run.dto';
 import { ModuleType } from '../enums/module-type.enum';
-import { Run } from '../interfaces/run.interface';
+import { Run, RunPage } from '../interfaces/run.interface';
 
 export class RunMapper {
   static modelToCreateDto(run: Omit<Run, 'id' | 'created' | 'updated'>): RunCreateDto {
@@ -33,6 +33,15 @@ export class RunMapper {
         [ModuleType.PLCAlgorithm]: runDto.modules[ModuleType.PLCAlgorithm],
         [ModuleType.OutputAnalyser]: runDto.modules[ModuleType.OutputAnalyser],
       },
+    };
+  }
+
+  static pageDtoToModel(pageDto: RunPageDto): RunPage {
+    return {
+      items: pageDto.items.map((dto) => RunMapper.dtoToModel(dto)),
+      total: pageDto.total,
+      page: pageDto.page,
+      pageSize: pageDto.page_size,
     };
   }
 }

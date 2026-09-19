@@ -17,3 +17,10 @@ export interface Run {
     [ModuleType.OutputAnalyser]: Module[];
   };
 }
+
+export interface RunPage {
+  items: Run[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
