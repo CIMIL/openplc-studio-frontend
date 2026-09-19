@@ -1,3 +1,64 @@
+export interface WavInfo {
+  sampleRate: number;
+  channels: number;
+  bitDepth: number;
+  byteRate: number;
+  dataSize: number;
+}
+
+/**
+ * Robustly parses a RIFF/WAVE header, walking the chunk list instead of assuming
+ * the canonical 44-byte layout, and returns the information needed to derive a
+ * track's duration. Returns null when the buffer is not a valid WAV header.
+ */
+export function parseWavInfo(data: Uint8Array): WavInfo | null {
+  if (data.length < 44) {
+    return null;
+  }
+
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const riff = String.fromCharCode(data[0], data[1], data[2], data[3]);
+  const wave = String.fromCharCode(data[8], data[9], data[10], data[11]);
+  if (riff !== 'RIFF' || wave !== 'WAVE') {
+    return null;
+  }
+
+  let offset = 12;
+  let sampleRate = 0;
+  let channels = 0;
+  let bitDepth = 0;
+  let byteRate = 0;
+  let dataSize = 0;
+  let foundFormat = false;
+
+  while (offset + 8 <= data.length) {
+    const chunkId = String.fromCharCode(data[offset], data[offset + 1], data[offset + 2], data[offset + 3]);
+    const chunkSize = dv.getUint32(offset + 4, true);
+
+    if (chunkId === 'fmt ') {
+      if (offset + 24 > data.length) {
+        break;
+      }
+      channels = dv.getUint16(offset + 10, true);
+      sampleRate = dv.getUint32(offset + 12, true);
+      byteRate = dv.getUint32(offset + 16, true);
+      bitDepth = dv.getUint16(offset + 22, true);
+      foundFormat = true;
+    } else if (chunkId === 'data') {
+      dataSize = chunkSize;
+      break;
+    }
+
+    offset += 8 + chunkSize + (chunkSize % 2);
+  }
+
+  if (!foundFormat || sampleRate === 0 || channels === 0 || bitDepth === 0) {
+    return null;
+  }
+
+  return { sampleRate, channels, bitDepth, byteRate, dataSize };
+}
+
 export function extractSampleRateFromWavHeader(data: Uint8Array): number {
   const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const sampleRate = dv.getUint32(24, true);
@@ -34,7 +95,7 @@ export function stripWavBinarySegment(
   right: number,
   bitDepth: number,
   channelNumber: number,
-  padding: number = 10
+  padding: number = 10,
 ): Uint8Array {
   // Convert left and right from sample indexes to byte indexes
   const bytesPerSample = bitDepth / 8;

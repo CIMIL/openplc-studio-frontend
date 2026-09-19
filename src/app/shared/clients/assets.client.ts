@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
+import { AudioTrackMetadata, AudioTrackMetadataDto } from '../interfaces/audio-track-metadata.interface';
 
 @Injectable({ providedIn: 'root' })
 export class AssetsClient {
@@ -22,5 +23,22 @@ export class AssetsClient {
 
   public getFilenames(): Observable<string[]> {
     return this.http.get<string[]>(`${this.api}/original-tracks`, { headers: this.headers });
+  }
+
+  public getTrackMetadata(): Observable<AudioTrackMetadata[]> {
+    return this.http
+      .get<AudioTrackMetadataDto[]>(`${this.api}/original-tracks/metadata`, { headers: this.headers })
+      .pipe(
+        map((dtos: AudioTrackMetadataDto[]) =>
+          dtos.map((dto: AudioTrackMetadataDto) => ({
+            name: dto.name,
+            sizeBytes: dto.size_bytes,
+            durationSeconds: dto.duration_seconds,
+            sampleRate: dto.sample_rate,
+            channels: dto.channels,
+            bitDepth: dto.bit_depth,
+          })),
+        ),
+      );
   }
 }

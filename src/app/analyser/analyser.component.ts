@@ -11,7 +11,7 @@ import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CommonModule } from '@angular/common';
 import { SkeletonModule } from 'primeng/skeleton';
-import { extractSampleRateFromWavHeader } from './wavUtils';
+import { extractSampleRateFromWavHeader } from '../shared/utils/wavUtils';
 import { decodeJson } from './utils';
 import { ZoomLensComponent } from './zoom-lens/zoom-lens.component';
 import { MetricsComponent } from './metrics/metrics.component';

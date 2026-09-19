@@ -1,9 +1,50 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
 :host::ng-deep {
   p-picklist > div.p-picklist {
     height: 100%;
   }
 
+  // Compact, centered dropzone area inside the collapsible upload panel.
+  .p-fileupload {
+    border: 1px solid var(--p-content-border-color);
+  }
+
   .p-fileupload-header {
     justify-content: center;
+  }
+
+  .p-fileupload-file-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Comfortable item rows; the item template already lays out the content.
+  .p-picklist .p-picklist-item {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .p-picklist-header {
+    font-size: 0.875rem;
+  }
+}
+
+// Queued-upload rows: card layout with name, technical metadata and size.
+.plc-upload-file {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius, 6px);
+  background: var(--p-content-background);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: var(--p-content-hover-background, var(--p-highlight-background));
+  }
+
+  & + .plc-upload-file {
+    margin-top: 0.5rem;
   }
 }

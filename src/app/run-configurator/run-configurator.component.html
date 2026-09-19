@@ -1,11 +1,6 @@
 <div class="flex justify-center mb-3">
-  <p-button
-    icon="pi pi-upload"
-    severity="secondary"
-    label="Load config"
-    (onClick)="fileInput.click()"
-  ></p-button>
-  <input #fileInput type="file" accept=".json" style="display:none" (change)="onUploadConfig($event)" />
+  <p-button icon="pi pi-upload" severity="secondary" label="Load config" (onClick)="fileInput.click()"></p-button>
+  <input #fileInput type="file" accept=".json" style="display: none" (change)="onUploadConfig($event)" />
 </div>
 <div class="flex justify-center">
   <div class="w-2/4">
@@ -21,7 +16,6 @@
       ></p-button>
     </p-inputgroup>
   </div>
-  
 </div>
 <p-stepper [value]="1">
   <p-step-item [value]="1">
@@ -29,10 +23,7 @@
     <p-step-panel>
       <ng-template #content let-activateCallback="activateCallback">
         <div class="flex flex-col pt-4 pr-4">
-          <plc-audio-track-picker
-            [(audioTracksSelection)]="audioTracksConfig"
-            class="max-h-[600px] overflow-y-scroll"
-          ></plc-audio-track-picker>
+          <plc-audio-track-picker [(audioTracksSelection)]="audioTracksConfig" class="w-full"></plc-audio-track-picker>
         </div>
       </ng-template>
     </p-step-panel>

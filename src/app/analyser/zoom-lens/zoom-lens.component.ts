@@ -15,7 +15,7 @@ import {
   normalizePcmSegment,
   stripWavBinarySegment,
   stripWavHeader,
-} from '../wavUtils';
+} from '../../shared/utils/wavUtils';
 import { ModuleType } from '../../shared/enums/module-type.enum';
 import { ModuleParameter } from '../../shared/interfaces/module-parameters.interface';
 import { Module } from '../../shared/interfaces/module.interface';
