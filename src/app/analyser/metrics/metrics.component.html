@@ -47,30 +47,16 @@
   }
 </div>
 
-@if (this.displayMetrics && this.displayMetrics.length > 0) {
+@if (this.displayMetrics && this.displayMetrics.length !== 0) {
   <p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
-    <div class="p-4">
-      <h3 class="text-lg font-semibold mb-4">
-        {{ metrics[drawerMetricsParameterIndex] | metricLabel }}
-      </h3>
-
-      <div class="space-y-3">
-        @for (param of metricsParametersArray[drawerMetricsParameterIndex] || []; track param) {
-          <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-            <div class="flex justify-between items-center">
-              <span class="font-medium text-gray-700 dark:text-gray-300">
-                {{ param }}
-              </span>
-              <span class="text-sm text-gray-600 dark:text-gray-400">
-                {{
-                  analysisService.outputAnalyserParameters.value[metrics[drawerMetricsParameterIndex].index][param] ??
-                    'null'
-                }}
-              </span>
-            </div>
-          </div>
-        }
+    @if (getOutputAnalyserModule(metrics[drawerMetricsParameterIndex]); as oaModule) {
+      <div class="p-4">
+        <h3 class="text-lg font-semibold mb-1">
+          {{ metrics[drawerMetricsParameterIndex] | metricLabel }}
+        </h3>
+        <p class="text-sm mb-4 opacity-70">{{ oaModule.name }}</p>
+        <plc-parameter-tree [settings]="oaModule.settings" />
       </div>
-    </div>
+    }
   </p-drawer>
 }

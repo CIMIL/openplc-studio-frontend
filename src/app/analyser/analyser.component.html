@@ -3,7 +3,7 @@
 </div>
 <div class="w-full">
   <div class="py-4">
-    @if (analysisService.trackGroups.value && analysisService.trackGroups.value.length > 0) {
+    @if (analysisService.trackGroups.value && analysisService.trackGroups.value.length !== 0) {
       <div class="flex flex-row items-center justify-center w-full gap-3">
         <div class="w-2/4">
           <p-cascadeselect
@@ -39,7 +39,7 @@
     <p-accordion-panel [value]="AccordionPanels.ZOOM_LENS">
       <p-accordion-header>Zoom Lens</p-accordion-header>
       <p-accordion-content>
-        @if (analysisService.selectedPacketBounds.value && analysisService.selectedPacketBounds.value.length > 0) {
+        @if (analysisService.selectedPacketBounds.value && analysisService.selectedPacketBounds.value.length !== 0) {
           <plc-zoom-lens></plc-zoom-lens>
         } @else {
           <p>Select a packet for analysis</p>
@@ -64,56 +64,44 @@
   </p-accordion>
 </div>
 
-@if (this.sampleMasks && this.sampleMasks.length > 0) {
-  <p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
-    <div class="p-4">
-      <h3 class="text-lg font-semibold mb-4">
-        {{ sampleMasks[analysisService.selectedSampleMaskIndex.value].name.split('.')[0] }}
-      </h3>
+<p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
+  @if (hasSelectedModuleParameters) {
+    <div class="p-4 flex flex-col gap-6">
+      @if (selectedPacketLossModule; as plsModule) {
+        <section>
+          <h3 class="text-lg font-semibold mb-3">Packet Loss Simulator — {{ plsModule.name }}</h3>
+          <plc-parameter-tree [settings]="plsModule.settings" />
+        </section>
+      }
 
-      <div class="space-y-3">
-        @for (param of sampleMasksParametersArray[analysisService.selectedSampleMaskIndex.value]; track param) {
-          <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-            <div class="flex justify-between items-center">
-              <span class="font-medium">
-                {{ param }}
-              </span>
-              <span class="text-sm">
-                {{
-                  analysisService.sampleMaskParameters.value[analysisService.selectedSampleMaskIndex.value][param] ??
-                    'null'
-                }}
-              </span>
-            </div>
-          </div>
-        }
-      </div>
-    </div>
+      @if (selectedPlcModule; as plcModule) {
+        <section>
+          <h3 class="text-lg font-semibold mb-3">PLC Algorithm — {{ plcModule.name }}</h3>
+          <plc-parameter-tree [settings]="plcModule.settings" />
+        </section>
+      }
 
-    @if (
-      analysisService.selectedTrackPlayback.value &&
-      analysisService.selectedTrackPlayback.value.name.split('.')[0].split('/').length > 1
-    ) {
-      <div class="p-4">
-        <h3 class="text-lg font-semibold mb-4">
-          {{ analysisService.selectedTrackPlayback.value | reconstructedTrackLabel }}
-        </h3>
-
-        <div class="space-y-3">
-          @for (param of plcAlgothmParametersArray[selectedTrackIndex]; track param) {
-            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-              <div class="flex justify-between items-center">
-                <span class="font-medium">
-                  {{ param }}
-                </span>
-                <span class="text-sm">
-                  {{ analysisService.plcAlgorithmParameters.value[selectedTrackIndex][param] ?? 'null' }}
-                </span>
+      @if (selectedPlcModule && selectedOutputAnalyserModules.length !== 0) {
+        <section>
+          <h3 class="text-lg font-semibold mb-3">Output Analysers</h3>
+          <div class="flex flex-col gap-4">
+            @for (oaModule of selectedOutputAnalyserModules; track oaModule.name) {
+              <div>
+                <h4 class="font-semibold mb-2">{{ oaModule.name }}</h4>
+                <plc-parameter-tree [settings]="oaModule.settings" />
               </div>
-            </div>
-          }
-        </div>
-      </div>
-    }
-  </p-drawer>
-}
+            }
+          </div>
+        </section>
+      }
+    </div>
+  } @else {
+    <div class="p-6 min-h-[220px] flex flex-col items-center justify-center gap-3 text-center">
+      <i class="pi pi-info-circle text-4xl opacity-50"></i>
+      <p class="text-gray-500 dark:text-gray-400">No module selected</p>
+      <p class="text-sm text-gray-400 dark:text-gray-500">
+        Select a reconstructed track to view its packet loss simulator, PLC algorithm and output analyser parameters.
+      </p>
+    </div>
+  }
+</p-drawer>

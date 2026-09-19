@@ -13,6 +13,8 @@ import { MetricLabelPipe, metricLabelTransform } from './metric-label.pipe';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { DividerModule } from 'primeng/divider';
+import { Module } from '../../shared/interfaces/module.interface';
+import { ParameterTreeComponent } from '../../shared/components/parameter-tree/parameter-tree.component';
 
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 
@@ -30,6 +32,7 @@ const TD_METRICS_CHANNEL_AGNOSTIC_METRICS = ['WindowedPEAQCalculator', 'Perceptu
     DrawerModule,
     ButtonModule,
     DividerModule,
+    ParameterTreeComponent,
   ],
   templateUrl: './metrics.component.html',
   //   styleUrls: ['./metrics.component.scss'],
@@ -48,8 +51,6 @@ export class MetricsComponent {
   public chartTypes: Array<'line' | 'bar'> = [];
 
   public infoDrawerVisible: boolean = false;
-
-  public metricsParametersArray: string[][] = [];
 
   public drawerMetricsParameterIndex: number = 0;
 
@@ -103,9 +104,13 @@ export class MetricsComponent {
             const metricName = this.getMetricsNameFromRawName(this.metricsWithLabels[index].displayName);
 
             if (TD_METRICS.includes(metricName)) {
-              const windowLength = this.analysisService.outputAnalyserParameters.value[chartMetric?.index]['N'] ?? 0;
+              const outputAnalyserModule = this.analysisService.resolveOutputAnalyserModuleForMetric(
+                chartMetric.name,
+                index,
+              );
+              const windowLength = this.analysisService.getModuleSettingValue(outputAnalyserModule, 'N') ?? 0;
               const hopSize =
-                this.analysisService.outputAnalyserParameters.value[chartMetric.index]['hop'] ?? windowLength / 2;
+                this.analysisService.getModuleSettingValue(outputAnalyserModule, 'hop') ?? windowLength / 2;
 
               const [leftBound, rightBound] = bounds.map((b) =>
                 Math.round(
@@ -146,27 +151,26 @@ export class MetricsComponent {
         switchMap((track: { name: string }) =>
           of(this.analysisService.playbaleTrackToMetricsMap.value[track.name.split('.')[0]]),
         ),
-        tap((metrics: MetricRaw[]) => this.destroyCharts()),
-        tap((metrics: MetricRaw[]) => (this.displayMetrics = [])),
+        tap((_metrics: MetricRaw[]) => this.destroyCharts()),
+        tap((_metrics: MetricRaw[]) => (this.displayMetrics = [])),
         tap((metrics: MetricRaw[]) => (this.metrics = metrics)),
         filter((metrics: MetricRaw[]) => Array.isArray(metrics) && metrics.length > 0),
         tap(() => this.buildAllCharts()),
         tap(() => this.displayMetrics.push(this.metricsWithLabels[0])),
-        tap(() => this.updateMetricsParametersArray()),
         tap(() => (this.chartsReady = true)),
       )
       .subscribe();
   }
 
-  public updateMetricsParametersArray(): void {
-    const metricsParametersArray = this.metrics.map((m) => {
-      const parameters = this.analysisService.outputAnalyserParameters.value[m.index];
-      return parameters ? Object.keys(parameters) : [];
-    });
-    if (metricsParametersArray.length <= this.drawerMetricsParameterIndex) {
-      this.drawerMetricsParameterIndex = 0;
+  public getOutputAnalyserModule(metric: MetricRaw | undefined): Module | null {
+    if (!metric) {
+      return null;
     }
-    this.metricsParametersArray = metricsParametersArray;
+    const fallbackIndex = this.metrics.findIndex((candidate) => candidate.name === metric.name);
+    return this.analysisService.resolveOutputAnalyserModuleForMetric(
+      metric.name,
+      fallbackIndex >= 0 ? fallbackIndex : null,
+    );
   }
 
   private buildAllCharts(): void {

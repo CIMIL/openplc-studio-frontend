@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { Run } from '../shared/interfaces/run.interface';
 import { FileDescription } from 'tarparser';
 import { Module } from '../shared/interfaces/module.interface';
@@ -13,6 +13,8 @@ export type MetricRaw = FileDescriptionWithJson & { index: number };
 export type ReconstructedTrackRaw = FileDescription & { index: number };
 
 export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
+
+type RunModuleType = Exclude<ModuleType, ModuleType.CrossfadeSettings>;
 
 @Injectable({
   providedIn: 'root',
@@ -52,12 +54,6 @@ export class AnalysisService {
 
   public spectrogramWrapper = new BehaviorSubject<HTMLElement | null>(null);
 
-  public sampleMaskParameters = new BehaviorSubject<Record<string, any>[]>([]);
-
-  public plcAlgorithmParameters = new BehaviorSubject<Record<string, any>[]>([]);
-
-  public outputAnalyserParameters = new BehaviorSubject<Record<string, any>[]>([]);
-
   public get audioBlob$(): Observable<Blob | null> {
     return this.currentAudioBlobSubject.asObservable();
   }
@@ -66,70 +62,76 @@ export class AnalysisService {
     return this.currentAudioBlobSubject.value;
   }
 
-  public updateParametersFromRun(run: Run | null): void {
-    this.sampleMaskParameters.next(this.getSampleMaskParameters(run));
-    this.plcAlgorithmParameters.next(this.getPlcAlgorithmParameters(run));
-    this.outputAnalyserParameters.next(this.getOutputAnalyserParameters(run));
+  /**
+   * Resolve the configured module that produced a given asset. Asset file names
+   * embed the producing worker name (`<Worker>-<hash>`). Match on the worker
+   * name first; disambiguate duplicates (or plugins with unexpected names) with
+   * the position of the asset within its track group, then fall back to the sole
+   * configured module. Note: the hash cannot be matched against `node_ids`
+   * because paths hash the settings before parent inheritance while node ids
+   * hash them after.
+   */
+  public resolveModule(
+    moduleType: RunModuleType,
+    assetKey: string,
+    fallbackIndex: number | null = null,
+  ): Module | null {
+    const modules = this.run.value?.modules?.[moduleType] ?? [];
+    if (!assetKey) {
+      return modules.length === 1 ? modules[0] : null;
+    }
+
+    const workerName = this.extractWorkerName(assetKey);
+    const byName = modules.filter((module) => module.name === workerName);
+    if (byName.length === 1) {
+      return byName[0];
+    }
+
+    if (fallbackIndex !== null && fallbackIndex >= 0 && fallbackIndex < modules.length) {
+      return modules[fallbackIndex];
+    }
+
+    return modules.length === 1 ? modules[0] : null;
   }
 
-  public getSampleMaskParameters(run: Run | null): Record<string, any>[] {
-    if (
-      !run ||
-      !run.modules ||
-      !run.modules[ModuleType.PacketLossSimulator] ||
-      !Array.isArray(run.modules[ModuleType.PacketLossSimulator])
-    ) {
-      return [];
-    }
-    return run.modules[ModuleType.PacketLossSimulator].map((module: Module) => {
-      if (!Array.isArray(module.settings)) return {};
-      const paramsObj: Record<string, any> = {};
-      module.settings.forEach((param: any) => {
-        paramsObj[param.name] = param.value;
-      });
-      return paramsObj;
-    });
+  public resolvePacketLossModuleForTrack(trackName: string, fallbackIndex: number | null = null): Module | null {
+    return this.resolveModule(
+      ModuleType.PacketLossSimulator,
+      this.parseTrackName(trackName).sampleMaskKey,
+      fallbackIndex,
+    );
   }
 
-  public getPlcAlgorithmParameters(run: Run | null): Record<string, any>[] {
-    if (
-      !run ||
-      !run.modules ||
-      !run.modules[ModuleType.PLCAlgorithm] ||
-      !Array.isArray(run.modules[ModuleType.PLCAlgorithm])
-    ) {
-      return [];
-    }
-    return run.modules[ModuleType.PLCAlgorithm].map((module: Module) => {
-      if (!Array.isArray(module.settings)) return {};
-      const paramsObj: Record<string, any> = {};
-      module.settings.forEach((param: any) => {
-        if (['crossfade', 'fade_in'].includes(param.name)) {
-          return;
-        }
-        paramsObj[param.name] = param.value;
-      });
-      return paramsObj;
-    });
+  public resolvePlcModuleForTrack(trackName: string, fallbackIndex: number | null = null): Module | null {
+    return this.resolveModule(ModuleType.PLCAlgorithm, this.parseTrackName(trackName).plcKey, fallbackIndex);
   }
 
-  public getOutputAnalyserParameters(run: Run | null): Record<string, any>[] {
-    if (
-      !run ||
-      !run.modules ||
-      !run.modules[ModuleType.OutputAnalyser] ||
-      !Array.isArray(run.modules[ModuleType.OutputAnalyser])
-    ) {
-      return [];
-    }
-    return run.modules[ModuleType.OutputAnalyser].map((module: Module) => {
-      if (!Array.isArray(module.settings)) return {};
-      const paramsObj: Record<string, any> = {};
-      module.settings.forEach((param: any) => {
-        paramsObj[param.name] = param.value;
-      });
-      return paramsObj;
-    });
+  public resolveOutputAnalyserModuleForMetric(metricName: string, fallbackIndex: number | null = null): Module | null {
+    const segments = metricName.split('/');
+    const assetKey = (segments.at(-1) ?? '').split('.')[0];
+    return this.resolveModule(ModuleType.OutputAnalyser, assetKey, fallbackIndex);
+  }
+
+  public getModuleSettingValue(module: Module | null, settingName: string): any {
+    return module?.settings.find((setting) => setting.name === settingName)?.value;
+  }
+
+  public parseTrackName(name: string): {
+    originalTrack: string;
+    sampleMaskKey: string;
+    plcKey: string;
+  } {
+    const segments = name.split('.')[0].split('/');
+    return {
+      originalTrack: segments[0] ?? '',
+      sampleMaskKey: segments[1] ?? '',
+      plcKey: segments[2] ?? '',
+    };
+  }
+
+  private extractWorkerName(assetKey: string): string {
+    const separatorIndex = assetKey.lastIndexOf('-');
+    return separatorIndex >= 0 ? assetKey.slice(0, separatorIndex) : assetKey;
   }
 
   public setAudioBlob(blob: Blob | null): void {
@@ -204,8 +206,5 @@ export class AnalysisService {
     this.playbaleTrackToMetricsMap.next({});
     this.spectrogramWrapper.next(null);
     this.setAudioBlob(null);
-    this.sampleMaskParameters.next([]);
-    this.plcAlgorithmParameters.next([]);
-    this.outputAnalyserParameters.next([]);
   }
 }

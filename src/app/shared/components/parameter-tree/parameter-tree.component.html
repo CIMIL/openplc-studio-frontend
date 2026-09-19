@@ -1,0 +1,59 @@
+<div class="flex flex-col gap-2 text-sm">
+  <ng-container *ngTemplateOutlet="settingsList; context: { $implicit: settings }"></ng-container>
+</div>
+
+<ng-template #settingsList let-items>
+  @for (setting of items ?? []; track setting.name) {
+    <div class="flex flex-col gap-1">
+      <div class="font-medium text-gray-500 dark:text-gray-300">{{ setting.name }}</div>
+      <div class="pl-2">
+        <ng-container *ngTemplateOutlet="valueNode; context: { $implicit: displayValue(setting) }"></ng-container>
+      </div>
+    </div>
+  }
+</ng-template>
+
+<ng-template #valueNode let-value>
+  @if (isModuleLike(value)) {
+    <details class="plc-pt-branch" open>
+      <summary class="cursor-pointer font-semibold text-gray-800 dark:text-gray-200">
+        <i class="pi pi-box mr-1"></i>
+        {{ value.name }}
+      </summary>
+      <div class="mt-1 ml-2 pl-3 border-l border-gray-300 dark:border-gray-600">
+        <ng-container *ngTemplateOutlet="settingsList; context: { $implicit: value.settings }"></ng-container>
+      </div>
+    </details>
+  } @else if (isArray(value)) {
+    @if (value.length === 0) {
+      <span class="italic text-gray-500 dark:text-gray-300">empty</span>
+    } @else if (isScalarArray(value)) {
+      <div class="flex flex-wrap gap-1">
+        @for (item of value; track $index) {
+          <span class="bg-gray-100 dark:bg-gray-500 rounded px-2 py-0.5 font-mono text-xs">
+            {{ formatScalar(item) }}
+          </span>
+        }
+      </div>
+    } @else {
+      <div class="flex flex-col gap-2">
+        @for (item of value; track $index) {
+          <ng-container *ngTemplateOutlet="valueNode; context: { $implicit: item }"></ng-container>
+        }
+      </div>
+    }
+  } @else if (isPlainObject(value)) {
+    <div class="flex flex-col gap-2 ml-2 pl-3 border-l border-gray-300 dark:border-gray-600">
+      @for (entry of entries(value); track entry.key) {
+        <div class="flex flex-col gap-1">
+          <div class="font-medium text-gray-500 dark:text-gray-300">{{ entry.key }}</div>
+          <div class="pl-2">
+            <ng-container *ngTemplateOutlet="valueNode; context: { $implicit: entry.value }"></ng-container>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <span class="font-mono">{{ formatScalar(value) }}</span>
+  }
+</ng-template>

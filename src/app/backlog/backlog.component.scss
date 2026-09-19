@@ -6,7 +6,7 @@
   }
 
   .plc-actions-header {
-    text-align: center;
+    text-align: left;
   }
 
   .plc-actions-cell {
@@ -40,4 +40,24 @@
     row-gap: 0.5rem;
     border-top: 1px solid var(--p-content-border-color);
   }
+}
+
+// Run-configuration drawer: collapsible top-level module sections.
+.plc-config-module > summary {
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 0.25rem;
+    transition: transform 0.15s ease;
+  }
+}
+
+.plc-config-module[open] > summary::before {
+  transform: rotate(90deg);
 }

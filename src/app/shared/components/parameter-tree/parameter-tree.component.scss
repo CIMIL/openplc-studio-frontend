@@ -1,0 +1,18 @@
+.plc-pt-branch > summary {
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 0.25rem;
+    transition: transform 0.15s ease;
+  }
+}
+
+.plc-pt-branch[open] > summary::before {
+  transform: rotate(90deg);
+}

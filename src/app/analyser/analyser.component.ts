@@ -18,7 +18,9 @@ import { MetricsComponent } from './metrics/metrics.component';
 import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
 import { DrawerModule } from 'primeng/drawer';
-import { reconstructedTrackLabelPipe } from './reconstructed-track-label.pipe';
+import { Module } from '../shared/interfaces/module.interface';
+import { ModuleType } from '../shared/enums/module-type.enum';
+import { ParameterTreeComponent } from '../shared/components/parameter-tree/parameter-tree.component';
 
 Chart.register(zoomPlugin);
 
@@ -34,7 +36,6 @@ enum AccordionPanels {
     WavesurferWrapperComponent,
     ZoomLensComponent,
     MetricsComponent,
-    reconstructedTrackLabelPipe,
     FormsModule,
     CascadeSelectModule,
     CommonModule,
@@ -42,6 +43,7 @@ enum AccordionPanels {
     AccordionModule,
     ButtonModule,
     DrawerModule,
+    ParameterTreeComponent,
   ],
   templateUrl: './analyser.component.html',
   styleUrls: ['./analyser.component.scss'],
@@ -54,12 +56,6 @@ export class AnalyserComponent {
   public reconstructedTracks: ReconstructedTrackRaw[] = [];
 
   public sampleMasks: FileDescriptionWithJson[] = [];
-
-  public sampleMasksParametersArray: string[][] = [];
-
-  public plcAlgothmParametersArray: string[][] = [];
-
-  public drawerSampleMaskParameterIndex: number = 0;
 
   public runFetchDone = new ReplaySubject<void>();
 
@@ -88,7 +84,72 @@ export class AnalyserComponent {
     return this._spectrogramRef;
   }
 
-  public selectedTrackIndex: number = 0;
+  public get selectedPacketLossModule(): Module | null {
+    const trackName = this.analysisService.selectedTrackPlayback.value?.name;
+    if (!trackName) {
+      return null;
+    }
+    const parsed = this.analysisService.parseTrackName(trackName);
+    if (!parsed.sampleMaskKey) {
+      return null;
+    }
+    return this.analysisService.resolvePacketLossModuleForTrack(trackName, this.getPacketLossFallbackIndex(trackName));
+  }
+
+  public get selectedPlcModule(): Module | null {
+    const trackName = this.analysisService.selectedTrackPlayback.value?.name;
+    if (!trackName) {
+      return null;
+    }
+    const parsed = this.analysisService.parseTrackName(trackName);
+    if (!parsed.plcKey) {
+      return null;
+    }
+    return this.analysisService.resolvePlcModuleForTrack(trackName, this.getPlcFallbackIndex(trackName));
+  }
+
+  public get selectedOutputAnalyserModules(): Module[] {
+    return this.analysisService.run.value?.modules[ModuleType.OutputAnalyser] ?? [];
+  }
+
+  public get hasSelectedModuleParameters(): boolean {
+    return !!this.selectedPacketLossModule || !!this.selectedPlcModule;
+  }
+
+  private getTrackIndex(originalTrack: string): number {
+    return this.analysisService.run.value?.tracks.findIndex((track) => track.split('.')[0] === originalTrack) ?? -1;
+  }
+
+  /**
+   * Asset archives list nodes track-major then simulator-major, so the position
+   * of the sample mask within its track gives the PacketLossSimulator index.
+   */
+  private getPacketLossFallbackIndex(trackName: string): number | null {
+    const run = this.analysisService.run.value;
+    const parsed = this.analysisService.parseTrackName(trackName);
+    const simulatorCount = run?.modules[ModuleType.PacketLossSimulator].length ?? 0;
+    const trackIndex = this.getTrackIndex(parsed.originalTrack);
+    const globalIndex = this.sampleMasks.findIndex((mask) => mask.name.split('.')[0] === parsed.sampleMaskKey);
+    if (!run || simulatorCount === 0 || trackIndex < 0 || globalIndex < 0) {
+      return null;
+    }
+    return globalIndex - trackIndex * simulatorCount;
+  }
+
+  /**
+   * Reconstructed tracks are grouped by (track, sample mask) and ordered by PLC
+   * algorithm, so the position within that group is the PLC module index.
+   */
+  private getPlcFallbackIndex(trackName: string): number | null {
+    const parsed = this.analysisService.parseTrackName(trackName);
+    const index = this.reconstructedTracks
+      .filter((track) => {
+        const candidate = this.analysisService.parseTrackName(track.name);
+        return candidate.originalTrack === parsed.originalTrack && candidate.sampleMaskKey === parsed.sampleMaskKey;
+      })
+      .findIndex((track) => track.name === trackName);
+    return index >= 0 ? index : null;
+  }
 
   constructor(
     private readonly runsClient: RunsClient,
@@ -103,7 +164,6 @@ export class AnalyserComponent {
       .getRun(runId)
       .pipe(
         tap((run) => this.analysisService.run.next(run)),
-        tap((run) => this.analysisService.updateParametersFromRun(run)),
         tap(() => this.runFetchDone.next()),
       )
       .subscribe();
@@ -141,7 +201,7 @@ export class AnalyserComponent {
       this.originalTracksFetchDone.asObservable(),
     ])
       .pipe(
-        map(([files, blank]: [FileDescriptionWithJson[], void]) =>
+        map(([files]: [FileDescriptionWithJson[], void]) =>
           files.map(({ json, ...rest }, index: number) => ({
             json: json.filter(
               (value: any) =>
@@ -190,7 +250,7 @@ export class AnalyserComponent {
       this.originalTracksFetchDone.asObservable(),
     ])
       .pipe(
-        tap(([files, blank]: [FileDescription[], void]) => {
+        tap(([files]: [FileDescription[], void]) => {
           this.reconstructedTracks = files.map((f, i) => ({ ...f, index: i }));
           this.reconstructedTracks.forEach((t) => {
             const currentMaps = this.analysisService.trackMaps.value;
@@ -221,7 +281,6 @@ export class AnalyserComponent {
         }),
         tap(() => this.onTrackChange(this.originalTracks[0])),
         tap(() => this.reconstructedTracksFetchDone.next()),
-        tap(() => this.updatePLCAlgorithmParametersArray()),
       )
       .subscribe();
 
@@ -236,9 +295,7 @@ export class AnalyserComponent {
       this.reconstructedTracksFetchDone.asObservable(),
     ])
       .pipe(
-        map(([parsedFiles, blank]: [FileDescriptionWithJson[], void]) =>
-          parsedFiles.map((m, i) => ({ ...m, index: i })),
-        ),
+        map(([parsedFiles]: [FileDescriptionWithJson[], void]) => parsedFiles.map((m, i) => ({ ...m, index: i }))),
         tap((parsedFiles: MetricRaw[]) => {
           const trackGroups = this.analysisService.trackGroups.value;
           const trackToMetricsMap: Record<string, MetricRaw[]> = {};
@@ -249,7 +306,7 @@ export class AnalyserComponent {
 
               const matchingMetrics = parsedFiles.filter((file) => {
                 const parts = file.name.split('/');
-                const metricName = parts.pop()!;
+                parts.pop();
                 const parentReconstructedTrackName = parts.join('/');
                 return parentReconstructedTrackName === reconstructedTrackName;
               });
@@ -261,7 +318,6 @@ export class AnalyserComponent {
           this.analysisService.playbaleTrackToMetricsMap.next(trackToMetricsMap);
         }),
         tap((parsedFiles: MetricRaw[]) => this.analysisService.metrics.next(parsedFiles)),
-        tap((parsedFiles: MetricRaw[]) => this.updateSampleMaskParametersArray()),
       )
       .subscribe();
 
@@ -309,10 +365,6 @@ export class AnalyserComponent {
     const trackNameStem = trackNameSplit[0];
     this.analysisService.selectedOriginalTrack.next(trackNameStem);
 
-    // Find and set the selected track index
-    const trackIndex = this.reconstructedTracks.findIndex((t) => t.name === track.name);
-    this.selectedTrackIndex = trackIndex >= 0 ? trackIndex : 0;
-
     const trackData = this.analysisService.trackMaps.value[track.name];
     this.analysisService.selectedTrackPlaybackSampleRate.next(extractSampleRateFromWavHeader(trackData));
 
@@ -325,24 +377,6 @@ export class AnalyserComponent {
       const sampleMaskIndex = Object.keys(this.analysisService.sampleMaskMaps.value ?? {}).indexOf(sampleMaskName);
       this.analysisService.selectedSampleMaskIndex.next(sampleMaskIndex);
     }
-  }
-
-  public updateSampleMaskParametersArray(): void {
-    const sampleMasksParametersArray = this.sampleMasks.map((m, index) => {
-      const parameters = this.analysisService.sampleMaskParameters.value[index];
-      return parameters ? Object.keys(parameters) : [];
-    });
-
-    this.sampleMasksParametersArray = sampleMasksParametersArray;
-  }
-
-  public updatePLCAlgorithmParametersArray(): void {
-    const plcAlgorithmParameters = this.reconstructedTracks.map((m) => {
-      const parameters = this.analysisService.plcAlgorithmParameters.value[m.index];
-      return parameters ? Object.keys(parameters) : [];
-    });
-
-    this.plcAlgothmParametersArray = plcAlgorithmParameters;
   }
 
   public openPanel(value: AccordionPanels): void {
