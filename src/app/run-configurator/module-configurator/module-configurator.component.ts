@@ -1,7 +1,7 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { ModulesClient } from '../../shared/clients/modules.client';
-import { BehaviorSubject, filter, map, Observable, Subject, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, map, Observable, Subject, takeUntil, tap } from 'rxjs';
 import { StepperModule } from 'primeng/stepper';
 import { SplitterModule } from 'primeng/splitter';
 import { ListboxModule } from 'primeng/listbox';
@@ -371,13 +371,11 @@ export class ModuleConfiguratorComponent implements OnInit {
 
     const currentBreadcrumbs = paramName === 'crossfade' ? this.crossfadeBreadcrumbs : this.fadeInBreadcrumbs;
 
-
     const updated: MenuItem[] = [
-      ...currentBreadcrumbs.slice(0, -1).map(b => ({ ...b, disabled: false })),
+      ...currentBreadcrumbs.slice(0, -1).map((b) => ({ ...b, disabled: false })),
       { ...currentBreadcrumbs[currentBreadcrumbs.length - 1], disabled: false },
-      { label: module.name, disabled: true }
+      { label: module.name, disabled: true },
     ];
-
 
     if (paramName === 'crossfade') {
       this.crossfadeBreadcrumbs = updated;
@@ -399,10 +397,7 @@ export class ModuleConfiguratorComponent implements OnInit {
         linked: this.linkedBreadcrumbs,
       }[this.nestedCrossfadeChannel];
 
-      const nestedBreadcrumbs = [
-        ...channelBreadcrumbs.slice(0, -1),
-        { label: paramName, disabled: true }
-      ];
+      const nestedBreadcrumbs = [...channelBreadcrumbs.slice(0, -1), { label: paramName, disabled: true }];
 
       if (paramName === 'crossfade') {
         this.crossfadeBreadcrumbs = nestedBreadcrumbs;
@@ -425,7 +420,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   //metodo per gestire la navigazione tramite breadcrumbs all'interno del popup dei crossfade modules
   public onCrossfadeBreadcrumbNavigate(item: MenuItem, paramName: 'crossfade' | 'fade_in') {
-    // click su nome algoritmo 
+    // click su nome algoritmo
     if (item.label === (this.moduleFocus?.name ?? 'Module')) {
       if (paramName === 'crossfade') {
         this.crossfadePopupVisible = false;
@@ -450,15 +445,24 @@ export class ModuleConfiguratorComponent implements OnInit {
       this.currentCrossfadeParamName = '';
       this.crossfadePopupView = 'list';
       this.crossfadePopupSelectedModule = null;
-     
 
       if (this.nestedCrossfadeChannel) {
         switch (this.nestedCrossfadeChannel) {
-          case 'left': this.leftOptionPopupVisible = false; break;
-          case 'right': this.rightOptionPopupVisible = false; break;
-          case 'mid': this.midOptionPopupVisible = false; break;
-          case 'side': this.sideOptionPopupVisible = false; break;
-          case 'linked': this.linkedOptionPopupVisible = false; break;
+          case 'left':
+            this.leftOptionPopupVisible = false;
+            break;
+          case 'right':
+            this.rightOptionPopupVisible = false;
+            break;
+          case 'mid':
+            this.midOptionPopupVisible = false;
+            break;
+          case 'side':
+            this.sideOptionPopupVisible = false;
+            break;
+          case 'linked':
+            this.linkedOptionPopupVisible = false;
+            break;
         }
       }
 
@@ -470,7 +474,7 @@ export class ModuleConfiguratorComponent implements OnInit {
       return;
     }
 
-    // click su nome canale 
+    // click su nome canale
     const channelLabels = ['Left', 'Right', 'Mid', 'Side', 'Linked'];
     if (channelLabels.includes(item.label ?? '')) {
       if (paramName === 'crossfade') {
@@ -490,7 +494,7 @@ export class ModuleConfiguratorComponent implements OnInit {
       return;
     }
 
-    // click su nome modulo 
+    // click su nome modulo
     if (this.isNestedCrossfade) {
       if (paramName === 'crossfade') {
         this.crossfadePopupVisible = false;
@@ -508,7 +512,6 @@ export class ModuleConfiguratorComponent implements OnInit {
     this.backToCrossfadeList(paramName);
   }
 
-
   //metodo di conferma per i popup crossfade e fade_in
   public onCrossfadeConfirm(paramName: 'crossfade' | 'fade_in') {
     if (paramName === 'crossfade') {
@@ -525,9 +528,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   //metodo per ottenere i moduli di crossfade o fade_in in base al parametro
   public getCrossfadeModules(paramName: string): ModuleWithCount[] {
-    const moduleSource = this.isNestedCrossfade
-      ? this.popupSelectedModule
-      : this.moduleFocus;
+    const moduleSource = this.isNestedCrossfade ? this.popupSelectedModule : this.moduleFocus;
 
     const crossfadeParam = moduleSource?.settings.find((s) => s.name === paramName);
 
@@ -549,8 +550,10 @@ export class ModuleConfiguratorComponent implements OnInit {
   }
 
   //metodo per aprire il popup di configurazione dei crossfade modules annidati in Advanced PLC
-  public openNestedCrossfadePopup(paramName: 'crossfade' | 'fade_in', channel: 'left' | 'right' | 'mid' | 'side' | 'linked') {
-
+  public openNestedCrossfadePopup(
+    paramName: 'crossfade' | 'fade_in',
+    channel: 'left' | 'right' | 'mid' | 'side' | 'linked',
+  ) {
     this.isNestedCrossfade = true;
     this.nestedCrossfadeChannel = channel;
     this.currentCrossfadeParamName = paramName;
@@ -567,10 +570,9 @@ export class ModuleConfiguratorComponent implements OnInit {
     }[channel];
 
     const nestedBreadcrumbs: MenuItem[] = [
-      ...channelBreadcrumbs.map(b => ({ ...b, disabled: false })), //cliccabili 
-      { label: paramName, disabled: true } //ultimo breadcrumb, non cliccabile
+      ...channelBreadcrumbs.map((b) => ({ ...b, disabled: false })), //cliccabili
+      { label: paramName, disabled: true }, //ultimo breadcrumb, non cliccabile
     ];
-
 
     if (paramName === 'crossfade') {
       this.crossfadePopupVisible = true;
@@ -603,7 +605,7 @@ export class ModuleConfiguratorComponent implements OnInit {
   constructor(
     private readonly modulesClient: ModulesClient,
     public runConfigService: RunConfiguratorService,
-  ) { }
+  ) {}
 
   get modulesSelection(): ModuleWithCount[] {
     return this.runConfigService.modulesSelection.value[this.moduleType];
@@ -704,12 +706,14 @@ export class ModuleConfiguratorComponent implements OnInit {
       id: this.selectedModuleCounter++,
     };
 
-    this.modulesSelection.push(moduleToAdd);
     this.moduleFocus = moduleToAdd;
 
+    // Replace the array instead of mutating it in place: `p-listbox` is
+    // OnPush and stores its options in a signal, so it only re-renders when
+    // the `options` reference changes.
     this.runConfigService.modulesSelection.next({
       ...this.runConfigService.modulesSelection.value,
-      [this.moduleType]: this.modulesSelection,
+      [this.moduleType]: [...this.modulesSelection, moduleToAdd],
     });
 
     this.selectedModuleProxy = null;
@@ -740,12 +744,18 @@ export class ModuleConfiguratorComponent implements OnInit {
     const source = this.isNestedCrossfade ? this.popupSelectedModule : this.moduleFocus;
     const parentModuleSetting = source?.settings.find((setting) => setting.name === paramName);
     if (parentModuleSetting) {
-      parentModuleSetting.value = parentModuleSetting.value || [];
-      parentModuleSetting.value.push({
-        ...crossfadeModule,
-        settings: structuredClone(crossfadeModule.settings),
-        id: this.selectedCrossfadeModuleCounter++,
-      });
+      const currentCrossfadeModules: ModuleWithCount[] = Array.isArray(parentModuleSetting.value)
+        ? parentModuleSetting.value
+        : [];
+      // New array reference so the OnPush `p-listbox` re-renders immediately.
+      parentModuleSetting.value = [
+        ...currentCrossfadeModules,
+        {
+          ...crossfadeModule,
+          settings: structuredClone(crossfadeModule.settings),
+          id: this.selectedCrossfadeModuleCounter++,
+        },
+      ];
     }
 
     this.selectedCrossfadeModuleProxy = null;
@@ -754,38 +764,47 @@ export class ModuleConfiguratorComponent implements OnInit {
   //metodo per rimuovere un modulo di crossfade o fade_in dalla configurazione
   public removeFromCrossfadeModulesSelection(moduleId: number): void {
     const source = this.isNestedCrossfade ? this.popupSelectedModule : this.moduleFocus;
-    const crossfadeModuleParentList: ModuleWithCount[][] =
-      source?.settings
-        .filter((s) => crossfadeNameParameters.includes(s.name) && s.value !== null)
-        .map((s) => s.value ?? []) ?? [];
+    const crossfadeSetting = source?.settings.find(
+      (setting) =>
+        crossfadeNameParameters.includes(setting.name) &&
+        Array.isArray(setting.value) &&
+        setting.value.some((module: ModuleWithCount) => module.id === moduleId),
+    );
 
-    const crossfadeModuleList =
-      crossfadeModuleParentList.find((s) => s.some((module) => module.id === moduleId)) ?? [];
-    const moduleToRemoveIndex: number =
-      crossfadeModuleList.findIndex((module) => module.id === moduleId) ?? -1;
+    if (!crossfadeSetting || !Array.isArray(crossfadeSetting.value)) {
+      return;
+    }
 
-    if (moduleToRemoveIndex === -1 || crossfadeModuleList.length === 0) {
+    const crossfadeModuleList = crossfadeSetting.value as ModuleWithCount[];
+    const moduleToRemoveIndex = crossfadeModuleList.findIndex((module) => module.id === moduleId);
+
+    if (moduleToRemoveIndex === -1) {
       return;
     }
     if (crossfadeModuleList[moduleToRemoveIndex]?.id === this.crossfadeModuleFocus?.id) {
       this.crossfadeModuleFocus = null;
     }
-    crossfadeModuleList.splice(moduleToRemoveIndex, 1);
+    // New array reference so the OnPush `p-listbox` re-renders immediately.
+    crossfadeSetting.value = crossfadeModuleList.filter((_, idx) => idx !== moduleToRemoveIndex);
   }
 
   public removeFromBandSettingsModulesSelection(moduleId: number): void {
     const bandSettingsParam = this.moduleFocus?.settings.find((setting) => setting.name === 'band_settings');
     const bandSettings = bandSettingsParam?.value as Record<string, ModuleWithCount[]> | undefined;
 
-    if (!bandSettings) {
+    if (!bandSettingsParam || !bandSettings) {
       return;
     }
 
-    const bandLabel =
-      Object.keys(bandSettings).find((label) => bandSettings[label].some((module) => module.id === moduleId)) || '';
+    const bandLabel = Object.keys(bandSettings).find((label) =>
+      bandSettings[label].some((module) => module.id === moduleId),
+    );
 
-    const moduleToRemoveIndex =
-      bandLabel !== undefined ? bandSettings[bandLabel].findIndex((module) => module.id === moduleId) : -1;
+    if (bandLabel === undefined) {
+      return;
+    }
+
+    const moduleToRemoveIndex = bandSettings[bandLabel].findIndex((module) => module.id === moduleId);
 
     if (moduleToRemoveIndex === -1) {
       return;
@@ -795,7 +814,11 @@ export class ModuleConfiguratorComponent implements OnInit {
       this.bandSettingModuleFocus = null;
     }
 
-    bandSettings[bandLabel].splice(moduleToRemoveIndex, 1);
+    // New array/object references so the OnPush `p-listbox` re-renders immediately.
+    bandSettingsParam.value = {
+      ...bandSettings,
+      [bandLabel]: bandSettings[bandLabel].filter((_, idx) => idx !== moduleToRemoveIndex),
+    };
   }
 
   ngOnDestroy(): void {
@@ -830,14 +853,24 @@ export class ModuleConfiguratorComponent implements OnInit {
 
     const parentModuleSetting = this.moduleFocus?.settings.find((setting) => setting.name === paramName);
     if (parentModuleSetting) {
-      parentModuleSetting.value[bandLabel] = parentModuleSetting.value[bandLabel] || [];
-      parentModuleSetting.value[bandLabel].push({
-        ...bandSettingModule,
-        settings: structuredClone(bandSettingModule.settings).filter(
-          (param) => !bandSettingsOmittedParams.includes(param.name),
-        ),
-        id: this.bandSettingsSelectedModuleCounter++,
-      });
+      const currentBandSettings = parentModuleSetting.value ?? {};
+      const currentBand: ModuleWithCount[] = Array.isArray(currentBandSettings[bandLabel])
+        ? currentBandSettings[bandLabel]
+        : [];
+      // New array/object references so the OnPush `p-listbox` re-renders immediately.
+      parentModuleSetting.value = {
+        ...currentBandSettings,
+        [bandLabel]: [
+          ...currentBand,
+          {
+            ...bandSettingModule,
+            settings: structuredClone(bandSettingModule.settings).filter(
+              (param) => !bandSettingsOmittedParams.includes(param.name),
+            ),
+            id: this.bandSettingsSelectedModuleCounter++,
+          },
+        ],
+      };
     }
 
     this.bandSettingsSelectedModuleProxy = null;
