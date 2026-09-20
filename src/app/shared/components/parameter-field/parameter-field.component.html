@@ -1,0 +1,73 @@
+<div class="flex flex-col gap-1 w-full min-w-0">
+  <ng-container [ngSwitch]="param.type">
+    <p-inputnumber
+      *ngSwitchCase="'int'"
+      class="w-full"
+      [(ngModel)]="param.value"
+      (ngModelChange)="notifyValueChanged()"
+      mode="decimal"
+      [useGrouping]="false"
+      [min]="param.validation?.min ?? null"
+      [max]="param.validation?.max ?? null"
+      [step]="param.validation?.step ?? 1"
+      [minFractionDigits]="0"
+      [maxFractionDigits]="0"
+    ></p-inputnumber>
+    <p-inputnumber
+      *ngSwitchCase="'float'"
+      class="w-full"
+      [(ngModel)]="param.value"
+      (ngModelChange)="notifyValueChanged()"
+      mode="decimal"
+      [useGrouping]="false"
+      [min]="param.validation?.min ?? null"
+      [max]="param.validation?.max ?? null"
+      [step]="param.validation?.step ?? null"
+      [minFractionDigits]="0"
+      [maxFractionDigits]="5"
+    ></p-inputnumber>
+    <input
+      *ngSwitchCase="'str'"
+      pInputText
+      class="w-full"
+      [(ngModel)]="param.value"
+      (ngModelChange)="notifyValueChanged()"
+      [attr.maxlength]="param.validation?.max_length ?? null"
+      [attr.pattern]="param.validation?.pattern ?? null"
+    />
+    <p-checkbox
+      *ngSwitchCase="'bool'"
+      [(ngModel)]="param.value"
+      (ngModelChange)="notifyValueChanged()"
+      binary="true"
+    ></p-checkbox>
+    <p-select
+      *ngSwitchCase="'Enum'"
+      [(ngModel)]="param.value"
+      (ngModelChange)="notifyValueChanged()"
+      [options]="param.availableValues"
+      class="w-full"
+      appendTo="body"
+    ></p-select>
+    <p-autocomplete
+      *ngSwitchCase="'list_int'"
+      [(ngModel)]="param.value"
+      [suggestions]="filteredSuggestions"
+      class="w-full"
+      (ngModelChange)="coerceListIntegers($event)"
+      (completeMethod)="onSearch($event)"
+      appendTo="body"
+      multiple
+      typeahead="false"
+      [dropdown]="true"
+      type="number"
+    ></p-autocomplete>
+  </ng-container>
+
+  @if (error; as message) {
+    <small class="plc-field-error">
+      <i class="pi pi-exclamation-circle mr-1"></i>
+      {{ message }}
+    </small>
+  }
+</div>

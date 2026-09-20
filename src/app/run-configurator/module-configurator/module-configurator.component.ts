@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { ModulesClient } from '../../shared/clients/modules.client';
-import { BehaviorSubject, map, Observable, Subject, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, map, Subject, takeUntil, tap } from 'rxjs';
 import { StepperModule } from 'primeng/stepper';
 import { SplitterModule } from 'primeng/splitter';
 import { ListboxModule } from 'primeng/listbox';
@@ -9,29 +9,27 @@ import { CommonModule } from '@angular/common';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { ChipModule } from 'primeng/chip';
 import { FormsModule } from '@angular/forms';
-import { ModuleParameterSpec } from '../../shared/interfaces/module-parameters.interface';
+import { ModuleParameterSpec, ModuleValues, SettingValue } from '../../shared/interfaces/module-parameters.interface';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
-import { KeyFilterModule } from 'primeng/keyfilter';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { CheckboxModule } from 'primeng/checkbox';
+import { ParameterFieldComponent } from '../../shared/components/parameter-field/parameter-field.component';
+import { moduleConstraintErrors, parameterError } from '../../shared/utils/parameter-validation';
 import { Module } from '../../shared/interfaces/module.interface';
 import { ModuleType } from '../../shared/enums/module-type.enum';
-import { SelectModule } from 'primeng/select';
+
 import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
 import { RunConfiguratorService } from '../run-configurator.service';
 // popup
 import { PopupModalComponent } from '../../shared/popup-modal/popup-modal.component';
-import { InputTextModule } from 'primeng/inputtext';
 //breadcrumbs
-import { MenuItem } from 'primeng/api';
+import { MenuItem, MessageService } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 
-const suggestedBands: number[] = [200, 1000, 2000];
+const suggestedBands: number[] = [100, 200, 2000];
 
 const crossfadeNameParameters: string[] = ['crossfade', 'fade_in'];
 
-const bandSettingsOmittedParams: string[] = [];
+const bandSettingsOmittedParams: string[] = ['crossfade', 'fade_in', 'crossfade_frequencies', 'crossover_order'];
 
 export type ModuleWithCount = Module & {
   id?: number;
@@ -54,14 +52,10 @@ type GroupedModules = { label: string; items: Module[] };
     FormsModule,
     InputGroupModule,
     InputGroupAddonModule,
-    KeyFilterModule,
-    InputNumberModule,
-    CheckboxModule,
-    SelectModule,
     AutoCompleteModule,
-    PopupModalComponent, // popup
-    InputTextModule,
-    BreadcrumbModule, // breadcrumbs
+    PopupModalComponent,
+    ParameterFieldComponent,
+    BreadcrumbModule,
   ],
 })
 export class ModuleConfiguratorComponent implements OnInit {
@@ -74,7 +68,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   private _moduleFocus: ModuleWithCount | null = null;
 
-  public suggestedBands: string[] = [];
+  public suggestedBands: number[] = [...suggestedBands];
 
   public selectedModuleProxy: ModuleWithCount | null = null;
 
@@ -604,6 +598,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   constructor(
     private readonly modulesClient: ModulesClient,
+    private readonly messageService: MessageService,
     public runConfigService: RunConfiguratorService,
   ) {}
 
@@ -617,6 +612,32 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   get availableCrossfadeModules(): ModuleWithCount[] {
     return this.crossfadeModules.value;
+  }
+
+  public isParameterFieldType(param: { type: string }): boolean {
+    return ['int', 'float', 'str', 'bool', 'Enum', 'list_int'].includes(param.type);
+  }
+
+  public complexParameterError(param: ModuleParameterSpec): string | null {
+    return ['dict_str_list_int', 'dict_str_list_PLCSettings'].includes(param.type) ? parameterError(param) : null;
+  }
+
+  public constraintErrorsFor(module: ModuleWithCount | null | undefined): string[] {
+    if (!module) {
+      return [];
+    }
+
+    const values: ModuleValues = {};
+    for (const setting of module.settings) {
+      if (setting.value !== undefined) {
+        values[setting.name] = setting.value as SettingValue;
+      }
+    }
+    return moduleConstraintErrors(values, module.constraints);
+  }
+
+  get selectedModuleConstraintErrors(): string[] {
+    return this.constraintErrorsFor(this.moduleFocus);
   }
 
   get groupedCrossfadeModulesOfSelectedModule(): GroupedModules[] {
@@ -685,8 +706,207 @@ export class ModuleConfiguratorComponent implements OnInit {
     param.value = param?.default;
   }
 
-  public searchBands(event: AutoCompleteCompleteEvent) {
-    this.suggestedBands = suggestedBands.map((b) => b.toString()).filter((band) => band.includes(event.query));
+  public searchBands(event: AutoCompleteCompleteEvent): void {
+    this.suggestedBands = suggestedBands.filter((band) => band.toString().includes(event.query));
+  }
+
+  public coerceFrequencyList(param: ModuleParameterSpec, channel: string, value: unknown): void {
+    if (!Array.isArray(value) || !param.value || typeof param.value !== 'object' || Array.isArray(param.value)) {
+      return;
+    }
+
+    param.value = {
+      ...param.value,
+      [channel]: value.map((item) => (typeof item === 'number' ? item : Number(item))),
+    };
+    this.reconcileAdvancedBandSettings(channel, param.value[channel]);
+  }
+
+  public onParameterValueChange(param: ModuleParameterSpec): void {
+    if (param.name === 'crossfade_frequencies') {
+      this.reconcileCrossfadeSettings(this.moduleFocus);
+      return;
+    }
+
+    if (
+      this.moduleFocus?.name === 'AdvancedPLC' &&
+      (param.name === 'channel_link' || param.name === 'stereo_image_processing')
+    ) {
+      this.normalizeAdvancedPLCChannelMappings(this.moduleFocus);
+    }
+  }
+
+  private createNoCrossfadeSettings(): ModuleWithCount {
+    return {
+      ...this.hydrateModuleConfig({ name: 'NoCrossfadeSettings', settings: [] }, this.availableCrossfadeModules),
+      id: this.selectedCrossfadeModuleCounter++,
+    };
+  }
+
+  private createDefaultBandAlgorithm(): ModuleWithCount {
+    const module = this.hydrateModuleConfig({ name: 'ZerosPLC', settings: [] }, this.availableModules);
+    return {
+      ...module,
+      id: this.bandSettingsSelectedModuleCounter++,
+      settings: module.settings.filter((setting) => !bandSettingsOmittedParams.includes(setting.name)),
+    };
+  }
+
+  private showNestedUpdate(location: string): void {
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Nested settings updated',
+      detail: `Frequency changes updated ${location}. Open its configuration to review it.`,
+    });
+  }
+
+  private reconcileCrossfadeSettings(module: ModuleWithCount | null): void {
+    const crossfade = module?.settings.find((setting) => setting.name === 'crossfade');
+    const frequencies = module?.settings.find((setting) => setting.name === 'crossfade_frequencies');
+    if (!crossfade || !frequencies || !Array.isArray(crossfade.value) || !Array.isArray(frequencies.value)) {
+      return;
+    }
+
+    const requiredBands = frequencies.value.length + 1;
+    if (crossfade.value.length > requiredBands) {
+      crossfade.value = crossfade.value.slice(0, requiredBands);
+      this.showNestedUpdate('crossfade settings');
+    } else if (crossfade.value.length < requiredBands) {
+      crossfade.value = [
+        ...crossfade.value,
+        ...Array.from({ length: requiredBands - crossfade.value.length }, () => this.createNoCrossfadeSettings()),
+      ];
+      this.showNestedUpdate('crossfade settings');
+    }
+  }
+
+  private reconcileAdvancedBandSettings(channel: string, frequencies: unknown): void {
+    if (this.moduleFocus?.name !== 'AdvancedPLC' || !Array.isArray(frequencies)) {
+      return;
+    }
+
+    const bandSettings = this.moduleFocus.settings.find((setting) => setting.name === 'band_settings');
+    if (
+      !bandSettings ||
+      !bandSettings.value ||
+      typeof bandSettings.value !== 'object' ||
+      Array.isArray(bandSettings.value)
+    ) {
+      return;
+    }
+
+    const currentBands = Array.isArray(bandSettings.value[channel]) ? bandSettings.value[channel] : [];
+    const requiredBands = frequencies.length + 1;
+    if (currentBands.length === requiredBands) {
+      return;
+    }
+
+    bandSettings.value = {
+      ...bandSettings.value,
+      [channel]:
+        currentBands.length > requiredBands
+          ? currentBands.slice(0, requiredBands)
+          : [
+              ...currentBands,
+              ...Array.from({ length: requiredBands - currentBands.length }, () => this.createDefaultBandAlgorithm()),
+            ],
+    };
+    this.showNestedUpdate(`Advanced PLC ${channel} band settings`);
+  }
+
+  private normalizeAdvancedPLCChannelMappings(module: ModuleWithCount): void {
+    if (module.name !== 'AdvancedPLC') {
+      return;
+    }
+
+    const bandSettings = module.settings.find((setting) => setting.name === 'band_settings');
+    const frequencies = module.settings.find((setting) => setting.name === 'frequencies');
+    if (!bandSettings || !frequencies) {
+      return;
+    }
+
+    const channelLink = module.settings.find((setting) => setting.name === 'channel_link')?.value === true;
+    const stereoMode = module.settings.find((setting) => setting.name === 'stereo_image_processing')?.value;
+    const channels = channelLink ? ['linked'] : stereoMode === 'mid_side' ? ['mid', 'side'] : ['left', 'right'];
+
+    const copyChannelValues = (source: unknown, candidates: string[]): unknown[] => {
+      if (!source || typeof source !== 'object' || Array.isArray(source)) {
+        return [];
+      }
+      const values = source as Record<string, unknown>;
+      for (const candidate of candidates) {
+        if (Array.isArray(values[candidate])) {
+          return structuredClone(values[candidate]);
+        }
+      }
+      return [];
+    };
+
+    const sourceCandidates: Record<string, string[]> = {
+      linked: ['linked', 'left', 'mid', 'right', 'side'],
+      left: ['left', 'linked', 'mid', 'right', 'side'],
+      right: ['right', 'linked', 'side', 'left', 'mid'],
+      mid: ['mid', 'linked', 'left', 'side', 'right'],
+      side: ['side', 'linked', 'right', 'mid', 'left'],
+    };
+
+    bandSettings.value = Object.fromEntries(
+      channels.map((channel) => [channel, copyChannelValues(bandSettings.value, sourceCandidates[channel])]),
+    );
+    frequencies.value = Object.fromEntries(
+      channels.map((channel) => [channel, copyChannelValues(frequencies.value, sourceCandidates[channel])]),
+    );
+  }
+
+  private hydrateModuleConfig(module: ModuleWithCount, availableSpecs: ModuleWithCount[]): ModuleWithCount {
+    const spec = availableSpecs.find((candidate) => candidate.name === module.name);
+    if (!spec) {
+      return module;
+    }
+
+    const configuredSettings = new Map(module.settings.map((setting) => [setting.name, setting]));
+    return {
+      ...spec,
+      ...module,
+      settings: spec.settings.map((setting) => {
+        const specSetting = setting as ModuleParameterSpec;
+        const configured = configuredSettings.get(setting.name) as ModuleParameterSpec | undefined;
+        let value = structuredClone(configured?.value ?? configured?.default ?? specSetting.default);
+
+        if (specSetting.type === 'dict_str_list_PLCSettings' && value && typeof value === 'object') {
+          value = Object.fromEntries(
+            Object.entries(value).map(([channel, modules]) => [
+              channel,
+              Array.isArray(modules)
+                ? modules.map((nestedModule) => {
+                    const hydratedModule = this.hydrateModuleConfig(
+                      nestedModule as ModuleWithCount,
+                      this.availableModules,
+                    );
+                    return {
+                      ...hydratedModule,
+                      settings: hydratedModule.settings.filter(
+                        (nestedSetting) => !bandSettingsOmittedParams.includes(nestedSetting.name),
+                      ),
+                    };
+                  })
+                : modules,
+            ]),
+          );
+        }
+        if (specSetting.type === 'list_CrossfadeSettings' && Array.isArray(value)) {
+          value = value.map((nestedModule) =>
+            this.hydrateModuleConfig(nestedModule as ModuleWithCount, this.availableCrossfadeModules),
+          );
+        }
+
+        return {
+          ...specSetting,
+          value,
+          availableValues: specSetting.availableValues,
+        };
+      }),
+    };
   }
 
   public searchModules(event: AutoCompleteCompleteEvent, isBandSettings: boolean = false) {
@@ -700,12 +920,16 @@ export class ModuleConfiguratorComponent implements OnInit {
       return;
     }
 
-    const moduleToAdd = {
-      ...module,
-      settings: structuredClone(module.settings),
-      id: this.selectedModuleCounter++,
-    };
+    const moduleToAdd = this.hydrateModuleConfig(
+      {
+        ...module,
+        settings: structuredClone(module.settings),
+        id: this.selectedModuleCounter++,
+      },
+      this.availableModules,
+    );
 
+    this.normalizeAdvancedPLCChannelMappings(moduleToAdd);
     this.moduleFocus = moduleToAdd;
 
     // Replace the array instead of mutating it in place: `p-listbox` is

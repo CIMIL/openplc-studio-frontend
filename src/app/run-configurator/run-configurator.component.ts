@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { ModuleConfiguratorComponent, ModuleWithCount } from './module-configurator/module-configurator.component';
 import { ModuleType } from '../shared/enums/module-type.enum';
@@ -45,11 +46,11 @@ export class RunConfiguratorComponent implements OnInit {
 
   constructor(
     private readonly runsClient: RunsClient,
-    private readonly modulesClient: ModulesClient, 
+    private readonly modulesClient: ModulesClient,
     private readonly messageService: MessageService,
     private readonly router: Router,
     public runConfigService: RunConfiguratorService,
-  ) { }
+  ) {}
 
   get packetLossSimulatorConfig(): ModuleWithCount[] {
     return this.runConfigService.modulesSelection.value[ModuleType.PacketLossSimulator];
@@ -88,7 +89,7 @@ export class RunConfiguratorComponent implements OnInit {
     return true;
   }
 
-  ngOnInit(): void { }
+  ngOnInit(): void {}
 
   private isModuleArray(val: unknown): val is Module[] {
     return Array.isArray(val) && val.every((v) => v && typeof v === 'object' && 'name' in v && 'settings' in v);
@@ -131,6 +132,21 @@ export class RunConfiguratorComponent implements OnInit {
     }));
   }
 
+  private validationErrorMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse) || error.status !== 422 || !Array.isArray(error.error?.detail)) {
+      return 'The run could not be created. Please try again.';
+    }
+
+    const messages = error.error.detail
+      .map((detail: { module_name?: string; setting?: string | null; error?: string }) => {
+        const location = [detail.module_name, detail.setting].filter(Boolean).join('.');
+        return detail.error ? `${location}: ${detail.error}` : null;
+      })
+      .filter((message: string | null): message is string => message !== null);
+
+    return messages.length ? messages.join(' ') : 'The run configuration is invalid.';
+  }
+
   public createRun(): void {
     const run = {
       author: 'default',
@@ -158,14 +174,22 @@ export class RunConfiguratorComponent implements OnInit {
         tap(() => this.runConfigService.resetModuleSelection()),
         tap((createdRun) => this.router.navigate(['/run-progress', createdRun.id])),
       )
-      .subscribe();
+      .subscribe({
+        error: (error: unknown) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Invalid run configuration',
+            detail: this.validationErrorMessage(error),
+          });
+        },
+      });
   }
 
   public generateRandomRunName(): string {
     return `${LEFT[Math.floor(Math.random() * LEFT.length)]} ${RIGHT[Math.floor(Math.random() * RIGHT.length)]}`;
   }
 
-  //sends config file to the backend for validation, 
+  //sends config file to the backend for validation,
   //if valid, preloads the config into the configurator
 
   public onUploadConfig(event: Event): void {
@@ -176,55 +200,58 @@ export class RunConfiguratorComponent implements OnInit {
     reader.onload = () => {
       try {
         const config = JSON.parse(reader.result as string);
-        this.runsClient.validateRunConfig(config).pipe(
-          switchMap((validatedConfig: any) =>
-            forkJoin({
-              [ModuleType.PacketLossSimulator]: this.modulesClient.getModuleTypes(ModuleType.PacketLossSimulator),
-              [ModuleType.PLCAlgorithm]: this.modulesClient.getModuleTypes(ModuleType.PLCAlgorithm),
-              [ModuleType.OutputAnalyser]: this.modulesClient.getModuleTypes(ModuleType.OutputAnalyser),
-              [ModuleType.CrossfadeSettings]: this.modulesClient.getModuleTypes(ModuleType.CrossfadeSettings),
-            }).pipe(
-              tap((specs: any) => {
-                const enriched: any = {};
-                for (const moduleType of Object.values(ModuleType)) {
-                  const configModules = validatedConfig.modules[moduleType] ?? [];
-                  const availableSpecs = specs[moduleType] ?? [];
-                  enriched[moduleType] = configModules.map((m: any) => {
-                    const spec = availableSpecs.find((s: any) => s.name === m.name);
-                    if (!spec) return m;
-                    return {
-                      ...spec,
-                      settings: spec.settings.map((specParam: any) => {
-                        const configParam = m.settings.find((p: any) => p.name === specParam.name);
-                        return {
-                          ...specParam,
-                          value: configParam?.value ?? specParam.default,
-                          availableValues: specParam.values,
-                        };
-                      }),
-                    };
+        this.runsClient
+          .validateRunConfig(config)
+          .pipe(
+            switchMap((validatedConfig: any) =>
+              forkJoin({
+                [ModuleType.PacketLossSimulator]: this.modulesClient.getModuleTypes(ModuleType.PacketLossSimulator),
+                [ModuleType.PLCAlgorithm]: this.modulesClient.getModuleTypes(ModuleType.PLCAlgorithm),
+                [ModuleType.OutputAnalyser]: this.modulesClient.getModuleTypes(ModuleType.OutputAnalyser),
+                [ModuleType.CrossfadeSettings]: this.modulesClient.getModuleTypes(ModuleType.CrossfadeSettings),
+              }).pipe(
+                tap((specs: any) => {
+                  const enriched: any = {};
+                  for (const moduleType of Object.values(ModuleType)) {
+                    const configModules = validatedConfig.modules[moduleType] ?? [];
+                    const availableSpecs = specs[moduleType] ?? [];
+                    enriched[moduleType] = configModules.map((m: any) => {
+                      const spec = availableSpecs.find((s: any) => s.name === m.name);
+                      if (!spec) return m;
+                      return {
+                        ...spec,
+                        settings: spec.settings.map((specParam: any) => {
+                          const configParam = m.settings.find((p: any) => p.name === specParam.name);
+                          return {
+                            ...specParam,
+                            value: configParam?.value ?? specParam.default,
+                            availableValues: specParam.values,
+                          };
+                        }),
+                      };
+                    });
+                  }
+                  this.runName = validatedConfig.name;
+                  this.audioTracksConfig = validatedConfig.tracks;
+                  this.runConfigService.preloadConfig({ ...validatedConfig, modules: enriched });
+                  this.messageService.add({
+                    severity: 'success',
+                    summary: 'Config loaded',
+                    detail: `Configuration "${validatedConfig.name}" loaded successfully`,
                   });
-                }
-                this.runName = validatedConfig.name;
-                this.audioTracksConfig = validatedConfig.tracks;
-                this.runConfigService.preloadConfig({ ...validatedConfig, modules: enriched });
-                this.messageService.add({
-                  severity: 'success',
-                  summary: 'Config loaded',
-                  detail: `Configuration "${validatedConfig.name}" loaded successfully`,
-                });
-              })
-            )
-          ),
-        ).subscribe({
-          error: () => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Invalid config',
-              detail: 'The configuration file is invalid or contains unknown modules',
-            });
-          }
-        });
+                }),
+              ),
+            ),
+          )
+          .subscribe({
+            error: () => {
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Invalid config',
+                detail: 'The configuration file is invalid or contains unknown modules',
+              });
+            },
+          });
       } catch {
         this.messageService.add({
           severity: 'error',
