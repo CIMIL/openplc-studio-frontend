@@ -1,165 +1,80 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil, tap } from 'rxjs';
-import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
-//import { ProgressBarModule } from 'primeng/progressbar';
 import { CardModule } from 'primeng/card';
-import { WsService } from '../shared/services/ws.service';
+import { Subject, takeUntil } from 'rxjs';
 import { RunsClient } from '../shared/clients/runs.client';
-import { Run } from '../shared/interfaces/run.interface';
-import { NodeProgress, RunProgressMessage } from '../shared/interfaces/ws.interface';
+import { WsService } from '../shared/services/ws.service';
+import {
+  RunConfigurationDrawerComponent,
+  FocusedRunModule,
+  RunModuleType,
+} from '../shared/components/run-configuration-drawer/run-configuration-drawer.component';
 import { RunStatusBadgeComponent } from '../shared/components/run-status-badge/run-status-badge.component';
-import { RunStatus } from '../shared/enums/run-status.enum';
-import { ViewEncapsulation } from '@angular/core';
 import { ModuleType } from '../shared/enums/module-type.enum';
-import { TreeNode } from '../shared/interfaces/ws.interface';
+import { Module } from '../shared/interfaces/module.interface';
+import { Run } from '../shared/interfaces/run.interface';
+import { NodeProgress, RunCompletionMessage, RunProgressMessage } from '../shared/interfaces/ws.interface';
+import { RunStatus } from '../shared/enums/run-status.enum';
+
+type ProgressKind = 'track' | 'packet-loss' | 'plc' | 'output';
+type ProgressState = 'waiting' | 'running' | 'complete' | 'interrupted';
+
+interface ProgressTreeNode {
+  key: string;
+  label: string;
+  kind: ProgressKind;
+  nodeIds: string[];
+  children: ProgressTreeNode[];
+  moduleType?: RunModuleType;
+  moduleIndex?: number;
+}
+
+interface DisplayProgress {
+  state: ProgressState;
+  percentage: number | null;
+}
 
 @Component({
   selector: 'plc-run-progress',
   standalone: true,
-  imports: [CommonModule, ButtonModule,/* ProgressBarModule,*/ CardModule, RunStatusBadgeComponent],
+  imports: [CommonModule, ButtonModule, CardModule, RunStatusBadgeComponent, RunConfigurationDrawerComponent],
   templateUrl: './run-progress.component.html',
   styleUrl: './run-progress.component.scss',
-  encapsulation: ViewEncapsulation.None,
 })
 export class RunProgressComponent implements OnInit, OnDestroy {
   public run: Run | null = null;
-  public nodes: TreeNode[] = [];
-  public isCompleted = false;
+  public nodes: ProgressTreeNode[] = [];
+  public loading = true;
+  public loadError = false;
+  public expandedKeys = new Set<string>();
+  public configDrawerVisible = false;
+  public focusedModule: FocusedRunModule | null = null;
 
-  private runId!: string;
-  private destroy$ = new Subject<void>();
+  private runId = '';
+  private readonly progressByNodeId = new Map<string, NodeProgress>();
+  private readonly manuallyCollapsed = new Set<string>();
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly wsService: WsService,
     private readonly runsClient: RunsClient,
-  ) { }
-
-  //function to fill the tree nodes as completed
-  private fillNodesAsCompleted(node: TreeNode): TreeNode {
-    return {
-      ...node,
-      current: 1,
-      total: 1,
-      children: node.children.map(child => this.fillNodesAsCompleted(child)),
-    };
-  }
-
-  //function to update the tree nodes with the incoming node progress
-  private updateNodeByNodeId(node: TreeNode, incoming: NodeProgress): TreeNode {
-    if (node.node_ids.includes(incoming.node_id!)) {
-      return { ...node, current: incoming.current, total: incoming.total };
-    }
-    if (node.children.length === 0) {
-      return node;
-    }
-    return {
-      ...node,
-      children: node.children.map(child => this.updateNodeByNodeId(child, incoming)),
-    };
-  }
-
-
-
-  //function to build the tree nodes from the run object using slice to get the correct node_ids for each module type
-  private buildNodesFromRun(run: Run, completed: boolean): TreeNode[] {
-    const val = completed ? 1 : 0;
-    const tot = completed ? 1 : null;
-
-    const plsModules = run.modules[ModuleType.PacketLossSimulator];
-    const plcModules = run.modules[ModuleType.PLCAlgorithm];
-    const oaModules = run.modules[ModuleType.OutputAnalyser];
-
-    const nPls = plsModules.length;
-    const nPlc = plcModules.length;
-
-    return run.tracks.map((track, trackIndex) => ({
-      description: track,
-      node_ids: [],
-      current: val,
-      total: tot,
-      children: plsModules.map(sim => ({
-        description: sim.name,
-        node_ids: (sim.node_ids ?? []).slice(trackIndex, trackIndex + 1),
-        current: val,
-        total: tot,
-        children: plcModules.map(alg => ({
-          description: alg.name,
-          node_ids: (alg.node_ids ?? []).slice(trackIndex * nPls, (trackIndex + 1) * nPls),
-          current: val,
-          total: tot,
-          children: oaModules.map(out => ({
-            description: out.name,
-            node_ids: (out.node_ids ?? []).slice(
-              trackIndex * nPls * nPlc,
-              (trackIndex + 1) * nPls * nPlc,
-            ),
-            current: val,
-            total: tot,
-            children: [],
-          })),
-        })),
-      })),
-    }));
-  }
-
+  ) {}
 
   public ngOnInit(): void {
-    this.runId = this.route.snapshot.paramMap.get('id')!;
+    this.runId = this.route.snapshot.paramMap.get('id') ?? '';
+    if (!this.runId) {
+      this.loading = false;
+      this.loadError = true;
+      return;
+    }
+
     this.wsService.sendRunId(this.runId);
-
-    this.runsClient
-      .getRun(this.runId)
-      .pipe(tap((run: Run) => {
-        this.run = run;
-        if (run.status === RunStatus.COMPLETED || run.status === RunStatus.FAILED) {
-          this.isCompleted = true;
-          this.nodes = this.buildNodesFromRun(run, true);
-        } else {
-          this.nodes = this.buildNodesFromRun(run, false);
-        }
-      }))
-      .subscribe();
-
-    this.wsService
-      .getProgressMessages()
-      .pipe(
-        takeUntil(this.destroy$),
-        tap((message: RunProgressMessage) => {
-          if (this.run && this.run.status === RunStatus.CREATED) {
-            this.run = { ...this.run, status: RunStatus.RUNNING };
-          }
-          let updated = this.nodes;
-          message.nodes.forEach(incomingNode => {
-            if (incomingNode.node_id) {
-              updated = updated.map(node => this.updateNodeByNodeId(node, incomingNode));
-            }
-          });
-          this.nodes = updated;
-        }),
-      )
-      .subscribe();
-
-    this.wsService
-      .getCompletionMessages()
-      .pipe(
-        takeUntil(this.destroy$),
-        tap(() => {
-          this.isCompleted = true;
-          if (this.run) {
-            this.run = { ...this.run, status: RunStatus.COMPLETED };
-          }
-          /*this.nodes = this.nodes.map(node => ({
-            ...node,
-            current: node.total ?? node.current,
-          }));*/
-          this.nodes = this.nodes.map(node => this.fillNodesAsCompleted(node));
-        }),
-      )
-      .subscribe();
+    this.loadRun();
+    this.subscribeToLiveProgress();
   }
 
   public ngOnDestroy(): void {
@@ -167,12 +82,243 @@ export class RunProgressComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  public getPercentage(node: TreeNode): number {
-    if (!node.total || node.total === 0) return 0;
-    return Math.round((node.current / node.total) * 100);
+  public get packetLossSimulatorCount(): number {
+    return this.run?.modules[ModuleType.PacketLossSimulator].length ?? 0;
+  }
+
+  public get plcAlgorithmCount(): number {
+    return this.run?.modules[ModuleType.PLCAlgorithm].length ?? 0;
+  }
+
+  public get outputAnalyserCount(): number {
+    return this.run?.modules[ModuleType.OutputAnalyser].length ?? 0;
+  }
+
+  public get overallProgress(): DisplayProgress {
+    return this.getProgressForIds(this.getAllNodeIds());
+  }
+
+  public get isAnalysisAvailable(): boolean {
+    return this.run?.status === RunStatus.COMPLETED;
+  }
+
+  public getNodeProgress(node: ProgressTreeNode): DisplayProgress {
+    return this.getProgressForIds(node.kind === 'track' ? this.getDescendantNodeIds(node) : node.nodeIds);
+  }
+
+  public getStateLabel(state: ProgressState): string {
+    return { waiting: 'Waiting', running: 'Running', complete: 'Complete', interrupted: 'Interrupted' }[state];
+  }
+
+  public getStateIcon(state: ProgressState): string {
+    return {
+      waiting: 'pi pi-clock',
+      running: 'pi pi-spin pi-spinner',
+      complete: 'pi pi-check-circle',
+      interrupted: 'pi pi-exclamation-circle',
+    }[state];
+  }
+
+  public getKindIcon(kind: ProgressKind): string {
+    return { track: 'pi pi-wave-pulse', 'packet-loss': 'pi pi-sliders-h', plc: 'pi pi-cog', output: 'pi pi-chart-bar' }[
+      kind
+    ];
+  }
+
+  public isExpanded(node: ProgressTreeNode): boolean {
+    return this.expandedKeys.has(node.key);
+  }
+
+  public toggleNode(node: ProgressTreeNode): void {
+    if (node.children.length === 0) return;
+    if (this.expandedKeys.has(node.key)) {
+      this.expandedKeys.delete(node.key);
+      this.manuallyCollapsed.add(node.key);
+    } else {
+      this.expandedKeys.add(node.key);
+      this.manuallyCollapsed.delete(node.key);
+    }
+    this.expandedKeys = new Set(this.expandedKeys);
+  }
+
+  public expandAll(): void {
+    this.manuallyCollapsed.clear();
+    this.expandedKeys = new Set(this.collectBranchKeys(this.nodes));
+  }
+
+  public collapseAll(): void {
+    this.expandedKeys = new Set();
+    this.collectBranchKeys(this.nodes).forEach((key) => this.manuallyCollapsed.add(key));
+  }
+
+  public onModuleClick(node: ProgressTreeNode): void {
+    if (node.moduleType === undefined || node.moduleIndex === undefined) return;
+    this.focusedModule = { type: node.moduleType, index: node.moduleIndex };
+    this.configDrawerVisible = true;
+  }
+
+  public onTrackClick(): void {
+    this.focusedModule = null;
+    this.configDrawerVisible = true;
   }
 
   public onGoToAnalysis(): void {
     this.router.navigate(['/analyzer', this.runId]);
+  }
+
+  private loadRun(): void {
+    this.runsClient
+      .getRun(this.runId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (run) => {
+          this.run = run;
+          this.loading = false;
+          this.nodes = this.buildNodesFromRun(run);
+          this.expandedKeys = new Set(this.nodes.map((node) => node.key));
+        },
+        error: () => {
+          this.loading = false;
+          this.loadError = true;
+        },
+      });
+  }
+
+  private subscribeToLiveProgress(): void {
+    this.wsService
+      .getProgressMessages()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((message) => this.applyProgressMessage(message));
+
+    this.wsService
+      .getCompletionMessages()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((message) => this.applyCompletionMessage(message));
+  }
+
+  private applyProgressMessage(message: RunProgressMessage): void {
+    if (message.run_id !== this.runId) return;
+    if (this.run?.status === RunStatus.CREATED) this.run = { ...this.run, status: RunStatus.RUNNING };
+
+    message.nodes.forEach((node) => {
+      if (node.node_id) this.progressByNodeId.set(node.node_id, node);
+    });
+    this.expandActivePaths();
+  }
+
+  private applyCompletionMessage(message: RunCompletionMessage): void {
+    if (message.run_id !== this.runId || !this.run) return;
+    this.run = { ...this.run, status: message.success ? RunStatus.COMPLETED : RunStatus.FAILED };
+  }
+
+  private buildNodesFromRun(run: Run): ProgressTreeNode[] {
+    const plsModules = run.modules[ModuleType.PacketLossSimulator] ?? [];
+    const plcModules = run.modules[ModuleType.PLCAlgorithm] ?? [];
+    const outputModules = run.modules[ModuleType.OutputAnalyser] ?? [];
+    const plsCount = plsModules.length;
+    const plcCount = plcModules.length;
+
+    return run.tracks.map((trackName, trackIndex) => ({
+      key: `track:${trackIndex}`,
+      label: trackName,
+      kind: 'track' as const,
+      nodeIds: [],
+      children: plsModules.map((plsModule, plsIndex) =>
+        this.buildPlsNode(plsModule, plsIndex, trackIndex, plsCount, plcModules, plcCount, outputModules),
+      ),
+    }));
+  }
+
+  private buildPlsNode(
+    module: Module,
+    moduleIndex: number,
+    trackIndex: number,
+    plsCount: number,
+    plcModules: Module[],
+    plcCount: number,
+    outputModules: Module[],
+  ): ProgressTreeNode {
+    return {
+      key: `track:${trackIndex}:pls:${moduleIndex}`,
+      label: module.name,
+      kind: 'packet-loss',
+      nodeIds: this.sliceNodeId(module, trackIndex),
+      moduleType: ModuleType.PacketLossSimulator,
+      moduleIndex,
+      children: plcModules.map((plcModule, plcIndex) => ({
+        key: `track:${trackIndex}:pls:${moduleIndex}:plc:${plcIndex}`,
+        label: plcModule.name,
+        kind: 'plc',
+        nodeIds: this.sliceNodeId(plcModule, trackIndex * plsCount + moduleIndex),
+        moduleType: ModuleType.PLCAlgorithm,
+        moduleIndex: plcIndex,
+        children: outputModules.map((outputModule, outputIndex) => ({
+          key: `track:${trackIndex}:pls:${moduleIndex}:plc:${plcIndex}:output:${outputIndex}`,
+          label: outputModule.name,
+          kind: 'output',
+          nodeIds: this.sliceNodeId(outputModule, trackIndex * plsCount * plcCount + plcIndex * plsCount + moduleIndex),
+          moduleType: ModuleType.OutputAnalyser,
+          moduleIndex: outputIndex,
+          children: [],
+        })),
+      })),
+    };
+  }
+
+  private sliceNodeId(module: Module, index: number): string[] {
+    const nodeId = module.node_ids?.[index];
+    return nodeId ? [nodeId] : [];
+  }
+
+  private getProgressForIds(ids: string[]): DisplayProgress {
+    const uniqueIds = [...new Set(ids)];
+    if (this.run?.status === RunStatus.COMPLETED) return { state: 'complete', percentage: 100 };
+
+    const entries = uniqueIds.map((id) => this.progressByNodeId.get(id));
+    const complete = entries.length > 0 && entries.every((entry) => this.isEntryComplete(entry));
+    if (complete) return { state: 'complete', percentage: 100 };
+
+    if (this.run?.status === RunStatus.FAILED) return { state: 'interrupted', percentage: this.getPercentage(entries) };
+    const hasProgress = entries.some((entry) => (entry?.current ?? 0) > 0);
+    return { state: hasProgress ? 'running' : 'waiting', percentage: this.getPercentage(entries) };
+  }
+
+  private getPercentage(entries: Array<NodeProgress | undefined>): number | null {
+    if (entries.length === 0 || entries.some((entry) => !entry?.total || entry.total <= 0)) return null;
+    const total = entries.reduce((sum, entry) => sum + (entry?.total ?? 0), 0);
+    if (total === 0) return null;
+    return Math.round((entries.reduce((sum, entry) => sum + (entry?.current ?? 0), 0) / total) * 100);
+  }
+
+  private isEntryComplete(entry: NodeProgress | undefined): boolean {
+    if (!entry || !entry.total || entry.total <= 0) return false;
+    return entry.current >= entry.total;
+  }
+
+  private getAllNodeIds(): string[] {
+    return this.nodes.flatMap((node) => this.getDescendantNodeIds(node));
+  }
+
+  private getDescendantNodeIds(node: ProgressTreeNode): string[] {
+    return [...node.nodeIds, ...node.children.flatMap((child) => this.getDescendantNodeIds(child))];
+  }
+
+  private collectBranchKeys(nodes: ProgressTreeNode[]): string[] {
+    return nodes.flatMap((node) => (node.children.length ? [node.key, ...this.collectBranchKeys(node.children)] : []));
+  }
+
+  private expandActivePaths(): void {
+    const activeKeys = new Set<string>();
+    const visit = (node: ProgressTreeNode, ancestors: string[]): void => {
+      if (node.nodeIds.some((id) => this.getProgressForIds([id]).state === 'running')) {
+        [...ancestors, node.key].forEach((key) => activeKeys.add(key));
+      }
+      node.children.forEach((child) => visit(child, [...ancestors, node.key]));
+    };
+    this.nodes.forEach((node) => visit(node, []));
+    activeKeys.forEach((key) => {
+      if (!this.manuallyCollapsed.has(key)) this.expandedKeys.add(key);
+    });
+    this.expandedKeys = new Set(this.expandedKeys);
   }
 }

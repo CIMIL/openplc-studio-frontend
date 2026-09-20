@@ -7,16 +7,9 @@ import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
-import { DrawerModule } from 'primeng/drawer';
 import { RunStatusBadgeComponent } from '../shared/components/run-status-badge/run-status-badge.component';
-import { ParameterTreeComponent } from '../shared/components/parameter-tree/parameter-tree.component';
-import { Module } from '../shared/interfaces/module.interface';
-import { ModuleType } from '../shared/enums/module-type.enum';
+import { RunConfigurationDrawerComponent } from '../shared/components/run-configuration-drawer/run-configuration-drawer.component';
 import { Router } from '@angular/router';
-
-type RunModuleType = Exclude<ModuleType, ModuleType.CrossfadeSettings>;
-
-type ModuleSection = { type: RunModuleType; label: string };
 
 @Component({
   selector: 'plc-backlog',
@@ -27,8 +20,7 @@ type ModuleSection = { type: RunModuleType; label: string };
     CommonModule,
     RunStatusBadgeComponent,
     TooltipModule,
-    DrawerModule,
-    ParameterTreeComponent,
+    RunConfigurationDrawerComponent,
   ],
   standalone: true,
   templateUrl: './backlog.component.html',
@@ -44,12 +36,6 @@ export class BacklogComponent implements OnInit {
 
   public configDrawerVisible = false;
   public selectedRun: Run | null = null;
-
-  public readonly moduleSections: ModuleSection[] = [
-    { type: ModuleType.PacketLossSimulator, label: 'Packet Loss Simulators' },
-    { type: ModuleType.PLCAlgorithm, label: 'PLC Algorithms' },
-    { type: ModuleType.OutputAnalyser, label: 'Output Analysers' },
-  ];
 
   constructor(
     private runsClient: RunsClient,
@@ -93,10 +79,6 @@ export class BacklogComponent implements OnInit {
   public onViewConfig(run: Run): void {
     this.selectedRun = run;
     this.configDrawerVisible = true;
-  }
-
-  public getModules(run: Run, type: RunModuleType): Module[] {
-    return run.modules?.[type] ?? [];
   }
 
   // Download the run configuration as a JSON file

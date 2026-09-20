@@ -97,47 +97,4 @@
   </p-table>
 }
 
-<p-drawer header="Run Configuration" [(visible)]="configDrawerVisible" position="right" [style]="{ width: '42rem' }">
-  @if (selectedRun; as run) {
-    <div class="p-4 flex flex-col gap-6">
-      <div class="flex flex-col gap-2">
-        <h2 class="text-xl font-semibold">{{ run.name }}</h2>
-        <div class="flex align-items-center gap-2 text-sm">
-          <plc-run-status-badge [runStatus]="run.status" />
-          <span class="opacity-70">{{ run.created | date: 'MMM dd, yyyy HH:mm' }}</span>
-        </div>
-        <div class="text-sm">
-          <span class="font-medium">Tracks</span>
-          <div class="flex flex-wrap gap-1 mt-1">
-            @for (track of run.tracks; track track) {
-              <span class="bg-gray-100 dark:bg-gray-500 rounded px-2 py-0.5 font-mono text-xs text-black">
-                {{ track }}
-              </span>
-            }
-          </div>
-        </div>
-      </div>
-
-      @for (section of moduleSections; track section.type) {
-        @if (getModules(run, section.type); as modules) {
-          @if (modules.length !== 0) {
-            <section class="flex flex-col gap-3">
-              <h3 class="text-lg font-semibold">{{ section.label }}</h3>
-              @for (module of modules; track module.name + $index) {
-                <details class="plc-config-module" open>
-                  <summary class="cursor-pointer font-semibold flex align-items-center gap-1">
-                    <i class="pi pi-box"></i>
-                    {{ module.name }}
-                  </summary>
-                  <div class="mt-2 ml-2 pl-3 border-l border-gray-300 dark:border-gray-600">
-                    <plc-parameter-tree [settings]="module.settings" />
-                  </div>
-                </details>
-              }
-            </section>
-          }
-        }
-      }
-    </div>
-  }
-</p-drawer>
+<plc-run-configuration-drawer [(visible)]="configDrawerVisible" [run]="selectedRun" />

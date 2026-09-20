@@ -12,15 +12,16 @@ import { catchError, map } from 'rxjs';
 import { AssetsClient } from '../../shared/clients/assets.client';
 import { AudioTrackMetadata } from '../../shared/interfaces/audio-track-metadata.interface';
 import { parseWavInfo, WavInfo } from '../../shared/utils/wavUtils';
+import {
+  AudioTrackMetadataView,
+  formatChannels,
+  formatDuration,
+  formatSampleRate,
+  formatSize,
+  toAudioTrackMetadataView,
+} from '../../shared/utils/audio-track-metadata';
 
-export interface AudioTrackView extends AudioTrackMetadata {
-  durationLabel: string;
-  sampleRateLabel: string;
-  channelLabel: string;
-  bitDepthLabel: string;
-  sizeLabel: string;
-  available: boolean;
-}
+export type AudioTrackView = AudioTrackMetadataView;
 
 export interface QueuedFileView {
   sizeLabel: string;
@@ -203,10 +204,10 @@ export class AudioTrackPickerComponent implements OnInit, OnChanges {
     return {
       pending,
       available: info !== null,
-      sizeLabel: this.formatSize(file.size),
-      durationLabel: this.formatDuration(durationSeconds),
-      sampleRateLabel: info ? this.formatSampleRate(info.sampleRate) : '\u2014',
-      channelLabel: info ? this.formatChannels(info.channels) : '\u2014',
+      sizeLabel: formatSize(file.size),
+      durationLabel: formatDuration(durationSeconds),
+      sampleRateLabel: info ? formatSampleRate(info.sampleRate) : '\u2014',
+      channelLabel: info ? formatChannels(info.channels) : '\u2014',
       bitDepthLabel: info ? `${info.bitDepth}-bit` : '\u2014',
     };
   }
@@ -225,7 +226,7 @@ export class AudioTrackPickerComponent implements OnInit, OnChanges {
 
   public get selectedTotalDurationLabel(): string {
     const totalSeconds = this.targetTracks.reduce((sum, track) => sum + (track.durationSeconds ?? 0), 0);
-    return this.formatDuration(totalSeconds);
+    return formatDuration(totalSeconds);
   }
 
   private emitSelection(): void {
@@ -247,60 +248,6 @@ export class AudioTrackPickerComponent implements OnInit, OnChanges {
   }
 
   private toView(track: AudioTrackMetadata): AudioTrackView {
-    const available =
-      track.durationSeconds !== null || track.sampleRate !== null || track.channels !== null || track.bitDepth !== null;
-    return {
-      ...track,
-      available,
-      durationLabel: this.formatDuration(track.durationSeconds),
-      sampleRateLabel: this.formatSampleRate(track.sampleRate),
-      channelLabel: this.formatChannels(track.channels),
-      bitDepthLabel: track.bitDepth !== null ? `${track.bitDepth}-bit` : '—',
-      sizeLabel: track.sizeBytes > 0 ? this.formatSize(track.sizeBytes) : '—',
-    };
-  }
-
-  private formatDuration(seconds: number | null): string {
-    if (seconds === null || Number.isNaN(seconds)) {
-      return '—';
-    }
-    const totalSeconds = Math.round(seconds);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
-    const pad = (value: number) => value.toString().padStart(2, '0');
-    return hours > 0 ? `${hours}:${pad(minutes)}:${pad(secs)}` : `${minutes}:${pad(secs)}`;
-  }
-
-  private formatSampleRate(sampleRate: number | null): string {
-    if (sampleRate === null) {
-      return '—';
-    }
-    const kHz = sampleRate / 1000;
-    return `${Number.isInteger(kHz) ? kHz : kHz.toFixed(1)} kHz`;
-  }
-
-  private formatChannels(channels: number | null): string {
-    if (channels === null) {
-      return '—';
-    }
-    if (channels === 1) {
-      return 'Mono';
-    }
-    if (channels === 2) {
-      return 'Stereo';
-    }
-    return `${channels} ch`;
-  }
-
-  private formatSize(bytes: number): string {
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let value = bytes;
-    let unitIndex = 0;
-    while (value >= 1024 && unitIndex < units.length - 1) {
-      value /= 1024;
-      unitIndex += 1;
-    }
-    return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+    return toAudioTrackMetadataView(track);
   }
 }

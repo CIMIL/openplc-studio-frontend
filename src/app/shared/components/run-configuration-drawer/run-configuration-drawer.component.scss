@@ -1,0 +1,41 @@
+.plc-run-config-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plc-run-config-track {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius, 6px);
+  background: var(--p-content-hover-background);
+}
+
+.plc-config-module > summary {
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 0.25rem;
+    transition: transform 0.15s ease;
+  }
+}
+
+.plc-config-module[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.plc-config-module-focused {
+  border: 1px solid var(--p-primary-color);
+  border-radius: var(--p-content-border-radius, 6px);
+  padding: 0.5rem 0.75rem;
+  background: color-mix(in srgb, var(--p-primary-color) 8%, transparent);
+}

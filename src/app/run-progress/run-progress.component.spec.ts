@@ -1,23 +1,88 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subject, of } from 'rxjs';
+import { AssetsClient } from '../shared/clients/assets.client';
+import { RunsClient } from '../shared/clients/runs.client';
+import { WsService } from '../shared/services/ws.service';
 import { RunProgressComponent } from './run-progress.component';
+import { RunStatus } from '../shared/enums/run-status.enum';
+import { ModuleType } from '../shared/enums/module-type.enum';
+
+const run = {
+  id: 'run-1',
+  name: 'Progress test',
+  created: '2026-01-01T12:00:00Z',
+  updated: '2026-01-01T12:00:00Z',
+  author: 'test',
+  testbenchInternalId: 'test',
+  status: RunStatus.RUNNING,
+  tracks: ['one.wav', 'two.wav'],
+  modules: {
+    [ModuleType.PacketLossSimulator]: [{ name: 'PLS', node_ids: ['pls-1', 'pls-2'], settings: [] }],
+    [ModuleType.PLCAlgorithm]: [{ name: 'PLC', node_ids: ['plc-1', 'plc-2'], settings: [] }],
+    [ModuleType.OutputAnalyser]: [{ name: 'Output', node_ids: ['out-1', 'out-2'], settings: [] }],
+  },
+};
 
 describe('RunProgressComponent', () => {
   let component: RunProgressComponent;
   let fixture: ComponentFixture<RunProgressComponent>;
+  const progress$ = new Subject<any>();
+  const completion$ = new Subject<any>();
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RunProgressComponent]
-    })
-    .compileComponents();
+      imports: [RunProgressComponent],
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'run-1' } } } },
+        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
+        { provide: RunsClient, useValue: { getRun: () => of(run) } },
+        {
+          provide: AssetsClient,
+          useValue: {
+            getTrackMetadata: () =>
+              of([
+                { name: 'one.wav', sizeBytes: 1024, durationSeconds: 12, sampleRate: 48000, channels: 2, bitDepth: 16 },
+              ]),
+          },
+        },
+        {
+          provide: WsService,
+          useValue: {
+            sendRunId: jasmine.createSpy('sendRunId'),
+            getProgressMessages: () => progress$.asObservable(),
+            getCompletionMessages: () => completion$.asObservable(),
+          },
+        },
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(RunProgressComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('renders the run summary without track metadata in the execution tree', () => {
+    expect(fixture.nativeElement.textContent).toContain('Progress test');
+    expect(fixture.nativeElement.textContent).toContain('one.wav');
+    expect(fixture.nativeElement.textContent).not.toContain('48 kHz · Stereo · 16-bit · 1.0 KB');
+  });
+
+  it('maps each module occurrence to its exact execution node', () => {
+    const nodes = component.nodes;
+    expect(nodes[1].children[0].nodeIds).toEqual(['pls-2']);
+    expect(nodes[1].children[0].children[0].nodeIds).toEqual(['plc-2']);
+    expect(nodes[1].children[0].children[0].children[0].nodeIds).toEqual(['out-2']);
+  });
+
+  it('ignores unrelated progress and marks successful completion as analysable', () => {
+    progress$.next({ run_id: 'other', nodes: [{ node_id: 'pls-1', current: 1, total: 1 }] });
+    expect(component.getNodeProgress(component.nodes[0].children[0]).state).toBe('waiting');
+
+    progress$.next({ run_id: 'run-1', nodes: [{ node_id: 'pls-1', current: 1, total: 1 }] });
+    expect(component.getNodeProgress(component.nodes[0].children[0]).state).toBe('complete');
+
+    completion$.next({ run_id: 'run-1', success: true });
+    expect(component.isAnalysisAvailable).toBeTrue();
   });
 });

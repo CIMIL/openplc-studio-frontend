@@ -1,0 +1,65 @@
+<p-drawer
+  header="Run Configuration"
+  [visible]="visible"
+  position="right"
+  [style]="{ width: 'min(42rem, 100vw)' }"
+  (visibleChange)="onVisibleChange($event)"
+>
+  @if (run; as currentRun) {
+    <div class="p-4 flex flex-col gap-6">
+      <div class="flex flex-col gap-2">
+        <h2 class="text-xl font-semibold m-0">{{ currentRun.name }}</h2>
+        <div class="flex align-items-center gap-2 text-sm">
+          <plc-run-status-badge [runStatus]="currentRun.status" />
+          <span class="opacity-70">{{ currentRun.created | date: 'MMM dd, yyyy HH:mm' }}</span>
+        </div>
+        <div class="text-sm">
+          <span class="font-medium">Tracks</span>
+          <div class="plc-run-config-tracks mt-2">
+            @for (track of currentRun.tracks; track track) {
+              @let metadata = getTrackMetadata(track);
+              <div class="plc-run-config-track">
+                <i class="pi pi-wave-pulse text-primary"></i>
+                <div class="min-w-0">
+                  <div class="font-medium truncate">{{ track }}</div>
+                  <div class="text-xs text-muted-color truncate">
+                    @if (metadata?.available) {
+                      {{ metadata?.durationLabel }} · {{ metadata?.sampleRateLabel }} · {{ metadata?.channelLabel }} ·
+                      {{ metadata?.bitDepthLabel }} · {{ metadata?.sizeLabel }}
+                    } @else {
+                      No track info available
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      @for (section of moduleSections; track section.type) {
+        @let modules = getModules(section.type);
+        @if (modules.length !== 0) {
+          <section class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold m-0">{{ section.label }}</h3>
+            @for (module of modules; track module.name + $index; let index = $index) {
+              <details
+                class="plc-config-module"
+                [class.plc-config-module-focused]="isFocused(section.type, index)"
+                [open]="isInitiallyOpen(section.type, index)"
+              >
+                <summary class="cursor-pointer font-semibold flex align-items-center gap-1">
+                  <i class="pi pi-box"></i>
+                  {{ module.name }}
+                </summary>
+                <div class="mt-2 ml-2 pl-3 border-l border-gray-300 dark:border-gray-600">
+                  <plc-parameter-tree [settings]="module.settings" />
+                </div>
+              </details>
+            }
+          </section>
+        }
+      }
+    </div>
+  }
+</p-drawer>
