@@ -2,6 +2,11 @@ interface BaseWsMessage {
   type: string;
 }
 
+export interface RunSubscriptionMessage extends BaseWsMessage {
+  type: 'run.subscribe';
+  run_id: string;
+}
+
 export interface RunCompletionMessage extends BaseWsMessage {
   type: 'run.complete';
   run_id: string;
@@ -31,4 +36,4 @@ export interface TreeNode {
   children: TreeNode[];
 }
 
-export type WsMessage = RunCompletionMessage | RunProgressMessage | any;
+export type WsMessage = RunSubscriptionMessage | RunCompletionMessage | RunProgressMessage;

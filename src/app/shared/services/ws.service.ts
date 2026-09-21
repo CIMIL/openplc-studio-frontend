@@ -1,21 +1,30 @@
 import { Injectable } from '@angular/core';
 import { filter, Observable, ReplaySubject, share } from 'rxjs';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
-import { RunCompletionMessage, WsMessage, RunProgressMessage } from '../interfaces/ws.interface';
+import {
+  RunCompletionMessage,
+  RunProgressMessage,
+  RunSubscriptionMessage,
+  WsMessage,
+} from '../interfaces/ws.interface';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WsService {
-  private wsEndpoint = 'ws://localhost:8000/ws/runs';
+  private wsEndpoint = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/runs`;
   private wsSubject$: WebSocketSubject<WsMessage> = webSocket<WsMessage>(this.wsEndpoint);
   private socket$ = this.wsSubject$.pipe(share({ resetOnRefCountZero: false }));
 
   private runId$ = new ReplaySubject<string>(1);
 
   constructor() {
-    this.runId$.subscribe(runId => {
-      this.wsSubject$.next({ run_id: runId } as any);
+    this.runId$.subscribe((runId) => {
+      const subscription: RunSubscriptionMessage = {
+        type: 'run.subscribe',
+        run_id: runId,
+      };
+      this.wsSubject$.next(subscription);
     });
   }
 
