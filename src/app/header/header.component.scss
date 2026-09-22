@@ -1,3 +1,21 @@
 :host::ng-deep p-toolbar > div {
   border-radius: 0px !important;
 }
+
+.brand {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-weight: 600;
+  gap: 0.5rem;
+  padding: 0 1.5rem 0 0;
+}
+
+.brand img {
+  height: 2rem;
+  width: 2rem;
+}

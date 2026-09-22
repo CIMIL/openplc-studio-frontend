@@ -1,6 +1,10 @@
 <p-toolbar class="py-4">
   <ng-template #start>
-    <div class="pr-6" style="cursor: pointer" (click)="this.router.navigate(['backlog'])">OpenPLC Studio</div>
+    <button class="brand" type="button" (click)="this.router.navigate(['backlog'])">
+      <img *ngIf="!isDarkMode" src="assets/branding/logo-light.png" alt="OpenPLC Studio" />
+      <img *ngIf="isDarkMode" src="assets/branding/logo-dark.png" alt="OpenPLC Studio" />
+      <span>OpenPLC Studio</span>
+    </button>
     <div class="flex gap-1 items-center">
       <p-button
         label="New"

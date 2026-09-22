@@ -1,27 +1,76 @@
-# PlcPlatformFrontend
+# OpenPLC Studio Frontend
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.11.
+![OpenPLC Studio logo](https://raw.githubusercontent.com/CIMIL/openplc-studio/master/high-res-master.png)
 
-## Development server
+[![Build and publish](https://github.com/CIMIL/openplc-studio-frontend/actions/workflows/publish-image.yml/badge.svg)](https://github.com/CIMIL/openplc-studio-frontend/actions/workflows/publish-image.yml)
+[![Docker pulls](https://img.shields.io/docker/pulls/cimil/openplc-studio-frontend?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/cimil/openplc-studio-frontend)
+[![Angular](https://img.shields.io/badge/Angular-19-DD0031?logo=angular&logoColor=white)](https://angular.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Docker image](https://img.shields.io/badge/container-linux%2Famd64-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/cimil/openplc-studio-frontend)
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+Web application for **OpenPLC Studio**, a platform for configuring, executing, and analysing PLC audio-codec test runs. It provides the browser interface for the OpenPLC Studio backend and is published as a compact production-ready container image.
 
-## Code scaffolding
+> This README is about the frontend application. For the complete, ready-to-run platform and its deployment documentation, see [OpenPLC Studio](https://github.com/CIMIL/openplc-studio).
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## What it does
 
-## Build
+- Guides users through creating and validating test-run configurations.
+- Uploads and manages original audio tracks.
+- Presents a backlog of submitted and completed runs.
+- Streams live run progress and completion events from the backend.
+- Provides an analysis workspace for results, metrics, waveforms, spectrograms, and reconstructed tracks.
+- Supports exporting artifacts and run configuration from the platform.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+The application is an Angular single-page application (SPA). It communicates with the backend using same-origin `/api` requests and subscribes to `/ws/runs` for real-time updates. In production, the OpenPLC Studio reverse proxy routes API and WebSocket traffic to the backend while serving this frontend separately.
 
-## Running unit tests
+```text
+browser
+  │
+  ├── /             → Angular SPA
+  ├── /api/*        → OpenPLC Studio backend
+  └── /ws/runs      → run-progress WebSocket
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Using relative URLs keeps the image environment-independent: deployment-specific routing, TLS, and service discovery belong to the surrounding OpenPLC Studio stack rather than to the built frontend bundle.
 
-## Running end-to-end tests
+## Technology
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+| Area               | Technology                         |
+| ------------------ | ---------------------------------- |
+| Application        | Angular 19, TypeScript, RxJS       |
+| UI                 | PrimeNG, Prime Icons, Tailwind CSS |
+| Visualisation      | Chart.js, WaveSurfer.js            |
+| Real-time updates  | RxJS WebSocket client              |
+| Build and delivery | Angular CLI, npm, Docker Buildx    |
 
-## Further help
+## Container image
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+The published image is [`cimil/openplc-studio-frontend`](https://hub.docker.com/r/cimil/openplc-studio-frontend). It uses a multi-stage build: Node builds the optimized Angular bundle, then an unprivileged NGINX image serves only the static files on port `8080`.
+
+The image deliberately does **not** proxy `/api` or `/ws`; those routes are owned by the platform reverse proxy.
+
+| Tag            | Intended use                                   |
+| -------------- | ---------------------------------------------- |
+| `latest`       | Current build from `master`                    |
+| `sha-<commit>` | Immutable build for a specific source revision |
+
+Production images target **`linux/amd64`**. The [OpenPLC Studio deployment repository](https://github.com/CIMIL/openplc-studio) combines this image with the backend and supporting services.
+
+## Application structure
+
+```text
+src/app/
+├── analyser/           # Results, metrics, waveform, and spectrogram views
+├── backlog/            # Run list and status overview
+├── run-configurator/    # Audio and module configuration workflow
+├── run-progress/       # Live processing progress
+├── shared/             # API clients, DTOs, WebSocket, and common UI utilities
+└── header/             # Application navigation and theme controls
+.docker/                # Local and production container definitions
+```
+
+## Delivery
+
+A GitHub Actions workflow builds the production image on every push to `master` and publishes both `latest` and an immutable `sha-<commit>` tag to Docker Hub. The production image includes an HTTP health check and OCI image metadata.
+
+**Keywords:** `OpenPLC` · `PLC` · `audio codec` · `testbench` · `Angular` · `TypeScript` · `PrimeNG` · `Chart.js` · `WaveSurfer` · `WebSocket` · `Docker` · `CI/CD`
