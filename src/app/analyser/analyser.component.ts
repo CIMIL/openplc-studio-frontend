@@ -17,10 +17,7 @@ import { ZoomLensComponent } from './zoom-lens/zoom-lens.component';
 import { MetricsComponent } from './metrics/metrics.component';
 import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
-import { DrawerModule } from 'primeng/drawer';
-import { Module } from '../shared/interfaces/module.interface';
-import { ModuleType } from '../shared/enums/module-type.enum';
-import { ParameterTreeComponent } from '../shared/components/parameter-tree/parameter-tree.component';
+import { RunConfigurationDrawerComponent } from '../shared/components/run-configuration-drawer/run-configuration-drawer.component';
 
 Chart.register(zoomPlugin);
 
@@ -42,8 +39,7 @@ enum AccordionPanels {
     SkeletonModule,
     AccordionModule,
     ButtonModule,
-    DrawerModule,
-    ParameterTreeComponent,
+    RunConfigurationDrawerComponent,
   ],
   templateUrl: './analyser.component.html',
   styleUrls: ['./analyser.component.scss'],
@@ -67,7 +63,7 @@ export class AnalyserComponent {
 
   public AccordionPanels: typeof AccordionPanels = AccordionPanels;
 
-  public infoDrawerVisible: boolean = false;
+  public configDrawerVisible = false;
 
   private destroy$ = new Subject<void>();
 
@@ -82,73 +78,6 @@ export class AnalyserComponent {
 
   get spectrogramRef() {
     return this._spectrogramRef;
-  }
-
-  public get selectedPacketLossModule(): Module | null {
-    const trackName = this.analysisService.selectedTrackPlayback.value?.name;
-    if (!trackName) {
-      return null;
-    }
-    const parsed = this.analysisService.parseTrackName(trackName);
-    if (!parsed.sampleMaskKey) {
-      return null;
-    }
-    return this.analysisService.resolvePacketLossModuleForTrack(trackName, this.getPacketLossFallbackIndex(trackName));
-  }
-
-  public get selectedPlcModule(): Module | null {
-    const trackName = this.analysisService.selectedTrackPlayback.value?.name;
-    if (!trackName) {
-      return null;
-    }
-    const parsed = this.analysisService.parseTrackName(trackName);
-    if (!parsed.plcKey) {
-      return null;
-    }
-    return this.analysisService.resolvePlcModuleForTrack(trackName, this.getPlcFallbackIndex(trackName));
-  }
-
-  public get selectedOutputAnalyserModules(): Module[] {
-    return this.analysisService.run.value?.modules[ModuleType.OutputAnalyser] ?? [];
-  }
-
-  public get hasSelectedModuleParameters(): boolean {
-    return !!this.selectedPacketLossModule || !!this.selectedPlcModule;
-  }
-
-  private getTrackIndex(originalTrack: string): number {
-    return this.analysisService.run.value?.tracks.findIndex((track) => track.split('.')[0] === originalTrack) ?? -1;
-  }
-
-  /**
-   * Asset archives list nodes track-major then simulator-major, so the position
-   * of the sample mask within its track gives the PacketLossSimulator index.
-   */
-  private getPacketLossFallbackIndex(trackName: string): number | null {
-    const run = this.analysisService.run.value;
-    const parsed = this.analysisService.parseTrackName(trackName);
-    const simulatorCount = run?.modules[ModuleType.PacketLossSimulator].length ?? 0;
-    const trackIndex = this.getTrackIndex(parsed.originalTrack);
-    const globalIndex = this.sampleMasks.findIndex((mask) => mask.name.split('.')[0] === parsed.sampleMaskKey);
-    if (!run || simulatorCount === 0 || trackIndex < 0 || globalIndex < 0) {
-      return null;
-    }
-    return globalIndex - trackIndex * simulatorCount;
-  }
-
-  /**
-   * Reconstructed tracks are grouped by (track, sample mask) and ordered by PLC
-   * algorithm, so the position within that group is the PLC module index.
-   */
-  private getPlcFallbackIndex(trackName: string): number | null {
-    const parsed = this.analysisService.parseTrackName(trackName);
-    const index = this.reconstructedTracks
-      .filter((track) => {
-        const candidate = this.analysisService.parseTrackName(track.name);
-        return candidate.originalTrack === parsed.originalTrack && candidate.sampleMaskKey === parsed.sampleMaskKey;
-      })
-      .findIndex((track) => track.name === trackName);
-    return index >= 0 ? index : null;
   }
 
   constructor(

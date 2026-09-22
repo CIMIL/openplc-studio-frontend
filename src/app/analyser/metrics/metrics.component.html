@@ -28,7 +28,7 @@
           </h1>
           <p-button
             type="button"
-            (click)="drawerMetricsParameterIndex = i; infoDrawerVisible = true"
+            (click)="configDrawerVisible = true"
             [rounded]="true"
             severity="secondary"
             icon="pi pi-info-circle"
@@ -47,16 +47,8 @@
   }
 </div>
 
-@if (this.displayMetrics && this.displayMetrics.length !== 0) {
-  <p-drawer header="Module Parameters" [(visible)]="infoDrawerVisible" position="right">
-    @if (getOutputAnalyserModule(metrics[drawerMetricsParameterIndex]); as oaModule) {
-      <div class="p-4">
-        <h3 class="text-lg font-semibold mb-1">
-          {{ metrics[drawerMetricsParameterIndex] | metricLabel }}
-        </h3>
-        <p class="text-sm mb-4 opacity-70">{{ oaModule.name }}</p>
-        <plc-parameter-tree [settings]="oaModule.settings" />
-      </div>
-    }
-  </p-drawer>
-}
+<plc-run-configuration-drawer
+  [(visible)]="configDrawerVisible"
+  [run]="analysisService.run.value"
+  [focusedModules]="focusedOutputAnalyserModules"
+/>

@@ -34,6 +34,7 @@ export class RunConfigurationDrawerComponent implements OnChanges {
   @Input() public run: Run | null = null;
   @Input() public visible = false;
   @Input() public focusedModule: FocusedRunModule | null = null;
+  @Input() public focusedModules: FocusedRunModule[] = [];
   @Input() public focusedTrackIndex: number | null = null;
   @Output() public visibleChange = new EventEmitter<boolean>();
 
@@ -67,7 +68,10 @@ export class RunConfigurationDrawerComponent implements OnChanges {
   }
 
   public isFocused(type: RunModuleType, index: number): boolean {
-    return this.focusedModule?.type === type && this.focusedModule.index === index;
+    return (
+      (this.focusedModule?.type === type && this.focusedModule.index === index) ||
+      this.focusedModules.some((module) => module.type === type && module.index === index)
+    );
   }
 
   public isTrackFocused(index: number): boolean {
@@ -75,7 +79,7 @@ export class RunConfigurationDrawerComponent implements OnChanges {
   }
 
   public isInitiallyOpen(type: RunModuleType, index: number): boolean {
-    return this.focusedModule === null || this.isFocused(type, index);
+    return (this.focusedModule === null && this.focusedModules.length === 0) || this.isFocused(type, index);
   }
 
   public onVisibleChange(visible: boolean): void {

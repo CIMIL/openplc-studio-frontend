@@ -7,14 +7,16 @@ import { Chart, ChartData, ChartOptions } from 'chart.js';
 import { DARK_COLORS, LIGHT_COLORS } from '../utils';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ChartModule } from 'primeng/chart';
-import { debounceTime, filter, map, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
+import { debounceTime, filter, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { MetricLabelPipe, metricLabelTransform } from './metric-label.pipe';
-import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { DividerModule } from 'primeng/divider';
-import { Module } from '../../shared/interfaces/module.interface';
-import { ParameterTreeComponent } from '../../shared/components/parameter-tree/parameter-tree.component';
+import { ModuleType } from '../../shared/enums/module-type.enum';
+import {
+  FocusedRunModule,
+  RunConfigurationDrawerComponent,
+} from '../../shared/components/run-configuration-drawer/run-configuration-drawer.component';
 
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 
@@ -29,10 +31,9 @@ const TD_METRICS_CHANNEL_AGNOSTIC_METRICS = ['WindowedPEAQCalculator', 'Perceptu
     ChartModule,
     MultiSelectModule,
     MetricLabelPipe,
-    DrawerModule,
     ButtonModule,
     DividerModule,
-    ParameterTreeComponent,
+    RunConfigurationDrawerComponent,
   ],
   templateUrl: './metrics.component.html',
   //   styleUrls: ['./metrics.component.scss'],
@@ -50,9 +51,7 @@ export class MetricsComponent {
 
   public chartTypes: Array<'line' | 'bar'> = [];
 
-  public infoDrawerVisible: boolean = false;
-
-  public drawerMetricsParameterIndex: number = 0;
+  public configDrawerVisible = false;
 
   private destroy$ = new Subject<void>();
 
@@ -162,15 +161,27 @@ export class MetricsComponent {
       .subscribe();
   }
 
-  public getOutputAnalyserModule(metric: MetricRaw | undefined): Module | null {
-    if (!metric) {
-      return null;
-    }
-    const fallbackIndex = this.metrics.findIndex((candidate) => candidate.name === metric.name);
-    return this.analysisService.resolveOutputAnalyserModuleForMetric(
-      metric.name,
-      fallbackIndex >= 0 ? fallbackIndex : null,
-    );
+  public get focusedOutputAnalyserModules(): FocusedRunModule[] {
+    const modules = this.analysisService.run.value?.modules[ModuleType.OutputAnalyser] ?? [];
+    const focusedIndexes = new Set<number>();
+
+    this.displayMetrics.forEach((metric) => {
+      const fallbackIndex = this.metrics.findIndex((candidate) => candidate.name === metric.name);
+      const module = this.analysisService.resolveOutputAnalyserModuleForMetric(
+        metric.name,
+        fallbackIndex >= 0 ? fallbackIndex : null,
+      );
+      if (!module) {
+        return;
+      }
+
+      const moduleIndex = modules.indexOf(module);
+      if (moduleIndex >= 0) {
+        focusedIndexes.add(moduleIndex);
+      }
+    });
+
+    return [...focusedIndexes].map((index) => ({ type: ModuleType.OutputAnalyser, index }));
   }
 
   private buildAllCharts(): void {
