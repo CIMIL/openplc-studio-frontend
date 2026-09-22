@@ -287,8 +287,9 @@
 }
 
 .plc-node-progress {
-  flex: 1 1 16rem;
+  flex: 0 1 38rem;
   min-width: 10rem;
+  margin-left: auto;
   display: grid;
   grid-template-columns: minmax(5rem, 1fr) auto;
   align-items: center;

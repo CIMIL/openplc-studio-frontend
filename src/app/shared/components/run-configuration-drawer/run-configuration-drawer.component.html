@@ -16,9 +16,9 @@
         <div class="text-sm">
           <span class="font-medium">Tracks</span>
           <div class="plc-run-config-tracks mt-2">
-            @for (track of currentRun.tracks; track track) {
+            @for (track of currentRun.tracks; track track; let index = $index) {
               @let metadata = getTrackMetadata(track);
-              <div class="plc-run-config-track">
+              <div class="plc-run-config-track" [class.plc-run-config-track-focused]="isTrackFocused(index)">
                 <i class="pi pi-wave-pulse text-primary"></i>
                 <div class="min-w-0">
                   <div class="font-medium truncate">{{ track }}</div>

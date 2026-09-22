@@ -75,6 +75,15 @@ describe('RunProgressComponent', () => {
     expect(nodes[1].children[0].children[0].children[0].nodeIds).toEqual(['out-2']);
   });
 
+  it('focuses the selected track in the configuration drawer', () => {
+    const trackButton = fixture.nativeElement.querySelectorAll('.plc-track-name')[1] as HTMLButtonElement;
+    trackButton.click();
+
+    expect(component.configDrawerVisible).toBeTrue();
+    expect(component.focusedTrackIndex).toBe(1);
+    expect(component.focusedModule).toBeNull();
+  });
+
   it('ignores unrelated progress and marks successful completion as analysable', () => {
     progress$.next({ run_id: 'other', nodes: [{ node_id: 'pls-1', current: 1, total: 1 }] });
     expect(component.getNodeProgress(component.nodes[0].children[0]).state).toBe('waiting');

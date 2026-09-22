@@ -29,6 +29,7 @@ interface ProgressTreeNode {
   children: ProgressTreeNode[];
   moduleType?: RunModuleType;
   moduleIndex?: number;
+  trackIndex?: number;
 }
 
 interface DisplayProgress {
@@ -51,6 +52,7 @@ export class RunProgressComponent implements OnInit, OnDestroy {
   public expandedKeys = new Set<string>();
   public configDrawerVisible = false;
   public focusedModule: FocusedRunModule | null = null;
+  public focusedTrackIndex: number | null = null;
 
   private runId = '';
   private readonly progressByNodeId = new Map<string, NodeProgress>();
@@ -154,11 +156,14 @@ export class RunProgressComponent implements OnInit, OnDestroy {
   public onModuleClick(node: ProgressTreeNode): void {
     if (node.moduleType === undefined || node.moduleIndex === undefined) return;
     this.focusedModule = { type: node.moduleType, index: node.moduleIndex };
+    this.focusedTrackIndex = null;
     this.configDrawerVisible = true;
   }
 
-  public onTrackClick(): void {
+  public onTrackClick(node: ProgressTreeNode): void {
+    if (node.trackIndex === undefined) return;
     this.focusedModule = null;
+    this.focusedTrackIndex = node.trackIndex;
     this.configDrawerVisible = true;
   }
 
@@ -223,6 +228,7 @@ export class RunProgressComponent implements OnInit, OnDestroy {
       label: trackName,
       kind: 'track' as const,
       nodeIds: [],
+      trackIndex,
       children: plsModules.map((plsModule, plsIndex) =>
         this.buildPlsNode(plsModule, plsIndex, trackIndex, plsCount, plcModules, plcCount, outputModules),
       ),

@@ -14,6 +14,11 @@
   background: var(--p-content-hover-background);
 }
 
+.plc-run-config-track-focused {
+  border-color: var(--p-primary-color);
+  background: color-mix(in srgb, var(--p-primary-color) 8%, transparent);
+}
+
 .plc-config-module > summary {
   list-style: none;
 

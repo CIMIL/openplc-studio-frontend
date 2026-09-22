@@ -34,6 +34,7 @@ export class RunConfigurationDrawerComponent implements OnChanges {
   @Input() public run: Run | null = null;
   @Input() public visible = false;
   @Input() public focusedModule: FocusedRunModule | null = null;
+  @Input() public focusedTrackIndex: number | null = null;
   @Output() public visibleChange = new EventEmitter<boolean>();
 
   private trackMetadataByName = new Map<string, AudioTrackMetadataView>();
@@ -67,6 +68,10 @@ export class RunConfigurationDrawerComponent implements OnChanges {
 
   public isFocused(type: RunModuleType, index: number): boolean {
     return this.focusedModule?.type === type && this.focusedModule.index === index;
+  }
+
+  public isTrackFocused(index: number): boolean {
+    return this.focusedTrackIndex === index;
   }
 
   public isInitiallyOpen(type: RunModuleType, index: number): boolean {

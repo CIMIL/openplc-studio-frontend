@@ -158,7 +158,7 @@
         <button
           class="plc-module-name plc-track-name"
           type="button"
-          (click)="onTrackClick()"
+          (click)="onTrackClick(node)"
           [attr.aria-label]="'View configuration for track ' + node.label"
         >
           <span>{{ node.label }}</span>
@@ -200,4 +200,9 @@
   }
 </ng-template>
 
-<plc-run-configuration-drawer [(visible)]="configDrawerVisible" [run]="run" [focusedModule]="focusedModule" />
+<plc-run-configuration-drawer
+  [(visible)]="configDrawerVisible"
+  [run]="run"
+  [focusedModule]="focusedModule"
+  [focusedTrackIndex]="focusedTrackIndex"
+/>
