@@ -1,6 +1,6 @@
 # OpenPLC Studio Frontend
 
-![OpenPLC Studio logo](https://raw.githubusercontent.com/CIMIL/openplc-studio/master/high-res-master.png)
+![OpenPLC Studio banner](https://raw.githubusercontent.com/CIMIL/openplc-studio/master/assets/banner.png)
 
 [![Build and publish](https://github.com/filippodaniotti/openplc-studio-frontend/actions/workflows/publish-image.yml/badge.svg)](https://github.com/filippodaniotti/openplc-studio-frontend/actions/workflows/publish-image.yml)
 [![Docker pulls](https://img.shields.io/docker/pulls/cimil/openplc-studio-frontend?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/cimil/openplc-studio-frontend)
