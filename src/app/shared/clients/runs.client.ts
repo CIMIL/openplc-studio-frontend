@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, switchMap } from 'rxjs';
 import { Run, RunPage, RunSortDirection, RunSortField } from '../interfaces/run.interface';
 import { RunStatus } from '../enums/run-status.enum';
+import { RunArtifactKind } from '../enums/run-artifact-kind.enum';
 import { RunMapper } from '../mappers/run.mapper';
 import { RunDto, RunPageDto } from '../dtos/run.dto';
 
@@ -60,8 +61,8 @@ export class RunsClient {
     return this.http.delete<void>(`${this.api}/${runId}`);
   }
 
-  public getRunAssets(runId: string, depth: number): Observable<ArrayBuffer> {
-    return this.http.get(`${this.api}/${runId}/assets/${depth}`, { responseType: 'arraybuffer' });
+  public getRunArtifactsArchive(runId: string, kind: RunArtifactKind): Observable<ArrayBuffer> {
+    return this.http.get(`${this.api}/${runId}/artifacts/${kind}/archive`, { responseType: 'arraybuffer' });
   }
 
   //method to export run config as a blob(Binary Large Object)

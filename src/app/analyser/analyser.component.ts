@@ -36,6 +36,7 @@ import {
 } from '../shared/components/run-configuration-drawer/run-configuration-drawer.component';
 import { ModuleType } from '../shared/enums/module-type.enum';
 import { RunStatus } from '../shared/enums/run-status.enum';
+import { RunArtifactKind } from '../shared/enums/run-artifact-kind.enum';
 import { TrackSelectionGroup, TrackSelectionLeaf, buildTrackSelectionTree } from './track-selection';
 
 Chart.register(zoomPlugin);
@@ -121,7 +122,7 @@ export class AnalyserComponent {
       .subscribe();
 
     // FETCH ORIGINAL TRACKS
-    this.getCompletedRunAssets(runId, 0)
+    this.getCompletedRunArtifacts(runId, RunArtifactKind.OriginalTracks)
       .pipe(
         take(1),
         switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
@@ -143,7 +144,7 @@ export class AnalyserComponent {
 
     // FETCH SAMPLE MASKS
     combineLatest([
-      this.getCompletedRunAssets(runId, 1).pipe(
+      this.getCompletedRunArtifacts(runId, RunArtifactKind.SampleMasks).pipe(
         take(1),
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
@@ -193,7 +194,7 @@ export class AnalyserComponent {
 
     // FETCH RECONSTRUCTED TRACKS
     combineLatest([
-      this.getCompletedRunAssets(runId, 2).pipe(
+      this.getCompletedRunArtifacts(runId, RunArtifactKind.ReconstructedTracks).pipe(
         take(1),
         switchMap((buf: ArrayBuffer) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
@@ -243,7 +244,7 @@ export class AnalyserComponent {
 
     // FETCH METRICS
     combineLatest([
-      this.getCompletedRunAssets(runId, 3).pipe(
+      this.getCompletedRunArtifacts(runId, RunArtifactKind.OutputAnalysis).pipe(
         take(1),
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
@@ -297,11 +298,11 @@ export class AnalyserComponent {
       .subscribe();
   }
 
-  private getCompletedRunAssets(runId: string, depth: number): Observable<ArrayBuffer> {
+  private getCompletedRunArtifacts(runId: string, kind: RunArtifactKind): Observable<ArrayBuffer> {
     return this.runFetchDone.pipe(
       take(1),
       filter(() => this.analysisService.run.value?.status === RunStatus.COMPLETED),
-      switchMap(() => this.runsClient.getRunAssets(runId, depth)),
+      switchMap(() => this.runsClient.getRunArtifactsArchive(runId, kind)),
     );
   }
 
