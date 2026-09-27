@@ -1,0 +1,103 @@
+:host {
+  display: block;
+}
+
+.plc-configs-page {
+  padding: 1.25rem;
+}
+
+.plc-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  h2 {
+    margin: 0.15rem 0;
+    font-size: 1.45rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--p-text-muted-color);
+  }
+}
+
+.plc-saved-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--p-green-500);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.plc-config-group {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(16rem, 1fr);
+  gap: 2rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--p-content-border-color);
+
+  h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--p-text-muted-color);
+    font-size: 0.9rem;
+  }
+}
+
+.plc-control-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.plc-config-control,
+.plc-toggle-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.plc-config-control > span,
+.plc-toggle-control strong {
+  font-weight: 600;
+}
+
+.plc-toggle-control small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--p-text-muted-color);
+}
+
+:host ::ng-deep .p-select {
+  min-width: 10rem;
+}
+
+@media (max-width: 700px) {
+  .plc-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .plc-config-group {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .plc-config-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  :host ::ng-deep .p-select {
+    width: 100%;
+  }
+}

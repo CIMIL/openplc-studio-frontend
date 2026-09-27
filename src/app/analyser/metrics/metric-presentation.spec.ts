@@ -1,6 +1,6 @@
 import { ModuleType } from '../../shared/enums/module-type.enum';
 import { Module } from '../../shared/interfaces/module.interface';
-import { ThemeService } from '../../shared/services/theme.service';
+import { BehaviorSubject } from 'rxjs';
 import { AnalysisService, MetricRaw } from '../analysis.service';
 import { metricLabelTransform } from './metric-label.pipe';
 import { buildMetricPresentations } from './metric-presentation';
@@ -93,7 +93,9 @@ describe('metricLabelTransform', () => {
 
 describe('MetricsComponent metric configuration focus', () => {
   it('focuses the output analyser instance associated with the clicked metric', () => {
-    const component = new MetricsComponent(new AnalysisService(), new ThemeService());
+    const component = new MetricsComponent(new AnalysisService(), {
+      isDarkMode: new BehaviorSubject(false),
+    } as any);
     const metric = buildPresentations(
       [createMetric('MSECalculator-first.json', 0), createMetric('MSECalculator-second.json', 1)],
       [createModule('MSECalculator', { N: 1024 }), createModule('MSECalculator', { N: 2048 })],

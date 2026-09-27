@@ -32,6 +32,7 @@ describe('AssetsComponent', () => {
   let assetsClient: jasmine.SpyObj<any>;
   let confirmationService: jasmine.SpyObj<any>;
   let messageService: jasmine.SpyObj<any>;
+  let preferencesService: any;
 
   beforeEach(() => {
     assetsClient = jasmine.createSpyObj('AssetsClient', [
@@ -43,11 +44,16 @@ describe('AssetsComponent', () => {
     ]);
     confirmationService = jasmine.createSpyObj('ConfirmationService', ['confirm']);
     messageService = jasmine.createSpyObj('MessageService', ['add']);
+    preferencesService = {
+      value: { assetsPageSize: 25 },
+      update: jasmine.createSpy('update'),
+    };
     component = new AssetsComponent(
       assetsClient,
       confirmationService,
       messageService,
       jasmine.createSpyObj('Router', ['navigate']),
+      preferencesService,
     );
   });
 
@@ -60,6 +66,7 @@ describe('AssetsComponent', () => {
     expect(component.totalRecords).toBe(1);
     expect(component.first).toBe(10);
     expect(component.sortDirection).toBe('desc');
+    expect(preferencesService.update).toHaveBeenCalledWith({ assetsPageSize: 10 });
   });
 
   it('supports visible-page selection and blocks deletion for active usage', () => {

@@ -17,6 +17,7 @@ describe('BacklogComponent run deletion', () => {
   let messageService: jasmine.SpyObj<any>;
   let router: jasmine.SpyObj<any>;
   let stateChanges$: Subject<any>;
+  let preferencesService: any;
 
   beforeEach(() => {
     runsClient = jasmine.createSpyObj('RunsClient', ['getRunsPage', 'deleteRun']);
@@ -24,10 +25,21 @@ describe('BacklogComponent run deletion', () => {
     messageService = jasmine.createSpyObj('MessageService', ['add']);
     router = jasmine.createSpyObj('Router', ['navigate']);
     stateChanges$ = new Subject();
+    preferencesService = {
+      value: { historyPageSize: 10 },
+      update: jasmine.createSpy('update'),
+    };
 
-    component = new BacklogComponent(runsClient, confirmationService, messageService, router, {
-      getStateChangeMessages: () => stateChanges$.asObservable(),
-    } as any);
+    component = new BacklogComponent(
+      runsClient,
+      confirmationService,
+      messageService,
+      router,
+      {
+        getStateChangeMessages: () => stateChanges$.asObservable(),
+      } as any,
+      preferencesService,
+    );
     component.ngOnInit();
   });
 
@@ -48,6 +60,7 @@ describe('BacklogComponent run deletion', () => {
     );
     expect(component.sortField).toBe('name');
     expect(component.sortDirection).toBe('asc');
+    expect(preferencesService.update).toHaveBeenCalledWith({ historyPageSize: 25 });
   });
 
   it('allows analysis only for completed runs', () => {

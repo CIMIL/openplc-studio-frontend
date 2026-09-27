@@ -1,0 +1,28 @@
+<div class="plc-settings-page">
+  <header class="plc-settings-header">
+    <span class="text-sm text-muted-color">Application settings</span>
+    <h1>Settings</h1>
+    <p>Manage this browser, audio assets, and plugins detected by the platform.</p>
+  </header>
+
+  <div class="plc-settings-layout">
+    <nav class="plc-settings-nav" aria-label="Settings sections">
+      <a routerLink="configs" routerLinkActive="is-active">
+        <i class="pi pi-sliders-h"></i>
+        <span>Configs</span>
+      </a>
+      <a routerLink="assets" routerLinkActive="is-active">
+        <i class="pi pi-folder-open"></i>
+        <span>Assets</span>
+      </a>
+      <a routerLink="plugins" routerLinkActive="is-active">
+        <i class="pi pi-box"></i>
+        <span>Plugins</span>
+      </a>
+    </nav>
+
+    <section class="plc-settings-content">
+      <router-outlet />
+    </section>
+  </div>
+</div>

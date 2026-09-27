@@ -1,0 +1,100 @@
+:host {
+  display: block;
+}
+
+.plc-settings-page {
+  padding: 1.5rem;
+}
+
+.plc-settings-header {
+  margin-bottom: 1.25rem;
+
+  h1 {
+    margin: 0.15rem 0;
+    font-size: 1.75rem;
+    font-weight: 650;
+  }
+
+  p {
+    margin: 0;
+    color: var(--p-text-muted-color);
+  }
+}
+
+.plc-settings-layout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.plc-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius, 8px);
+  background: var(--p-content-background);
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.5rem;
+    color: inherit;
+    font-weight: 550;
+    text-decoration: none;
+
+    &:hover {
+      background: var(--p-content-hover-background);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--p-primary-color);
+      outline-offset: 2px;
+    }
+
+    &.is-active {
+      background: color-mix(in srgb, var(--p-primary-color) 14%, transparent);
+      color: var(--p-primary-color);
+    }
+  }
+}
+
+.plc-settings-content {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius, 8px);
+  background: var(--p-content-background);
+}
+
+:host ::ng-deep .plc-settings-content .plc-assets-page {
+  padding: 1.25rem;
+}
+
+:host ::ng-deep .plc-settings-content .plc-assets-card {
+  border-radius: 0;
+}
+
+@media (max-width: 800px) {
+  .plc-settings-page {
+    padding: 1rem;
+  }
+
+  .plc-settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .plc-settings-nav {
+    flex-direction: row;
+    overflow-x: auto;
+
+    a {
+      flex: 1 0 auto;
+      justify-content: center;
+    }
+  }
+}

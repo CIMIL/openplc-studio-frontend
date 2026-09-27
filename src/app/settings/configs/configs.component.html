@@ -1,0 +1,80 @@
+<div class="plc-configs-page">
+  <div class="plc-section-heading">
+    <div>
+      <span class="text-sm text-muted-color">Browser preferences</span>
+      <h2>Configs</h2>
+      <p>Changes apply immediately and are stored only in this browser.</p>
+    </div>
+    <span class="plc-saved-indicator">
+      <i class="pi pi-check-circle"></i>
+      Saved automatically
+    </span>
+  </div>
+
+  <section class="plc-config-group" aria-labelledby="appearance-heading">
+    <div>
+      <h3 id="appearance-heading">Appearance</h3>
+      <p>Choose a color theme or follow your operating system.</p>
+    </div>
+    <label class="plc-config-control" for="theme-mode">
+      <span>Color theme</span>
+      <p-select
+        inputId="theme-mode"
+        [options]="themeOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="themeMode"
+        ariaLabel="Color theme"
+      />
+    </label>
+  </section>
+
+  <section class="plc-config-group" aria-labelledby="tables-heading">
+    <div>
+      <h3 id="tables-heading">Tables</h3>
+      <p>Set the number of rows shown when opening data tables.</p>
+    </div>
+    <div class="plc-control-stack">
+      <label class="plc-config-control" for="history-page-size">
+        <span>History rows</span>
+        <p-select
+          inputId="history-page-size"
+          [options]="pageSizeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="historyPageSize"
+          ariaLabel="History rows per page"
+        />
+      </label>
+      <label class="plc-config-control" for="assets-page-size">
+        <span>Asset rows</span>
+        <p-select
+          inputId="assets-page-size"
+          [options]="pageSizeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="assetsPageSize"
+          ariaLabel="Asset rows per page"
+        />
+      </label>
+    </div>
+  </section>
+
+  <section class="plc-config-group" aria-labelledby="notifications-heading">
+    <div>
+      <h3 id="notifications-heading">Notifications</h3>
+      <p>Control passive alerts produced while using the application.</p>
+    </div>
+    <label class="plc-toggle-control" for="completion-notifications">
+      <span>
+        <strong>Run completion alerts</strong>
+        <small>Show a toast when a run completes or fails.</small>
+      </span>
+      <p-toggleswitch
+        inputId="completion-notifications"
+        [(ngModel)]="runCompletionNotifications"
+        ariaLabel="Run completion alerts"
+      />
+    </label>
+  </section>
+</div>

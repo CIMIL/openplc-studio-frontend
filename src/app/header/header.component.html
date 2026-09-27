@@ -25,19 +25,19 @@
         (click)="this.router.navigate(['backlog'])"
       />
       <p-button
-        label="Assets"
-        icon="pi pi-folder-open"
+        label="Settings"
+        icon="pi pi-cog"
         class="mr-2"
         text
         severity="secondary"
         size="small"
-        (click)="this.router.navigate(['assets'])"
+        (click)="this.router.navigate(['settings'])"
       />
     </div>
   </ng-template>
   <ng-template #center></ng-template>
   <ng-template #end>
-    <button (click)="toggleDarkMode()">
+    <button type="button" aria-label="Toggle color theme" title="Toggle color theme" (click)="toggleDarkMode()">
       <i *ngIf="!isDarkMode" class="pi pi-sun"></i>
       <i *ngIf="isDarkMode" class="pi pi-moon"></i>
     </button>

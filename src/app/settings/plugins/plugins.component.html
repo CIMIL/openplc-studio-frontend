@@ -1,0 +1,111 @@
+<div class="plc-plugins-page">
+  <div class="plc-section-heading">
+    <div>
+      <span class="text-sm text-muted-color">Session inventory</span>
+      <h2>Plugins</h2>
+      <p>Python plugins currently detected in the configured plugin directory.</p>
+    </div>
+    <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [loading]="loading" (onClick)="refresh()" />
+  </div>
+
+  <div class="plc-plugin-summary" aria-label="Plugin inventory summary">
+    <div>
+      <strong>{{ plugins.length }}</strong>
+      <span>Detected</span>
+    </div>
+    <div class="is-available">
+      <strong>{{ availableCount }}</strong>
+      <span>Available</span>
+    </div>
+    <div class="is-invalid">
+      <strong>{{ invalidCount }}</strong>
+      <span>Issues</span>
+    </div>
+    @if (scannedAt) {
+      <small>Scanned {{ scannedAt | date: 'medium' }}</small>
+    }
+  </div>
+
+  @if (loading && !loaded) {
+    <div class="plc-plugin-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Scanning plugins…</span>
+    </div>
+  } @else if (loadError) {
+    <div class="plc-plugin-state is-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <h3>Unable to scan plugins</h3>
+      <p>Check the backend and configured plugin directory, then try again.</p>
+      <p-button label="Try again" icon="pi pi-refresh" severity="secondary" (onClick)="refresh()" />
+    </div>
+  } @else if (plugins.length === 0) {
+    <div class="plc-plugin-state">
+      <i class="pi pi-puzzle-piece"></i>
+      <h3>No plugins detected</h3>
+      <p>Add a Python plugin to the configured plugin directory and refresh this page.</p>
+    </div>
+  } @else {
+    <div class="plc-plugin-list">
+      @for (plugin of plugins; track plugin.filename) {
+        <article class="plc-plugin-card" [class.is-invalid]="plugin.status === 'invalid'">
+          <div class="plc-plugin-row">
+            <div class="plc-plugin-identity">
+              <i class="pi pi-puzzle-piece"></i>
+              <div>
+                <h3>{{ plugin.spec?.name || plugin.filename }}</h3>
+                <span>{{ plugin.filename }}</span>
+              </div>
+            </div>
+            <div class="plc-plugin-meta">
+              <span>{{ plugin.moduleType }}</span>
+              <span>{{ plugin.spec?.settings?.length || 0 }} setting(s)</span>
+              <p-tag
+                [severity]="plugin.status === 'available' ? 'success' : 'danger'"
+                [icon]="plugin.status === 'available' ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'"
+                [value]="plugin.status === 'available' ? 'Available' : 'Invalid'"
+              />
+            </div>
+          </div>
+
+          @if (plugin.status === 'invalid') {
+            <div class="plc-plugin-error">
+              <i class="pi pi-times-circle"></i>
+              {{ plugin.error }}
+            </div>
+          } @else if (plugin.spec) {
+            <details>
+              <summary>Manifest details</summary>
+              @if (plugin.spec.settings.length) {
+                <div class="plc-plugin-settings">
+                  <div class="plc-setting-heading">
+                    <span>Name</span>
+                    <span>Type</span>
+                    <span>Default</span>
+                  </div>
+                  @for (setting of plugin.spec.settings; track setting.name) {
+                    <div>
+                      <strong>{{ setting.name }}</strong>
+                      <code>{{ setting.type }}</code>
+                      <span>{{ formatValue(setting.default) }}</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="text-muted-color">This plugin does not define any settings.</p>
+              }
+
+              @if (plugin.spec.constraints.length) {
+                <h4>Constraints</h4>
+                <ul>
+                  @for (constraint of plugin.spec.constraints; track $index) {
+                    <li>{{ constraint.message || constraint.type + ' on ' + constraint.setting }}</li>
+                  }
+                </ul>
+              }
+            </details>
+          }
+        </article>
+      }
+    </div>
+  }
+</div>

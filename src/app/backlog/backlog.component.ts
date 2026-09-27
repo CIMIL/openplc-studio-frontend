@@ -16,7 +16,9 @@ import { RunsClient } from '../shared/clients/runs.client';
 import { RunConfigurationDrawerComponent } from '../shared/components/run-configuration-drawer/run-configuration-drawer.component';
 import { RunStatusBadgeComponent } from '../shared/components/run-status-badge/run-status-badge.component';
 import { RunStatus } from '../shared/enums/run-status.enum';
+import { TablePageSize } from '../shared/interfaces/app-preferences.interface';
 import { Run, RunPage, RunSortDirection, RunSortField } from '../shared/interfaces/run.interface';
+import { AppPreferencesService } from '../shared/services/app-preferences.service';
 import { WsService } from '../shared/services/ws.service';
 
 @Component({
@@ -71,7 +73,10 @@ export class BacklogComponent implements OnInit, OnDestroy {
     private messageService: MessageService,
     public router: Router,
     private readonly wsService: WsService,
-  ) {}
+    private readonly preferencesService: AppPreferencesService,
+  ) {
+    this.rows = this.preferencesService.value.historyPageSize;
+  }
 
   ngOnInit(): void {
     // The lazy p-table emits its initial `onLazyLoad` when it renders, which
@@ -100,6 +105,9 @@ export class BacklogComponent implements OnInit, OnDestroy {
   public loadRuns(event: TableLazyLoadEvent): void {
     const rows = event.rows ?? this.rows;
     const first = event.first ?? 0;
+    if (rows !== this.preferencesService.value.historyPageSize) {
+      this.preferencesService.update({ historyPageSize: rows as TablePageSize });
+    }
     const page = Math.floor(first / rows) + 1;
     const requestedSort = Array.isArray(event.sortField) ? event.sortField[0] : event.sortField;
     const sortField = this.isSortField(requestedSort) ? requestedSort : this.sortField;

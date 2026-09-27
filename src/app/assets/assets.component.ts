@@ -16,12 +16,14 @@ import { TooltipModule } from 'primeng/tooltip';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { AssetsClient } from '../shared/clients/assets.client';
 import { TrackUploadComponent } from '../shared/components/track-upload/track-upload.component';
+import { TablePageSize } from '../shared/interfaces/app-preferences.interface';
 import {
   SortDirection,
   TrackAsset,
   TrackRunReference,
   TrackSortField,
 } from '../shared/interfaces/track-asset.interface';
+import { AppPreferencesService } from '../shared/services/app-preferences.service';
 import { formatChannels, formatDuration, formatSampleRate, formatSize } from '../shared/utils/audio-track-metadata';
 
 @Component({
@@ -76,7 +78,10 @@ export class AssetsComponent implements OnInit, OnDestroy {
     private readonly confirmationService: ConfirmationService,
     private readonly messageService: MessageService,
     private readonly router: Router,
-  ) {}
+    private readonly preferencesService: AppPreferencesService,
+  ) {
+    this.rows = this.preferencesService.value.assetsPageSize;
+  }
 
   public ngOnInit(): void {
     this.searchChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => {
@@ -98,6 +103,9 @@ export class AssetsComponent implements OnInit, OnDestroy {
   public loadTracks(event: TableLazyLoadEvent): void {
     const rows = event.rows ?? this.rows;
     const first = event.first ?? this.first;
+    if (rows !== this.preferencesService.value.assetsPageSize) {
+      this.preferencesService.update({ assetsPageSize: rows as TablePageSize });
+    }
     const page = Math.floor(first / rows) + 1;
     const requestedSort = Array.isArray(event.sortField) ? event.sortField[0] : event.sortField;
     const sortField = this.isSortField(requestedSort) ? requestedSort : this.sortField;

@@ -20,9 +20,25 @@ export const routes: Routes = [
     component: BacklogComponent,
   },
   {
-    path: 'assets',
-    loadComponent: () => import('./assets/assets.component').then((module) => module.AssetsComponent),
+    path: 'settings',
+    loadComponent: () => import('./settings/settings.component').then((module) => module.SettingsComponent),
+    children: [
+      { path: '', redirectTo: 'configs', pathMatch: 'full' },
+      {
+        path: 'configs',
+        loadComponent: () => import('./settings/configs/configs.component').then((module) => module.ConfigsComponent),
+      },
+      {
+        path: 'assets',
+        loadComponent: () => import('./assets/assets.component').then((module) => module.AssetsComponent),
+      },
+      {
+        path: 'plugins',
+        loadComponent: () => import('./settings/plugins/plugins.component').then((module) => module.PluginsComponent),
+      },
+    ],
   },
+  { path: 'assets', redirectTo: 'settings/assets', pathMatch: 'full' },
   {
     path: 'run-progress/:id',
     component: RunProgressComponent,

@@ -6,6 +6,7 @@ import { ToggleButtonModule } from 'primeng/togglebutton';
 import { HeaderComponent } from './header/header.component';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { AppPreferencesService } from './shared/services/app-preferences.service';
 import { WsService } from './shared/services/ws.service';
 import { Subject, takeUntil, tap } from 'rxjs';
 import { RunCompletionMessage } from './shared/interfaces/ws.interface';
@@ -24,6 +25,7 @@ export class AppComponent implements OnInit {
   constructor(
     private readonly messageService: MessageService,
     private readonly wsService: WsService,
+    private readonly preferencesService: AppPreferencesService,
   ) {}
 
   public ngOnInit(): void {
@@ -31,7 +33,8 @@ export class AppComponent implements OnInit {
       .getCompletionMessages()
       .pipe(
         takeUntil(this.destroy$),
-        tap((message: RunCompletionMessage) =>
+        tap((message: RunCompletionMessage) => {
+          if (!this.preferencesService.value.runCompletionNotifications) return;
           this.messageService.add(
             message.success
               ? {
@@ -44,8 +47,8 @@ export class AppComponent implements OnInit {
                   summary: 'Run failed',
                   detail: `Run ${message.run_name} has failed`,
                 },
-          ),
-        ),
+          );
+        }),
       )
       .subscribe();
   }
