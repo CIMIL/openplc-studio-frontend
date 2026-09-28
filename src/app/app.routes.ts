@@ -24,6 +24,11 @@ export const routes: Routes = [
     component: BacklogComponent,
   },
   {
+    path: 'docs',
+    loadComponent: () =>
+      import('./documentation/documentation.component').then((module) => module.DocumentationComponent),
+  },
+  {
     path: 'settings',
     loadComponent: () => import('./settings/settings.component').then((module) => module.SettingsComponent),
     children: [

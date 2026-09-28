@@ -22,7 +22,8 @@ export class HeaderComponent {
   }
 
   public isActive(path: string): boolean {
-    return this.router.url === path || this.router.url.startsWith(`${path}/`);
+    const currentPath = this.router.url.split(/[?#]/, 1)[0];
+    return currentPath === path || currentPath.startsWith(`${path}/`);
   }
 
   public toggleDarkMode(): void {

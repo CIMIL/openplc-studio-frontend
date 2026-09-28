@@ -25,6 +25,9 @@ import { PopupModalComponent } from '../../shared/popup-modal/popup-modal.compon
 //breadcrumbs
 import { MenuItem, MessageService } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
+import { TooltipModule } from 'primeng/tooltip';
+import { Router } from '@angular/router';
+import { moduleDocumentationTarget } from '../../shared/utils/module-documentation';
 
 const suggestedBands: number[] = [100, 200, 2000];
 
@@ -37,6 +40,7 @@ export type ModuleWithCount = Module & {
 };
 
 type GroupedModules = { label: string; items: Module[] };
+type ModuleSuggestion = ModuleWithCount | GroupedModules;
 
 @Component({
   selector: 'plc-module-configurator',
@@ -57,6 +61,7 @@ type GroupedModules = { label: string; items: Module[] };
     PopupModalComponent,
     ParameterFieldComponent,
     BreadcrumbModule,
+    TooltipModule,
   ],
 })
 export class ModuleConfiguratorComponent implements OnInit {
@@ -75,7 +80,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   public selectedModuleCounter: number = 0;
 
-  public availableModulesFilter: ModuleWithCount[] = [];
+  public availableModulesFilter: ModuleSuggestion[] = [];
 
   public crossfadeModules: BehaviorSubject<ModuleWithCount[]> = new BehaviorSubject<ModuleWithCount[]>([]);
 
@@ -600,8 +605,17 @@ export class ModuleConfiguratorComponent implements OnInit {
   constructor(
     private readonly modulesClient: ModulesClient,
     private readonly messageService: MessageService,
+    private readonly router: Router,
     public runConfigService: RunConfiguratorService,
   ) {}
+
+  public openDocumentation(module: ModuleWithCount): void {
+    const target = moduleDocumentationTarget(this.moduleType, module.name);
+    void this.router.navigate(['/docs'], {
+      queryParams: { path: target.path },
+      fragment: target.fragment,
+    });
+  }
 
   get modulesSelection(): ModuleWithCount[] {
     return this.runConfigService.modulesSelection.value[this.moduleType];
@@ -609,6 +623,10 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   get availableModules(): ModuleWithCount[] {
     return this.modules.value;
+  }
+
+  get hasPluginModules(): boolean {
+    return this.availableModules.some((module) => module.is_plugin);
   }
 
   get availableCrossfadeModules(): ModuleWithCount[] {
@@ -917,9 +935,22 @@ export class ModuleConfiguratorComponent implements OnInit {
   }
 
   public searchModules(event: AutoCompleteCompleteEvent, isBandSettings: boolean = false) {
-    this.availableModulesFilter = this.availableModules
-      .filter((m) => m.name.toLocaleLowerCase().includes(event.query))
-      .filter((m) => !(m.name === 'AdvancedPLC' && isBandSettings));
+    const query = event.query.toLocaleLowerCase();
+    const matchingModules = this.availableModules
+      .filter((module) => module.name.toLocaleLowerCase().includes(query))
+      .filter((module) => !(module.name === 'AdvancedPLC' && isBandSettings));
+
+    if (!this.hasPluginModules) {
+      this.availableModulesFilter = matchingModules;
+      return;
+    }
+
+    const builtInModules = matchingModules.filter((module) => !module.is_plugin);
+    const pluginModules = matchingModules.filter((module) => module.is_plugin);
+    this.availableModulesFilter = [
+      ...(builtInModules.length ? [{ label: 'Built-in algorithms', items: builtInModules }] : []),
+      ...(pluginModules.length ? [{ label: 'Plugins', items: pluginModules }] : []),
+    ];
   }
 
   public addModule(module: ModuleWithCount | null): void {

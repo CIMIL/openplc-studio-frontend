@@ -1,0 +1,14 @@
+:host {
+  display: block;
+  margin-top: -1rem;
+  min-height: calc(100dvh - 5rem);
+}
+
+.documentation-frame {
+  display: block;
+  width: 100%;
+  height: calc(100dvh - 5rem);
+  min-height: 32rem;
+  border: 0;
+  background: var(--p-content-background);
+}

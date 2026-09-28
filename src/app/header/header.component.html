@@ -26,6 +26,16 @@
         (click)="this.router.navigate(['/backlog'])"
       />
       <p-button
+        label="Docs"
+        icon="pi pi-book"
+        class="mr-2"
+        [text]="!isActive('/docs')"
+        [outlined]="isActive('/docs')"
+        [severity]="isActive('/docs') ? 'primary' : 'secondary'"
+        size="small"
+        (click)="this.router.navigate(['/docs'])"
+      />
+      <p-button
         label="Settings"
         icon="pi pi-cog"
         class="mr-2"
