@@ -19,3 +19,25 @@
   height: 2rem;
   width: 2rem;
 }
+
+.plc-main-nav {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .brand {
+    padding-right: 0.5rem;
+
+    span {
+      display: none;
+    }
+  }
+
+  .plc-main-nav {
+    gap: 0;
+  }
+
+  :host ::ng-deep .plc-main-nav .p-button-label {
+    display: none;
+  }
+}

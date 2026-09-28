@@ -1,6 +1,6 @@
-import { RunCreateDto, RunDto, RunPageDto } from '../dtos/run.dto';
+import { RunCreateDto, RunDashboardSummaryDto, RunDto, RunPageDto } from '../dtos/run.dto';
 import { ModuleType } from '../enums/module-type.enum';
-import { Run, RunPage } from '../interfaces/run.interface';
+import { Run, RunDashboardSummary, RunPage } from '../interfaces/run.interface';
 
 export class RunMapper {
   static modelToCreateDto(run: Pick<Run, 'author' | 'name' | 'tracks' | 'modules'>): RunCreateDto {
@@ -40,6 +40,22 @@ export class RunMapper {
       total: pageDto.total,
       page: pageDto.page,
       pageSize: pageDto.page_size,
+    };
+  }
+
+  static dashboardDtoToModel(dto: RunDashboardSummaryDto): RunDashboardSummary {
+    return {
+      generatedAt: dto.generated_at,
+      recentWindowDays: dto.recent_window_days,
+      counts: {
+        running: dto.counts.running,
+        queued: dto.counts.queued,
+        completedRecent: dto.counts.completed_recent,
+        failedRecent: dto.counts.failed_recent,
+      },
+      activeRuns: dto.active_runs.map((run) => RunMapper.dtoToModel(run)),
+      recentRuns: dto.recent_runs.map((run) => RunMapper.dtoToModel(run)),
+      failedRuns: dto.failed_runs.map((run) => RunMapper.dtoToModel(run)),
     };
   }
 }

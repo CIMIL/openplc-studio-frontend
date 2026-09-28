@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, switchMap } from 'rxjs';
-import { Run, RunPage, RunSortDirection, RunSortField } from '../interfaces/run.interface';
+import { Run, RunDashboardSummary, RunPage, RunSortDirection, RunSortField } from '../interfaces/run.interface';
 import { RunStatus } from '../enums/run-status.enum';
 import { RunArtifactKind } from '../enums/run-artifact-kind.enum';
 import { RunMapper } from '../mappers/run.mapper';
-import { RunDto, RunPageDto } from '../dtos/run.dto';
+import { RunDashboardSummaryDto, RunDto, RunPageDto } from '../dtos/run.dto';
 
 @Injectable({
   providedIn: 'root',
@@ -55,6 +55,12 @@ export class RunsClient {
     return this.http
       .get<RunPageDto>(this.api, { headers: this.headers, params })
       .pipe(switchMap((dto: RunPageDto) => of(RunMapper.pageDtoToModel(dto))));
+  }
+
+  public getDashboardSummary(): Observable<RunDashboardSummary> {
+    return this.http
+      .get<RunDashboardSummaryDto>(`${this.api}/dashboard/summary`, { headers: this.headers })
+      .pipe(switchMap((dto: RunDashboardSummaryDto) => of(RunMapper.dashboardDtoToModel(dto))));
   }
 
   public deleteRun(runId: string): Observable<void> {

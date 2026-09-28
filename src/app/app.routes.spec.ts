@@ -1,6 +1,16 @@
 import { routes } from './app.routes';
 
-describe('application settings routes', () => {
+describe('application routes', () => {
+  it('uses the dashboard as the application home and fallback', () => {
+    const home = routes.find((route) => route.path === '');
+    const dashboard = routes.find((route) => route.path === 'dashboard');
+    const fallback = routes.find((route) => route.path === '**');
+
+    expect(home?.redirectTo).toBe('dashboard');
+    expect(dashboard?.loadComponent).toBeDefined();
+    expect(fallback?.redirectTo).toBe('dashboard');
+  });
+
   it('defines nested settings pages and keeps the legacy assets redirect', () => {
     const settings = routes.find((route) => route.path === 'settings');
     const legacyAssets = routes.find((route) => route.path === 'assets');

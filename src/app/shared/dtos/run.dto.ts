@@ -34,3 +34,17 @@ export interface RunPageDto {
   page: number;
   page_size: number;
 }
+
+export interface RunDashboardSummaryDto {
+  generated_at: string;
+  recent_window_days: number;
+  counts: {
+    running: number;
+    queued: number;
+    completed_recent: number;
+    failed_recent: number;
+  };
+  active_runs: RunDto[];
+  recent_runs: RunDto[];
+  failed_runs: RunDto[];
+}

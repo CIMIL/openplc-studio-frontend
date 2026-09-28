@@ -27,3 +27,17 @@ export interface RunPage {
   page: number;
   pageSize: number;
 }
+
+export interface RunDashboardSummary {
+  generatedAt: string;
+  recentWindowDays: number;
+  counts: {
+    running: number;
+    queued: number;
+    completedRecent: number;
+    failedRecent: number;
+  };
+  activeRuns: Run[];
+  recentRuns: Run[];
+  failedRuns: Run[];
+}

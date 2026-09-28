@@ -21,6 +21,10 @@ export class HeaderComponent {
     return this.themeService.isDarkMode.value;
   }
 
+  public isActive(path: string): boolean {
+    return this.router.url === path || this.router.url.startsWith(`${path}/`);
+  }
+
   public toggleDarkMode(): void {
     this.themeService.toggle();
   }

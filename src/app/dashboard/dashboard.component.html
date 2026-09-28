@@ -1,0 +1,225 @@
+<div class="plc-dashboard-page">
+  <header class="plc-dashboard-heading">
+    <div>
+      <span class="plc-eyebrow">Testbench workspace</span>
+      <h1>Workspace overview</h1>
+      <p>Start experiments, monitor execution, and return to recent PLC benchmark runs.</p>
+    </div>
+    <div class="plc-heading-actions">
+      <p-button
+        label="View history"
+        icon="pi pi-history"
+        severity="secondary"
+        [outlined]="true"
+        routerLink="/backlog"
+      />
+      <p-button label="New run" icon="pi pi-plus" routerLink="/run-configurator" />
+    </div>
+  </header>
+
+  @if (loading) {
+    <div class="plc-dashboard-state" aria-live="polite">
+      <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+      <span>Loading workspace overview…</span>
+    </div>
+  } @else if (loadError || !summary) {
+    <div class="plc-dashboard-state">
+      <i class="pi pi-exclamation-triangle text-4xl text-orange-400"></i>
+      <h2>Unable to load the dashboard</h2>
+      <p>The service may be temporarily unavailable.</p>
+      <p-button label="Retry" icon="pi pi-refresh" (onClick)="retry()" />
+    </div>
+  } @else {
+    @if (stale) {
+      <div class="plc-stale-banner" role="status">
+        <span>
+          <i class="pi pi-exclamation-circle"></i>
+          The latest refresh failed. Showing the last available data.
+        </span>
+        <p-button
+          label="Retry"
+          icon="pi pi-refresh"
+          severity="secondary"
+          [text]="true"
+          size="small"
+          (onClick)="retry()"
+        />
+      </div>
+    }
+
+    <section class="plc-summary-grid" aria-label="Run status summary">
+      <article class="plc-summary-card is-running">
+        <span class="plc-summary-icon"><i class="pi pi-spin pi-spinner"></i></span>
+        <div>
+          <strong>{{ summary.counts.running }}</strong>
+          <span>Running now</span>
+          <small>Current</small>
+        </div>
+      </article>
+      <article class="plc-summary-card is-queued">
+        <span class="plc-summary-icon"><i class="pi pi-clock"></i></span>
+        <div>
+          <strong>{{ summary.counts.queued }}</strong>
+          <span>Queued</span>
+          <small>Current</small>
+        </div>
+      </article>
+      <article class="plc-summary-card is-completed">
+        <span class="plc-summary-icon"><i class="pi pi-check-circle"></i></span>
+        <div>
+          <strong>{{ summary.counts.completedRecent }}</strong>
+          <span>Completed</span>
+          <small>Last {{ summary.recentWindowDays }} days</small>
+        </div>
+      </article>
+      <article class="plc-summary-card is-failed">
+        <span class="plc-summary-icon"><i class="pi pi-times-circle"></i></span>
+        <div>
+          <strong>{{ summary.counts.failedRecent }}</strong>
+          <span>Failed</span>
+          <small>Last {{ summary.recentWindowDays }} days</small>
+        </div>
+      </article>
+    </section>
+
+    <div class="plc-dashboard-columns">
+      <section class="plc-dashboard-panel plc-active-panel">
+        <div class="plc-panel-heading">
+          <div>
+            <h2>Active runs</h2>
+            <p>Queued and running experiments.</p>
+          </div>
+          <a routerLink="/backlog">View all runs</a>
+        </div>
+
+        @if (summary.activeRuns.length) {
+          <div class="plc-run-list">
+            @for (run of summary.activeRuns; track run.id) {
+              <article class="plc-run-row">
+                <div class="plc-run-main">
+                  <div class="plc-run-title-line">
+                    <h3>{{ run.name }}</h3>
+                    <plc-run-status-badge [runStatus]="run.status" />
+                  </div>
+                  <span class="plc-run-time">Updated {{ run.updated | date: 'MMM dd, yyyy HH:mm' }}</span>
+                  <div class="plc-config-counts" aria-label="Run configuration summary">
+                    <span>
+                      <i class="pi pi-wave-pulse"></i>
+                      {{ run.tracks.length }} tracks
+                    </span>
+                    <span>
+                      <i class="pi pi-sliders-h"></i>
+                      {{ moduleCount(run, ModuleType.PacketLossSimulator) }} loss models
+                    </span>
+                    <span>
+                      <i class="pi pi-cog"></i>
+                      {{ moduleCount(run, ModuleType.PLCAlgorithm) }} algorithms
+                    </span>
+                    <span>
+                      <i class="pi pi-chart-bar"></i>
+                      {{ moduleCount(run, ModuleType.OutputAnalyser) }} analysers
+                    </span>
+                  </div>
+                </div>
+                <p-button
+                  label="View progress"
+                  icon="pi pi-arrow-right"
+                  iconPos="right"
+                  size="small"
+                  (onClick)="openProgress(run)"
+                />
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="plc-panel-empty">
+            <i class="pi pi-check-circle"></i>
+            <h3>No active runs</h3>
+            <p>There are no experiments queued or running.</p>
+            <p-button label="Create a run" icon="pi pi-plus" size="small" routerLink="/run-configurator" />
+          </div>
+        }
+      </section>
+
+      <section class="plc-dashboard-panel plc-attention-panel">
+        <div class="plc-panel-heading">
+          <div>
+            <h2>Attention required</h2>
+            <p>Failures from the last {{ summary.recentWindowDays }} days.</p>
+          </div>
+        </div>
+
+        @if (summary.failedRuns.length) {
+          <div class="plc-attention-list">
+            @for (run of summary.failedRuns; track run.id) {
+              <article class="plc-attention-row">
+                <div>
+                  <h3>{{ run.name }}</h3>
+                  <span>Failed {{ run.updated | date: 'MMM dd, yyyy HH:mm' }}</span>
+                </div>
+                <p-button
+                  icon="pi pi-arrow-right"
+                  severity="danger"
+                  [text]="true"
+                  [rounded]="true"
+                  ariaLabel="Inspect failed run"
+                  pTooltip="Inspect run"
+                  (onClick)="openProgress(run)"
+                />
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="plc-panel-empty is-success">
+            <i class="pi pi-shield"></i>
+            <h3>No recent failures</h3>
+            <p>No runs failed in the last {{ summary.recentWindowDays }} days.</p>
+          </div>
+        }
+      </section>
+    </div>
+
+    <section class="plc-dashboard-panel plc-recent-panel">
+      <div class="plc-panel-heading">
+        <div>
+          <h2>Recent runs</h2>
+          <p>Your five most recently created experiments.</p>
+        </div>
+        <a routerLink="/backlog">View history</a>
+      </div>
+
+      @if (summary.recentRuns.length) {
+        <div class="plc-recent-list">
+          @for (run of summary.recentRuns; track run.id) {
+            <article class="plc-recent-row">
+              <div class="plc-recent-name">
+                <h3>{{ run.name }}</h3>
+                <span>{{ run.created | date: 'MMM dd, yyyy HH:mm' }}</span>
+              </div>
+              <plc-run-status-badge [runStatus]="run.status" />
+              <div class="plc-recent-config">
+                {{ run.tracks.length }} tracks · {{ moduleCount(run, ModuleType.PacketLossSimulator) }} loss models ·
+                {{ moduleCount(run, ModuleType.PLCAlgorithm) }} algorithms
+              </div>
+              <p-button
+                [label]="run.status === RunStatus.COMPLETED ? 'Analyze' : 'View progress'"
+                [icon]="run.status === RunStatus.COMPLETED ? 'pi pi-chart-bar' : 'pi pi-arrow-right'"
+                size="small"
+                [severity]="run.status === RunStatus.COMPLETED ? 'primary' : 'secondary'"
+                [outlined]="run.status !== RunStatus.COMPLETED"
+                (onClick)="openRecentRun(run)"
+              />
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="plc-panel-empty plc-first-run-empty">
+          <i class="pi pi-inbox"></i>
+          <h3>No runs yet</h3>
+          <p>Create your first testbench run to start benchmarking a PLC algorithm.</p>
+          <p-button label="Create first run" icon="pi pi-plus" routerLink="/run-configurator" />
+        </div>
+      }
+    </section>
+  }
+</div>

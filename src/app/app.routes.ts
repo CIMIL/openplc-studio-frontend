@@ -5,7 +5,11 @@ import { BacklogComponent } from './backlog/backlog.component';
 import { RunProgressComponent } from './run-progress/run-progress.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'backlog', pathMatch: 'full' },
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./dashboard/dashboard.component').then((module) => module.DashboardComponent),
+  },
   { path: 'analyzer', redirectTo: 'backlog' },
   {
     path: 'analyzer/:id',
@@ -43,5 +47,5 @@ export const routes: Routes = [
     path: 'run-progress/:id',
     component: RunProgressComponent,
   },
-  { path: '**', redirectTo: 'backlog' },
+  { path: '**', redirectTo: 'dashboard' },
 ];
