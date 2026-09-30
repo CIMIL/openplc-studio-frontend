@@ -53,6 +53,8 @@ The image deliberately does **not** proxy `/api` or `/ws`; those routes are owne
 | Tag            | Intended use                                   |
 | -------------- | ---------------------------------------------- |
 | `latest`       | Current build from `master`                    |
+| `prod`         | Production branch alias from `master`          |
+| `staging`      | Staging branch alias from `staging`            |
 | `sha-<commit>` | Immutable build for a specific source revision |
 
 Production images target **`linux/amd64`**. The [OpenPLC Studio deployment repository](https://github.com/CIMIL/openplc-studio) combines this image with the backend and supporting services.
@@ -72,6 +74,9 @@ src/app/
 
 ## Delivery
 
-A GitHub Actions workflow builds the production image on every push to `master` and publishes both `latest` and an immutable `sha-<commit>` tag to Docker Hub. The production image includes an HTTP health check and OCI image metadata.
+GitHub Actions builds on pushes to `master` and `staging`, publishes branch
+aliases plus an immutable `sha-<commit>` tag, and reports the resulting digest
+to the private infrastructure repository. The production image includes an HTTP
+health check and OCI image metadata.
 
 **Keywords:** `OpenPLC` · `PLC` · `audio codec` · `testbench` · `Angular` · `TypeScript` · `PrimeNG` · `Chart.js` · `WaveSurfer` · `WebSocket` · `Docker` · `CI/CD`
