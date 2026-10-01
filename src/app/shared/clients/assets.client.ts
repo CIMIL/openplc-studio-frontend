@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { EMPTY, expand, map, Observable, reduce } from 'rxjs';
 import { AudioTrackMetadata, AudioTrackMetadataDto } from '../interfaces/audio-track-metadata.interface';
 import {
   SortDirection,
@@ -16,11 +16,6 @@ import {
 @Injectable({ providedIn: 'root' })
 export class AssetsClient {
   public readonly api = '/api/assets';
-  private readonly headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-
   constructor(private readonly http: HttpClient) {}
 
   public uploadFiles(files: File[]): Observable<unknown> {
@@ -39,13 +34,11 @@ export class AssetsClient {
   }
 
   public getFilenames(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.api}/original-tracks`, { headers: this.headers });
+    return this.getAllTracks().pipe(map((tracks) => tracks.map((track) => track.name)));
   }
 
   public getTrackMetadata(): Observable<AudioTrackMetadata[]> {
-    return this.http
-      .get<AudioTrackMetadataDto[]>(`${this.api}/original-tracks/metadata`, { headers: this.headers })
-      .pipe(map((dtos) => dtos.map((dto) => this.mapAudioMetadata(dto))));
+    return this.getAllTracks();
   }
 
   public getTracksPage(
@@ -94,6 +87,14 @@ export class AssetsClient {
   public getTrackContentUrl(name: string, download = false): string {
     const suffix = download ? '?download=true' : '';
     return `${this.api}/tracks/${this.encodeName(name)}/content${suffix}`;
+  }
+
+  private getAllTracks(): Observable<TrackAsset[]> {
+    const pageSize = 100;
+    return this.getTracksPage(1, pageSize).pipe(
+      expand((page) => (page.page * page.pageSize < page.total ? this.getTracksPage(page.page + 1, pageSize) : EMPTY)),
+      reduce((tracks, page) => [...tracks, ...page.items], [] as TrackAsset[]),
+    );
   }
 
   private encodeName(name: string): string {

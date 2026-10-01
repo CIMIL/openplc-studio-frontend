@@ -53,6 +53,28 @@ describe('AssetsClient', () => {
     expect(result.items[0].usage.blocking).toBe(1);
   });
 
+  it('loads filenames from every page of the consolidated tracks endpoint', () => {
+    let result: string[] | undefined;
+    client.getFilenames().subscribe((filenames) => (result = filenames));
+
+    const firstRequest = http.expectOne(
+      (candidate) => candidate.url === '/api/assets/tracks' && candidate.params.get('page') === '1',
+    );
+    firstRequest.flush({ items: [trackDto], total: 101, page: 1, page_size: 100 });
+
+    const secondRequest = http.expectOne(
+      (candidate) => candidate.url === '/api/assets/tracks' && candidate.params.get('page') === '2',
+    );
+    secondRequest.flush({
+      items: [{ ...trackDto, name: 'second.wav' }],
+      total: 101,
+      page: 2,
+      page_size: 100,
+    });
+
+    expect(result).toEqual(['test track.wav', 'second.wav']);
+  });
+
   it('URL-encodes content names and sends bulk delete bodies', () => {
     expect(client.getTrackContentUrl('test track.wav', true)).toBe(
       '/api/assets/tracks/test%20track.wav/content?download=true',
