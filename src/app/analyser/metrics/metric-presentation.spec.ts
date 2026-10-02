@@ -147,6 +147,26 @@ describe('MetricsComponent scalar metric visualization', () => {
     expect(visualization.options.scales.y.display).not.toBeFalse();
   });
 
+  it('builds WindowedPEAQ as DI and ODG time series', () => {
+    const metric = buildPresentations(
+      [
+        createMetric('WindowedPEAQCalculator-score.json', 0, [
+          [-4.25, -3],
+          [-1.5, -0.5],
+        ]),
+      ],
+      [createModule('WindowedPEAQCalculator', { peaq_mode: 'basic', intorno_length: 300 })],
+    )[0];
+    const visualization = (createComponent() as any).buildVisualization(metric, 0);
+
+    expect(visualization.kind).toBe('chart');
+    expect(visualization.data.datasets.map((dataset: any) => dataset.label)).toEqual(['DI', 'ODG']);
+    expect(visualization.data.datasets.map((dataset: any) => dataset.data)).toEqual([
+      [-4.25, -3],
+      [-1.5, -0.5],
+    ]);
+  });
+
   it('rejects malformed scalar metric values', () => {
     const metric = buildPresentations(
       [createMetric('PEAQCalculator-score.json', 0, [1])],

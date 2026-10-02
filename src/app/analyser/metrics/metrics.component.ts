@@ -19,8 +19,9 @@ import { DARK_COLORS, LIGHT_COLORS } from '../utils';
 import { buildMetricPresentations, MetricPresentation } from './metric-presentation';
 import { SpectralEnergyHeatmapComponent } from './spectral-energy-heatmap/spectral-energy-heatmap.component';
 
-const TD_METRICS = ['MSECalculator', 'MAECalculator'];
-const TD_METRICS_CHANNEL_AGNOSTIC_METRICS = ['WindowedPEAQCalculator', 'PerceptualCalculator'];
+const TD_METRICS = ['MSECalculator', 'MAECalculator', 'WindowedPEAQCalculator'];
+const TD_METRICS_CHANNEL_AGNOSTIC_METRICS = ['PerceptualCalculator'];
+const PACKET_ALIGNED_METRICS = ['WindowedPEAQCalculator', 'PerceptualCalculator'];
 const SPECTRAL_ENERGY_METRIC = 'SpectralEnergyCalculator';
 type ScalarMetricConfig = {
   label: string;
@@ -291,7 +292,7 @@ export class MetricsComponent {
     return { data, options, type: 'bar' };
   }
 
-  private initTDChart(metric: MetricRaw): Pick<ChartMetricVisualization, 'data' | 'options' | 'type'> {
+  private initTDChart(metric: MetricPresentation): Pick<ChartMetricVisualization, 'data' | 'options' | 'type'> {
     const { colorPalette, textColor, textColorSecondary, surfaceBorder } = this.getChartTheme();
     const values = Array.isArray(metric.json) ? metric.json : [];
     const channels = Array.isArray(values[0]) ? (values as number[][]) : [values as number[]];
@@ -299,7 +300,7 @@ export class MetricsComponent {
     const data: ChartData = {
       labels: Array.from({ length: channels[0]?.length ?? 0 }, (_, i) => i.toString()),
       datasets: channels.map((channel, index) => ({
-        label: this.getChannelLabel(index),
+        label: this.getTimeSeriesLabel(metric.calculatorName, index),
         data: channel,
         tension: 0.25,
         borderColor: colorPalette[index % colorPalette.length],
@@ -368,7 +369,7 @@ export class MetricsComponent {
       const fallbackIndex = this.metrics.findIndex((metric) => metric.index === visualization.metric.index);
       let chartBounds: [number, number] | null = null;
 
-      if (TD_METRICS.includes(metricName)) {
+      if (TD_METRICS.includes(metricName) && !PACKET_ALIGNED_METRICS.includes(metricName)) {
         const outputAnalyserModule = this.analysisService.resolveOutputAnalyserModuleForMetric(
           visualization.metric.name,
           fallbackIndex >= 0 ? fallbackIndex : null,
@@ -379,7 +380,7 @@ export class MetricsComponent {
         chartBounds = bounds.map((bound) =>
           Math.round((bound * this.analysisService.selectedTrackPlaybackSampleRate.value - windowLength) / hopSize + 1),
         ) as [number, number];
-      } else if (TD_METRICS_CHANNEL_AGNOSTIC_METRICS.includes(metricName)) {
+      } else if (PACKET_ALIGNED_METRICS.includes(metricName)) {
         const packetSize =
           this.analysisService.sampleMaskPacketSizes[this.analysisService.selectedSampleMaskIndex.value];
         chartBounds = bounds.map(
@@ -432,7 +433,10 @@ export class MetricsComponent {
     };
   }
 
-  private getChannelLabel(index: number): string {
+  private getTimeSeriesLabel(metricName: string, index: number): string {
+    if (metricName === 'WindowedPEAQCalculator') {
+      return ['DI', 'ODG'][index] ?? `Metric ${index + 1}`;
+    }
     return ['Left', 'Right'][index] ?? `Channel ${index + 1}`;
   }
 
