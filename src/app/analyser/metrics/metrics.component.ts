@@ -22,12 +22,20 @@ import { SpectralEnergyHeatmapComponent } from './spectral-energy-heatmap/spectr
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 const TD_METRICS_CHANNEL_AGNOSTIC_METRICS = ['WindowedPEAQCalculator', 'PerceptualCalculator'];
 const SPECTRAL_ENERGY_METRIC = 'SpectralEnergyCalculator';
-const WHOLE_TRACK_SCORE_METRICS: Record<
-  string,
-  { label: string; minimum: number; maximum: number; description: string }
-> = {
-  PLCMOSCalculator: { label: 'MOS', minimum: 1, maximum: 5, description: 'Higher is better' },
-  PESQCalculator: { label: 'MOS-LQO', minimum: -0.5, maximum: 4.5, description: 'Higher is better' },
+type ScalarMetricConfig = {
+  label: string;
+  minimum: number;
+  maximum: number;
+  description: string;
+};
+
+const SCALAR_METRICS: Record<string, ScalarMetricConfig[]> = {
+  PLCMOSCalculator: [{ label: 'MOS', minimum: 1, maximum: 5, description: 'Higher is better' }],
+  PESQCalculator: [{ label: 'MOS-LQO', minimum: -0.5, maximum: 4.5, description: 'Higher is better' }],
+  PEAQCalculator: [
+    { label: 'DI', minimum: -12, maximum: 3, description: 'Higher is better' },
+    { label: 'ODG', minimum: -4, maximum: 0, description: 'Higher is better' },
+  ],
 };
 
 type ChartMetricVisualization = {
@@ -38,9 +46,13 @@ type ChartMetricVisualization = {
   type: 'line' | 'bar';
 };
 
-type ScoreMetricVisualization = {
-  kind: 'score';
+type ScalarMetricVisualization = {
+  kind: 'scalar';
   metric: MetricPresentation;
+  scores: ScalarMetricScore[];
+};
+
+type ScalarMetricScore = {
   value: number;
   formattedValue: string;
   scoreLabel: string;
@@ -65,7 +77,7 @@ type UnsupportedMetricVisualization = {
 
 type MetricVisualization =
   | ChartMetricVisualization
-  | ScoreMetricVisualization
+  | ScalarMetricVisualization
   | SpectralMetricVisualization
   | UnsupportedMetricVisualization;
 
@@ -181,17 +193,21 @@ export class MetricsComponent {
   private buildVisualization(metric: MetricPresentation, fallbackIndex: number): MetricVisualization {
     const metricModule = metric.calculatorName;
 
-    const scoreConfig = WHOLE_TRACK_SCORE_METRICS[metricModule];
-    if (scoreConfig) {
-      const score = this.readScalarMetric(metric.json);
-      if (score === null) {
+    const scalarConfigs = SCALAR_METRICS[metricModule];
+    if (scalarConfigs) {
+      const values = this.readScalarMetrics(metric.json, scalarConfigs.length);
+      if (values === null) {
         return {
           kind: 'unsupported',
           metric,
-          message: `${metricModule} returned an invalid whole-track score.`,
+          message: `${metricModule} returned invalid scalar metric values.`,
         };
       }
-      return { kind: 'score', metric, ...this.initScoreChart(score, scoreConfig) };
+      return {
+        kind: 'scalar',
+        metric,
+        scores: values.map((value, index) => this.initScalarMetricScore(value, scalarConfigs[index])),
+      };
     }
 
     if (TD_METRICS.includes(metricModule)) {
@@ -199,9 +215,6 @@ export class MetricsComponent {
     }
     if (TD_METRICS_CHANNEL_AGNOSTIC_METRICS.includes(metricModule)) {
       return { kind: 'chart', metric, ...this.initTDCAChart(metric) };
-    }
-    if (metricModule === 'PEAQCalculator') {
-      return { kind: 'chart', metric, ...this.initPEAQChart(metric) };
     }
     if (metricModule === SPECTRAL_ENERGY_METRIC) {
       return { kind: 'spectral', metric, fallbackIndex };
@@ -214,15 +227,18 @@ export class MetricsComponent {
     };
   }
 
-  private readScalarMetric(payload: MetricRaw['json']): number | null {
-    const value = typeof payload === 'number' ? payload : payload.length === 1 ? payload[0] : null;
-    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  private readScalarMetrics(payload: MetricRaw['json'], expectedCount: number): number[] | null {
+    const values = typeof payload === 'number' ? [payload] : payload;
+    if (
+      values.length !== expectedCount ||
+      values.some((value) => typeof value !== 'number' || !Number.isFinite(value))
+    ) {
+      return null;
+    }
+    return values as number[];
   }
 
-  private initScoreChart(
-    value: number,
-    config: { label: string; minimum: number; maximum: number; description: string },
-  ): Omit<ScoreMetricVisualization, 'kind' | 'metric'> {
+  private initScalarMetricScore(value: number, config: ScalarMetricConfig): ScalarMetricScore {
     const { colorPalette, textColorSecondary, surfaceBorder } = this.getChartTheme();
     const data: ChartData = {
       labels: [config.label],
@@ -336,37 +352,6 @@ export class MetricsComponent {
       },
     };
     return { data, options, type: 'line' };
-  }
-
-  private initPEAQChart(metric: MetricRaw): Pick<ChartMetricVisualization, 'data' | 'options' | 'type'> {
-    const { colorPalette, textColorSecondary, surfaceBorder } = this.getChartTheme();
-    const values = Array.isArray(metric.json) && !Array.isArray(metric.json[0]) ? (metric.json as number[]) : [];
-
-    const data: ChartData = {
-      labels: ['DI', 'ODG'],
-      datasets: [
-        {
-          data: values,
-          borderColor: [colorPalette[0], colorPalette[1]],
-          backgroundColor: [`${colorPalette[0]}26`, `${colorPalette[1]}26`],
-          borderWidth: 1,
-        },
-      ],
-    };
-    const options: ChartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      scales: {
-        x: { ticks: { autoSkip: true, maxTicksLimit: 8, color: textColorSecondary }, grid: { color: surfaceBorder } },
-        y: { beginAtZero: true, min: -4, ticks: { color: textColorSecondary }, grid: { color: surfaceBorder } },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: { intersect: false, mode: 'index' as const },
-      },
-    };
-    return { data, options, type: 'bar' };
   }
 
   private applyWaveformBounds(bounds: number[]): void {

@@ -106,12 +106,12 @@ describe('MetricsComponent scalar metric visualization', () => {
     )[0];
     const visualization = (createComponent() as any).buildVisualization(metric, 0);
 
-    expect(visualization.kind).toBe('score');
-    expect(visualization.formattedValue).toBe('3.875');
-    expect(visualization.scoreLabel).toBe('MOS');
-    expect(visualization.rangeLabel).toBe('1–5');
-    expect(visualization.options.scales.x.min).toBe(1);
-    expect(visualization.options.scales.x.max).toBe(5);
+    expect(visualization.kind).toBe('scalar');
+    expect(visualization.scores[0].formattedValue).toBe('3.875');
+    expect(visualization.scores[0].scoreLabel).toBe('MOS');
+    expect(visualization.scores[0].rangeLabel).toBe('1–5');
+    expect(visualization.scores[0].options.scales.x.min).toBe(1);
+    expect(visualization.scores[0].options.scales.x.max).toBe(5);
   });
 
   it('builds a PESQ score card on the MOS-LQO scale', () => {
@@ -121,16 +121,29 @@ describe('MetricsComponent scalar metric visualization', () => {
     )[0];
     const visualization = (createComponent() as any).buildVisualization(metric, 0);
 
-    expect(visualization.kind).toBe('score');
-    expect(visualization.formattedValue).toBe('4.125');
-    expect(visualization.scoreLabel).toBe('MOS-LQO');
-    expect(visualization.rangeLabel).toBe('-0.5–4.5');
+    expect(visualization.kind).toBe('scalar');
+    expect(visualization.scores[0].formattedValue).toBe('4.125');
+    expect(visualization.scores[0].scoreLabel).toBe('MOS-LQO');
+    expect(visualization.scores[0].rangeLabel).toBe('-0.5–4.5');
   });
 
-  it('rejects a malformed whole-track score', () => {
+  it('builds PEAQ DI and ODG score cards', () => {
     const metric = buildPresentations(
-      [createMetric('PLCMOSCalculator-score.json', 0, [1, 2])],
-      [createModule('PLCMOSCalculator', { plcmos_model: '2', request_intrusive: true })],
+      [createMetric('PEAQCalculator-score.json', 0, [0.125, -1.75])],
+      [createModule('PEAQCalculator', { peaq_mode: 'basic' })],
+    )[0];
+    const visualization = (createComponent() as any).buildVisualization(metric, 0);
+
+    expect(visualization.kind).toBe('scalar');
+    expect(visualization.scores.map((score: any) => score.scoreLabel)).toEqual(['DI', 'ODG']);
+    expect(visualization.scores.map((score: any) => score.formattedValue)).toEqual(['0.125', '-1.75']);
+    expect(visualization.scores.map((score: any) => score.rangeLabel)).toEqual(['-12–3', '-4–0']);
+  });
+
+  it('rejects malformed scalar metric values', () => {
+    const metric = buildPresentations(
+      [createMetric('PEAQCalculator-score.json', 0, [1])],
+      [createModule('PEAQCalculator', { peaq_mode: 'basic' })],
     )[0];
     const visualization = (createComponent() as any).buildVisualization(metric, 0);
 
