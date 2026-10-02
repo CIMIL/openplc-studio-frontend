@@ -110,8 +110,8 @@ describe('MetricsComponent scalar metric visualization', () => {
     expect(visualization.scores[0].formattedValue).toBe('3.875');
     expect(visualization.scores[0].scoreLabel).toBe('MOS');
     expect(visualization.scores[0].rangeLabel).toBe('1–5');
-    expect(visualization.scores[0].options.scales.x.min).toBe(1);
-    expect(visualization.scores[0].options.scales.x.max).toBe(5);
+    expect(visualization.options.scales.x.min).toBe(1);
+    expect(visualization.options.scales.x.max).toBe(5);
   });
 
   it('builds a PESQ score card on the MOS-LQO scale', () => {
@@ -127,7 +127,7 @@ describe('MetricsComponent scalar metric visualization', () => {
     expect(visualization.scores[0].rangeLabel).toBe('-0.5–4.5');
   });
 
-  it('builds PEAQ DI and ODG score cards', () => {
+  it('builds a combined, colour-coded PEAQ DI and ODG graph', () => {
     const metric = buildPresentations(
       [createMetric('PEAQCalculator-score.json', 0, [0.125, -1.75])],
       [createModule('PEAQCalculator', { peaq_mode: 'basic' })],
@@ -138,6 +138,13 @@ describe('MetricsComponent scalar metric visualization', () => {
     expect(visualization.scores.map((score: any) => score.scoreLabel)).toEqual(['DI', 'ODG']);
     expect(visualization.scores.map((score: any) => score.formattedValue)).toEqual(['0.125', '-1.75']);
     expect(visualization.scores.map((score: any) => score.rangeLabel)).toEqual(['-12–3', '-4–0']);
+    expect(visualization.data.labels).toEqual(['DI', 'ODG']);
+    expect(visualization.data.datasets[0].data).toEqual([0.125, -1.75]);
+    expect(visualization.data.datasets[0].backgroundColor[0]).not.toBe(
+      visualization.data.datasets[0].backgroundColor[1],
+    );
+    expect(visualization.options.indexAxis).toBe('y');
+    expect(visualization.options.scales.y.display).not.toBeFalse();
   });
 
   it('rejects malformed scalar metric values', () => {

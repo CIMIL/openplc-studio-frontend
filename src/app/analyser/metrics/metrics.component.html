@@ -47,26 +47,33 @@
 
           @switch (visualization.kind) {
             @case ('scalar') {
-              @for (score of visualization.scores; track score.scoreLabel) {
-                <div class="plc-metric-score" [attr.data-scalar-metric-index]="visualization.metric.index">
-                  <div class="plc-metric-score-value">
-                    <span class="plc-metric-score-number">{{ score.formattedValue }}</span>
-                    <span class="plc-metric-score-label">{{ score.scoreLabel }}</span>
-                  </div>
-                  <div class="plc-metric-score-context">
-                    Expected range {{ score.rangeLabel }} · {{ score.description }}
-                  </div>
-                  <div class="plc-metric-score-chart">
-                    <p-chart
-                      [type]="score.type"
-                      [data]="score.data"
-                      [options]="score.options"
-                      [width]="'100%'"
-                      [height]="'110px'"
-                    />
-                  </div>
+              <div class="plc-metric-score" [attr.data-scalar-metric-index]="visualization.metric.index">
+                <div class="plc-metric-score-values">
+                  @for (score of visualization.scores; track score.scoreLabel) {
+                    <div class="plc-metric-score-value">
+                      <span class="plc-metric-score-number">{{ score.formattedValue }}</span>
+                      <span class="plc-metric-score-label">{{ score.scoreLabel }}</span>
+                    </div>
+                  }
                 </div>
-              }
+                <div class="plc-metric-score-context">
+                  @for (score of visualization.scores; track score.scoreLabel) {
+                    <div>Expected range {{ score.rangeLabel }} · {{ score.description }}</div>
+                  }
+                </div>
+                <div
+                  class="plc-metric-score-chart"
+                  [class.plc-metric-score-chart-multiple]="visualization.scores.length !== 1"
+                >
+                  <p-chart
+                    [type]="visualization.type"
+                    [data]="visualization.data"
+                    [options]="visualization.options"
+                    [width]="'100%'"
+                    [height]="visualization.scores.length === 1 ? '110px' : '180px'"
+                  />
+                </div>
+              </div>
             }
             @case ('chart') {
               <div [attr.data-standard-metric-index]="visualization.metric.index">

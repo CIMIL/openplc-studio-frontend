@@ -50,6 +50,9 @@ type ScalarMetricVisualization = {
   kind: 'scalar';
   metric: MetricPresentation;
   scores: ScalarMetricScore[];
+  data: ChartData;
+  options: ChartOptions;
+  type: 'bar';
 };
 
 type ScalarMetricScore = {
@@ -58,9 +61,6 @@ type ScalarMetricScore = {
   scoreLabel: string;
   rangeLabel: string;
   description: string;
-  data: ChartData;
-  options: ChartOptions;
-  type: 'bar';
 };
 
 type SpectralMetricVisualization = {
@@ -207,6 +207,7 @@ export class MetricsComponent {
         kind: 'scalar',
         metric,
         scores: values.map((value, index) => this.initScalarMetricScore(value, scalarConfigs[index])),
+        ...this.initScalarMetricChart(values, scalarConfigs),
       };
     }
 
@@ -239,14 +240,29 @@ export class MetricsComponent {
   }
 
   private initScalarMetricScore(value: number, config: ScalarMetricConfig): ScalarMetricScore {
-    const { colorPalette, textColorSecondary, surfaceBorder } = this.getChartTheme();
+    return {
+      value,
+      formattedValue: Number(value.toFixed(3)).toString(),
+      scoreLabel: config.label,
+      rangeLabel: `${config.minimum}–${config.maximum}`,
+      description: config.description,
+    };
+  }
+
+  private initScalarMetricChart(
+    values: number[],
+    configs: ScalarMetricConfig[],
+  ): Pick<ScalarMetricVisualization, 'data' | 'options' | 'type'> {
+    const { colorPalette, textColor, textColorSecondary, surfaceBorder } = this.getChartTheme();
+    const colors = values.map((_, index) => colorPalette[index % colorPalette.length]);
     const data: ChartData = {
-      labels: [config.label],
+      labels: configs.map((config) => config.label),
       datasets: [
         {
-          data: [value],
-          borderColor: colorPalette[0],
-          backgroundColor: `${colorPalette[0]}66`,
+          label: 'Value',
+          data: values,
+          borderColor: colors,
+          backgroundColor: colors.map((color) => `${color}66`),
           borderWidth: 1,
           borderRadius: 8,
           barThickness: 24,
@@ -260,29 +276,19 @@ export class MetricsComponent {
       animation: false,
       scales: {
         x: {
-          min: config.minimum,
-          max: config.maximum,
+          min: Math.min(...configs.map((config) => config.minimum)),
+          max: Math.max(...configs.map((config) => config.maximum)),
           ticks: { color: textColorSecondary },
           grid: { color: surfaceBorder },
         },
-        y: { display: false, grid: { display: false } },
+        y: { ticks: { color: textColor }, grid: { display: false } },
       },
       plugins: {
         legend: { display: false },
         tooltip: { intersect: false, mode: 'nearest' as const },
       },
     };
-
-    return {
-      value,
-      formattedValue: Number(value.toFixed(3)).toString(),
-      scoreLabel: config.label,
-      rangeLabel: `${config.minimum}–${config.maximum}`,
-      description: config.description,
-      data,
-      options,
-      type: 'bar',
-    };
+    return { data, options, type: 'bar' };
   }
 
   private initTDChart(metric: MetricRaw): Pick<ChartMetricVisualization, 'data' | 'options' | 'type'> {
