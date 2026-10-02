@@ -29,6 +29,22 @@
     </p-inputgroup>
   </div>
 </div>
+@if (packetSizeCompatibilityErrors.length) {
+  <div
+    class="max-w-4xl mx-auto mt-3 flex flex-col gap-1 p-3 rounded bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 text-sm"
+    role="alert"
+  >
+    @for (
+      error of packetSizeCompatibilityErrors;
+      track error.algorithmLocation + error.simulatorName + error.packetSize
+    ) {
+      <div>
+        <i class="pi pi-exclamation-triangle mr-1"></i>
+        {{ error.message }}
+      </div>
+    }
+  </div>
+}
 <p-stepper [value]="1">
   <p-step-item [value]="1">
     <p-step>Audio Track</p-step>

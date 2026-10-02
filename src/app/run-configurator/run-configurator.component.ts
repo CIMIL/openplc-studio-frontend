@@ -19,6 +19,10 @@ import { ModuleParameter, ModuleParameterSpec } from '../shared/interfaces/modul
 import { InputGroupModule } from 'primeng/inputgroup';
 import { RunConfiguratorService } from './run-configurator.service';
 import { ModulesClient } from '../shared/clients/modules.client';
+import {
+  packetSizeCompatibilityErrors,
+  PacketSizeCompatibilityError,
+} from './module-configurator/packet-size-compatibility';
 
 @Component({
   selector: 'plc-run-configurator',
@@ -76,6 +80,10 @@ export class RunConfiguratorComponent implements OnInit {
     this.audioTracksConfig = tracks;
   }
 
+  get packetSizeCompatibilityErrors(): PacketSizeCompatibilityError[] {
+    return packetSizeCompatibilityErrors(this.packetLossSimulatorConfig, this.PLCAlgorithmConfig);
+  }
+
   get isConfigurationValid(): boolean {
     if (
       this.audioTracksConfig.length < 1 ||
@@ -86,7 +94,7 @@ export class RunConfiguratorComponent implements OnInit {
       return false;
     }
 
-    return true;
+    return this.packetSizeCompatibilityErrors.length === 0;
   }
 
   ngOnInit(): void {}
@@ -237,25 +245,46 @@ export class RunConfiguratorComponent implements OnInit {
                 [ModuleType.CrossfadeSettings]: this.modulesClient.getModuleTypes(ModuleType.CrossfadeSettings),
               }).pipe(
                 tap((specs: any) => {
+                  const hydrateModule = (module: any, moduleType: ModuleType): any => {
+                    const spec = (specs[moduleType] ?? []).find((candidate: any) => candidate.name === module.name);
+                    if (!spec) return module;
+                    return {
+                      ...spec,
+                      settings: spec.settings.map((specParam: any) => {
+                        const configParam = module.settings.find((parameter: any) => parameter.name === specParam.name);
+                        let value = configParam?.value ?? specParam.default;
+                        if (
+                          specParam.type === 'dict_str_list_PLCSettings' &&
+                          value &&
+                          typeof value === 'object' &&
+                          !Array.isArray(value)
+                        ) {
+                          value = Object.fromEntries(
+                            Object.entries(value).map(([channel, modules]) => [
+                              channel,
+                              Array.isArray(modules)
+                                ? modules.map((nestedModule) => hydrateModule(nestedModule, ModuleType.PLCAlgorithm))
+                                : modules,
+                            ]),
+                          );
+                        } else if (specParam.type === 'list_CrossfadeSettings' && Array.isArray(value)) {
+                          value = value.map((nestedModule) =>
+                            hydrateModule(nestedModule, ModuleType.CrossfadeSettings),
+                          );
+                        }
+                        return {
+                          ...specParam,
+                          value,
+                          availableValues: specParam.values,
+                        };
+                      }),
+                    };
+                  };
+
                   const enriched: any = {};
                   for (const moduleType of Object.values(ModuleType)) {
                     const configModules = validatedConfig.modules[moduleType] ?? [];
-                    const availableSpecs = specs[moduleType] ?? [];
-                    enriched[moduleType] = configModules.map((m: any) => {
-                      const spec = availableSpecs.find((s: any) => s.name === m.name);
-                      if (!spec) return m;
-                      return {
-                        ...spec,
-                        settings: spec.settings.map((specParam: any) => {
-                          const configParam = m.settings.find((p: any) => p.name === specParam.name);
-                          return {
-                            ...specParam,
-                            value: configParam?.value ?? specParam.default,
-                            availableValues: specParam.values,
-                          };
-                        }),
-                      };
-                    });
+                    enriched[moduleType] = configModules.map((module: any) => hydrateModule(module, moduleType));
                   }
                   this.runName = validatedConfig.name;
                   this.audioTracksConfig = validatedConfig.tracks;

@@ -50,6 +50,31 @@ describe('RunConfiguratorComponent submission', () => {
     component.audioTracksConfig = createdRun.tracks;
   });
 
+  it('disables creation when a PLC algorithm does not support the simulator packet size', () => {
+    runConfigService.modulesSelection.next({
+      ...runConfigService.modulesSelection.value,
+      [ModuleType.PacketLossSimulator]: [
+        { id: 0, name: 'BinomialPLS', settings: [{ name: 'packet_size', value: 32 }] },
+      ],
+      [ModuleType.PLCAlgorithm]: [{ id: 0, name: 'VermaPLC', settings: [], supported_packet_sizes: [128] }],
+    });
+
+    expect(component.isConfigurationValid).toBeFalse();
+    expect(component.packetSizeCompatibilityErrors[0].message).toContain('Set BinomialPLS packet_size');
+  });
+
+  it('enables creation after the packet size is corrected', () => {
+    runConfigService.modulesSelection.next({
+      ...runConfigService.modulesSelection.value,
+      [ModuleType.PacketLossSimulator]: [
+        { id: 0, name: 'BinomialPLS', settings: [{ name: 'packet_size', value: 128 }] },
+      ],
+      [ModuleType.PLCAlgorithm]: [{ id: 0, name: 'VermaPLC', settings: [], supported_packet_sizes: [128] }],
+    });
+
+    expect(component.isConfigurationValid).toBeTrue();
+  });
+
   it('saves without executing', () => {
     runsClient.createRun.and.returnValue(of(createdRun));
 

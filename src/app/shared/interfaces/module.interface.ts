@@ -6,4 +6,5 @@ export interface Module {
   node_ids?: string[];
   settings: (ModuleParameter | ModuleParameterSpec)[];
   constraints?: ModuleConstraint[];
+  supported_packet_sizes?: number[] | null;
 }
