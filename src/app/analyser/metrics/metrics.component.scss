@@ -1,0 +1,49 @@
+:host {
+  display: block;
+}
+
+.plc-metric-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 48rem;
+  margin: 1.5rem auto 0;
+  padding: 1.25rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  background: var(--p-content-background);
+}
+
+.plc-metric-score-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.plc-metric-score-number {
+  color: var(--p-text-color);
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.plc-metric-score-label,
+.plc-metric-score-context {
+  color: var(--p-text-muted-color);
+}
+
+.plc-metric-score-label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.plc-metric-score-context {
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.plc-metric-score-chart {
+  width: 100%;
+  height: 110px;
+}

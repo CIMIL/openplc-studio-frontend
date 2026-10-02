@@ -37,15 +37,16 @@ export const DARK_COLORS = [
   '#fef08a', // Very light yellow
 ];
 
-export function decodeJson(file: FileDescription): FileDescriptionWithJson {
-  let json = null;
+export function decodeJson<T>(file: FileDescription): FileDescriptionWithJson<T> {
+  let json: T;
   try {
     const decoder = new TextDecoder('utf-8');
     const text = decoder.decode(file.data);
-    json = JSON.parse(text);
+    json = JSON.parse(text) as T;
   } catch (e) {
     console.error('Failed to parse file as JSON:', file.name, e);
+    throw e;
   }
   const { data, text, ...rest } = file;
-  return { ...file, json };
+  return { ...rest, json };
 }

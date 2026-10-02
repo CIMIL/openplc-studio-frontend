@@ -16,7 +16,13 @@ import {
   tap,
 } from 'rxjs';
 import { FileDescription, parseTar } from 'tarparser';
-import { AnalysisService, FileDescriptionWithJson, MetricRaw, ReconstructedTrackRaw } from './analysis.service';
+import {
+  AnalysisService,
+  FileDescriptionWithJson,
+  JsonPayload,
+  MetricRaw,
+  ReconstructedTrackRaw,
+} from './analysis.service';
 import { FormsModule } from '@angular/forms';
 import { CascadeSelectModule } from 'primeng/cascadeselect';
 import { ActivatedRoute } from '@angular/router';
@@ -71,7 +77,7 @@ export class AnalyserComponent {
 
   public reconstructedTracks: ReconstructedTrackRaw[] = [];
 
-  public sampleMasks: FileDescriptionWithJson[] = [];
+  public sampleMasks: FileDescriptionWithJson<number[]>[] = [];
 
   public runFetchDone = new ReplaySubject<void>();
 
@@ -148,12 +154,12 @@ export class AnalyserComponent {
         take(1),
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        map((files: FileDescription[]) => files.map(decodeJson)),
+        map((files: FileDescription[]) => files.map((file) => decodeJson<number[]>(file))),
       ),
       this.originalTracksFetchDone.asObservable(),
     ])
       .pipe(
-        map(([files]: [FileDescriptionWithJson[], void]) =>
+        map(([files]: [FileDescriptionWithJson<number[]>[], void]) =>
           files.map(({ json, ...rest }, index: number) => ({
             json: json.filter(
               (value: any) =>
@@ -166,10 +172,10 @@ export class AnalyserComponent {
             ...rest,
           })),
         ),
-        tap((files: FileDescriptionWithJson[]) => (this.sampleMasks = files)),
-        tap((files: FileDescriptionWithJson[]) => {
+        tap((files: FileDescriptionWithJson<number[]>[]) => (this.sampleMasks = files)),
+        tap((files: FileDescriptionWithJson<number[]>[]) => {
           const sampleMaskMaps: Record<string, number[]> = {};
-          files.forEach((m: FileDescriptionWithJson) => {
+          files.forEach((m: FileDescriptionWithJson<number[]>) => {
             sampleMaskMaps[m.name.split('.')[0]] = m.json;
           });
           this.analysisService.sampleMaskMaps.next(sampleMaskMaps);
@@ -248,12 +254,14 @@ export class AnalyserComponent {
         take(1),
         switchMap((buf) => from(parseTar(buf))),
         switchMap((files: FileDescription[]) => of(files.filter((f) => f.name !== '././@PaxHeader'))),
-        map((files: FileDescription[]) => files.map(decodeJson)),
+        map((files: FileDescription[]) => files.map((file) => decodeJson<JsonPayload>(file))),
       ),
       this.reconstructedTracksFetchDone.asObservable(),
     ])
       .pipe(
-        map(([parsedFiles]: [FileDescriptionWithJson[], void]) => parsedFiles.map((m, i) => ({ ...m, index: i }))),
+        map(([parsedFiles]: [FileDescriptionWithJson<JsonPayload>[], void]) =>
+          parsedFiles.map((m, i) => ({ ...m, index: i })),
+        ),
         tap((parsedFiles: MetricRaw[]) => {
           const trackGroups = this.analysisService.trackGroups.value;
           const trackToMetricsMap: Record<string, MetricRaw[]> = {};

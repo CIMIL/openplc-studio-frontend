@@ -22,6 +22,13 @@ import { SpectralEnergyHeatmapComponent } from './spectral-energy-heatmap/spectr
 const TD_METRICS = ['MSECalculator', 'MAECalculator'];
 const TD_METRICS_CHANNEL_AGNOSTIC_METRICS = ['WindowedPEAQCalculator', 'PerceptualCalculator'];
 const SPECTRAL_ENERGY_METRIC = 'SpectralEnergyCalculator';
+const WHOLE_TRACK_SCORE_METRICS: Record<
+  string,
+  { label: string; minimum: number; maximum: number; description: string }
+> = {
+  PLCMOSCalculator: { label: 'MOS', minimum: 1, maximum: 5, description: 'Higher is better' },
+  PESQCalculator: { label: 'MOS-LQO', minimum: -0.5, maximum: 4.5, description: 'Higher is better' },
+};
 
 type ChartMetricVisualization = {
   kind: 'chart';
@@ -29,6 +36,19 @@ type ChartMetricVisualization = {
   data: ChartData;
   options: ChartOptions;
   type: 'line' | 'bar';
+};
+
+type ScoreMetricVisualization = {
+  kind: 'score';
+  metric: MetricPresentation;
+  value: number;
+  formattedValue: string;
+  scoreLabel: string;
+  rangeLabel: string;
+  description: string;
+  data: ChartData;
+  options: ChartOptions;
+  type: 'bar';
 };
 
 type SpectralMetricVisualization = {
@@ -43,7 +63,11 @@ type UnsupportedMetricVisualization = {
   message: string;
 };
 
-type MetricVisualization = ChartMetricVisualization | SpectralMetricVisualization | UnsupportedMetricVisualization;
+type MetricVisualization =
+  | ChartMetricVisualization
+  | ScoreMetricVisualization
+  | SpectralMetricVisualization
+  | UnsupportedMetricVisualization;
 
 @Component({
   selector: 'plc-metrics',
@@ -59,6 +83,7 @@ type MetricVisualization = ChartMetricVisualization | SpectralMetricVisualizatio
     SpectralEnergyHeatmapComponent,
   ],
   templateUrl: './metrics.component.html',
+  styleUrl: './metrics.component.scss',
 })
 export class MetricsComponent {
   public metrics: MetricRaw[] = [];
@@ -156,6 +181,19 @@ export class MetricsComponent {
   private buildVisualization(metric: MetricPresentation, fallbackIndex: number): MetricVisualization {
     const metricModule = metric.calculatorName;
 
+    const scoreConfig = WHOLE_TRACK_SCORE_METRICS[metricModule];
+    if (scoreConfig) {
+      const score = this.readScalarMetric(metric.json);
+      if (score === null) {
+        return {
+          kind: 'unsupported',
+          metric,
+          message: `${metricModule} returned an invalid whole-track score.`,
+        };
+      }
+      return { kind: 'score', metric, ...this.initScoreChart(score, scoreConfig) };
+    }
+
     if (TD_METRICS.includes(metricModule)) {
       return { kind: 'chart', metric, ...this.initTDChart(metric) };
     }
@@ -176,13 +214,65 @@ export class MetricsComponent {
     };
   }
 
+  private readScalarMetric(payload: MetricRaw['json']): number | null {
+    const value = typeof payload === 'number' ? payload : payload.length === 1 ? payload[0] : null;
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
+  private initScoreChart(
+    value: number,
+    config: { label: string; minimum: number; maximum: number; description: string },
+  ): Omit<ScoreMetricVisualization, 'kind' | 'metric'> {
+    const { colorPalette, textColorSecondary, surfaceBorder } = this.getChartTheme();
+    const data: ChartData = {
+      labels: [config.label],
+      datasets: [
+        {
+          data: [value],
+          borderColor: colorPalette[0],
+          backgroundColor: `${colorPalette[0]}66`,
+          borderWidth: 1,
+          borderRadius: 8,
+          barThickness: 24,
+        },
+      ],
+    };
+    const options: ChartOptions = {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          min: config.minimum,
+          max: config.maximum,
+          ticks: { color: textColorSecondary },
+          grid: { color: surfaceBorder },
+        },
+        y: { display: false, grid: { display: false } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { intersect: false, mode: 'nearest' as const },
+      },
+    };
+
+    return {
+      value,
+      formattedValue: Number(value.toFixed(3)).toString(),
+      scoreLabel: config.label,
+      rangeLabel: `${config.minimum}–${config.maximum}`,
+      description: config.description,
+      data,
+      options,
+      type: 'bar',
+    };
+  }
+
   private initTDChart(metric: MetricRaw): Pick<ChartMetricVisualization, 'data' | 'options' | 'type'> {
-    const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
-    const documentStyle = getComputedStyle(document.documentElement);
-    const textColor = documentStyle.getPropertyValue('--p-text-color');
-    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
-    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
-    const channels = Array.isArray(metric.json[0]) ? (metric.json as number[][]) : [metric.json as number[]];
+    const { colorPalette, textColor, textColorSecondary, surfaceBorder } = this.getChartTheme();
+    const values = Array.isArray(metric.json) ? metric.json : [];
+    const channels = Array.isArray(values[0]) ? (values as number[][]) : [values as number[]];
 
     const data: ChartData = {
       labels: Array.from({ length: channels[0]?.length ?? 0 }, (_, i) => i.toString()),
@@ -214,18 +304,15 @@ export class MetricsComponent {
   }
 
   private initTDCAChart(metric: MetricRaw): Pick<ChartMetricVisualization, 'data' | 'options' | 'type'> {
-    const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
-    const documentStyle = getComputedStyle(document.documentElement);
-    const textColor = documentStyle.getPropertyValue('--p-text-color');
-    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
-    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
+    const { colorPalette, textColor, textColorSecondary, surfaceBorder } = this.getChartTheme();
+    const values = Array.isArray(metric.json) && !Array.isArray(metric.json[0]) ? (metric.json as number[]) : [];
 
     const data: ChartData = {
-      labels: Array.from({ length: metric.json.length }, (_, i) => i.toString()),
+      labels: Array.from({ length: values.length }, (_, i) => i.toString()),
       datasets: [
         {
           label: 'Linked channels',
-          data: metric.json,
+          data: values,
           tension: 0.25,
           borderColor: colorPalette[0],
           backgroundColor: `${colorPalette[0]}26`,
@@ -252,16 +339,14 @@ export class MetricsComponent {
   }
 
   private initPEAQChart(metric: MetricRaw): Pick<ChartMetricVisualization, 'data' | 'options' | 'type'> {
-    const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
-    const documentStyle = getComputedStyle(document.documentElement);
-    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
-    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
+    const { colorPalette, textColorSecondary, surfaceBorder } = this.getChartTheme();
+    const values = Array.isArray(metric.json) && !Array.isArray(metric.json[0]) ? (metric.json as number[]) : [];
 
     const data: ChartData = {
       labels: ['DI', 'ODG'],
       datasets: [
         {
-          data: metric.json,
+          data: values,
           borderColor: [colorPalette[0], colorPalette[1]],
           backgroundColor: [`${colorPalette[0]}26`, `${colorPalette[1]}26`],
           borderWidth: 1,
@@ -339,6 +424,21 @@ export class MetricsComponent {
     if (this.latestWaveformBounds.length === 2) {
       this.applyWaveformBounds(this.latestWaveformBounds);
     }
+  }
+
+  private getChartTheme(): {
+    colorPalette: string[];
+    textColor: string;
+    textColorSecondary: string;
+    surfaceBorder: string;
+  } {
+    const documentStyle = getComputedStyle(document.documentElement);
+    return {
+      colorPalette: this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS,
+      textColor: documentStyle.getPropertyValue('--p-text-color'),
+      textColorSecondary: documentStyle.getPropertyValue('--p-text-muted-color'),
+      surfaceBorder: documentStyle.getPropertyValue('--p-content-border-color'),
+    };
   }
 
   private getChannelLabel(index: number): string {

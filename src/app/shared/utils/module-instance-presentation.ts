@@ -55,7 +55,10 @@ export function extractWorkerName(assetKey: string): string {
   const extensionIndex = leaf.lastIndexOf('.');
   const stem = extensionIndex > 0 ? leaf.slice(0, extensionIndex) : leaf;
   const separatorIndex = stem.lastIndexOf('-');
-  return separatorIndex > 0 ? stem.slice(0, separatorIndex) : stem;
+  if (separatorIndex <= 0) return stem;
+
+  const isNegativeNumericHash = stem[separatorIndex - 1] === '-' && /^\d+$/.test(stem.slice(separatorIndex + 1));
+  return stem.slice(0, isNegativeNumericHash ? separatorIndex - 1 : separatorIndex);
 }
 
 function buildDiscriminators(modules: Module[]): string[] {

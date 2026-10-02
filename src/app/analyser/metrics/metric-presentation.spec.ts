@@ -1,7 +1,7 @@
 import { ModuleType } from '../../shared/enums/module-type.enum';
 import { Module } from '../../shared/interfaces/module.interface';
 import { BehaviorSubject } from 'rxjs';
-import { AnalysisService, MetricRaw } from '../analysis.service';
+import { AnalysisService, JsonPayload, MetricRaw } from '../analysis.service';
 import { metricLabelTransform } from './metric-label.pipe';
 import { buildMetricPresentations } from './metric-presentation';
 import { MetricsComponent } from './metrics.component';
@@ -87,7 +87,54 @@ describe('metric presentation', () => {
 describe('metricLabelTransform', () => {
   it('removes the asset path, extension, and final hash suffix', () => {
     expect(metricLabelTransform('track/mask/plc/MSECalculator-38759128395632.json')).toBe('MSECalculator');
+    expect(metricLabelTransform('track/mask/plc/MSECalculator--38759128395632.json')).toBe('MSECalculator');
     expect(metricLabelTransform('track/mask/plc/Custom-Metric-123.json')).toBe('Custom-Metric');
+  });
+});
+
+describe('MetricsComponent scalar metric visualization', () => {
+  function createComponent(): MetricsComponent {
+    return new MetricsComponent(new AnalysisService(), {
+      isDarkMode: new BehaviorSubject(false),
+    } as any);
+  }
+
+  it('builds a PLCMOS score card on the MOS scale', () => {
+    const metric = buildPresentations(
+      [createMetric('PLCMOSCalculator-score.json', 0, 3.875)],
+      [createModule('PLCMOSCalculator', { plcmos_model: '2', request_intrusive: true })],
+    )[0];
+    const visualization = (createComponent() as any).buildVisualization(metric, 0);
+
+    expect(visualization.kind).toBe('score');
+    expect(visualization.formattedValue).toBe('3.875');
+    expect(visualization.scoreLabel).toBe('MOS');
+    expect(visualization.rangeLabel).toBe('1–5');
+    expect(visualization.options.scales.x.min).toBe(1);
+    expect(visualization.options.scales.x.max).toBe(5);
+  });
+
+  it('builds a PESQ score card on the MOS-LQO scale', () => {
+    const metric = buildPresentations(
+      [createMetric('PESQCalculator-score.json', 0, 4.1254)],
+      [createModule('PESQCalculator', { pesq_mode: 'wb' })],
+    )[0];
+    const visualization = (createComponent() as any).buildVisualization(metric, 0);
+
+    expect(visualization.kind).toBe('score');
+    expect(visualization.formattedValue).toBe('4.125');
+    expect(visualization.scoreLabel).toBe('MOS-LQO');
+    expect(visualization.rangeLabel).toBe('-0.5–4.5');
+  });
+
+  it('rejects a malformed whole-track score', () => {
+    const metric = buildPresentations(
+      [createMetric('PLCMOSCalculator-score.json', 0, [1, 2])],
+      [createModule('PLCMOSCalculator', { plcmos_model: '2', request_intrusive: true })],
+    )[0];
+    const visualization = (createComponent() as any).buildVisualization(metric, 0);
+
+    expect(visualization.kind).toBe('unsupported');
   });
 });
 
@@ -112,14 +159,14 @@ function buildPresentations(metrics: MetricRaw[], modules: Module[]) {
   return buildMetricPresentations(metrics, modules, (_metric, fallbackIndex) => modules[fallbackIndex] ?? null);
 }
 
-function createMetric(fileName: string, index: number): MetricRaw {
+function createMetric(fileName: string, index: number, json: JsonPayload = []): MetricRaw {
   return {
     name: `track/mask/plc/${fileName}`,
     type: 'file',
     size: 0,
     attrs: { mode: '', uid: 0, gid: 0, mtime: 0, user: '', group: '' },
     index,
-    json: [],
+    json,
   };
 }
 

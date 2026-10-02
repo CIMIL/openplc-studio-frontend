@@ -5,10 +5,13 @@ import { FileDescription } from 'tarparser';
 import { Module } from '../shared/interfaces/module.interface';
 import { ModuleParameter } from '../shared/interfaces/module-parameters.interface';
 import { ModuleType } from '../shared/enums/module-type.enum';
+import { extractWorkerName } from '../shared/utils/module-instance-presentation';
 
-export type FileDescriptionWithJson = Omit<FileDescription, 'data' | 'text'> & { json: any[] };
+export type JsonPayload = number | number[] | number[][];
 
-export type MetricRaw = FileDescriptionWithJson & { index: number };
+export type FileDescriptionWithJson<T = JsonPayload> = Omit<FileDescription, 'data' | 'text'> & { json: T };
+
+export type MetricRaw = FileDescriptionWithJson<JsonPayload> & { index: number };
 
 export type ReconstructedTrackRaw = FileDescription & { index: number };
 
@@ -81,7 +84,7 @@ export class AnalysisService {
       return modules.length === 1 ? modules[0] : null;
     }
 
-    const workerName = this.extractWorkerName(assetKey);
+    const workerName = extractWorkerName(assetKey);
     const byName = modules.filter((module) => module.name === workerName);
     if (byName.length === 1) {
       return byName[0];
@@ -127,11 +130,6 @@ export class AnalysisService {
       sampleMaskKey: segments[1] ?? '',
       plcKey: segments[2] ?? '',
     };
-  }
-
-  private extractWorkerName(assetKey: string): string {
-    const separatorIndex = assetKey.lastIndexOf('-');
-    return separatorIndex >= 0 ? assetKey.slice(0, separatorIndex) : assetKey;
   }
 
   public setAudioBlob(blob: Blob | null): void {
