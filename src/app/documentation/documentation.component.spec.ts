@@ -1,7 +1,7 @@
 import { ElementRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
-import { BehaviorSubject } from 'rxjs';
+import { DefaultUrlSerializer, NavigationEnd, Router, UrlCreationOptions, UrlTree } from '@angular/router';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { ThemeService } from '../shared/services/theme.service';
 import { DocumentationComponent } from './documentation.component';
 
@@ -9,23 +9,58 @@ class ThemeServiceStub {
   public readonly isDarkMode = new BehaviorSubject<boolean>(false);
 }
 
+class RouterStub {
+  public url = '/docs';
+  public readonly events = new Subject<NavigationEnd>();
+  public readonly navigateByUrl = jasmine.createSpy('navigateByUrl').and.callFake((url: string | UrlTree) => {
+    this.url = typeof url === 'string' ? url : this.serializeUrl(url);
+    this.events.next(new NavigationEnd(1, this.url, this.url));
+    return Promise.resolve(true);
+  });
+
+  private readonly serializer = new DefaultUrlSerializer();
+
+  public parseUrl(url: string): UrlTree {
+    return this.serializer.parse(url);
+  }
+
+  public serializeUrl(url: UrlTree): string {
+    return this.serializer.serialize(url);
+  }
+
+  public createUrlTree(commands: any[], options: UrlCreationOptions = {}): UrlTree {
+    const path = commands
+      .map((command) => String(command).replace(/^\/+|\/+$/g, ''))
+      .filter(Boolean)
+      .join('/');
+    const tree = this.serializer.parse(`/${path}`);
+    tree.fragment = options.fragment ?? null;
+    return tree;
+  }
+}
+
+function documentationWindow(pathname = '/api/plctestbench-docs/', hash = ''): Window {
+  const target = new EventTarget() as Window;
+  Object.defineProperties(target, {
+    location: { value: { pathname, hash }, configurable: true },
+    postMessage: { value: jasmine.createSpy('postMessage') },
+  });
+  return target;
+}
+
 describe('DocumentationComponent', () => {
   let themeService: ThemeServiceStub;
+  let router: RouterStub;
   let component: DocumentationComponent;
-  let postMessage: jasmine.Spy;
-  let queryParamMap: BehaviorSubject<ParamMap>;
-  let fragment: BehaviorSubject<string | null>;
-  let activatedRoute: Pick<ActivatedRoute, 'queryParamMap' | 'fragment'>;
+  let frameWindow: Window;
 
   beforeEach(() => {
     themeService = new ThemeServiceStub();
-    queryParamMap = new BehaviorSubject(convertToParamMap({}));
-    fragment = new BehaviorSubject<string | null>(null);
-    activatedRoute = { queryParamMap, fragment };
+    router = new RouterStub();
     const sanitizer = { bypassSecurityTrustResourceUrl: (url: string) => url };
-    component = new DocumentationComponent(themeService as any, activatedRoute as ActivatedRoute, sanitizer as any);
-    postMessage = jasmine.createSpy('postMessage');
-    component.documentationFrame = new ElementRef({ contentWindow: { postMessage } } as unknown as HTMLIFrameElement);
+    component = new DocumentationComponent(themeService as any, router as unknown as Router, sanitizer as any);
+    frameWindow = documentationWindow();
+    component.documentationFrame = new ElementRef({ contentWindow: frameWindow } as unknown as HTMLIFrameElement);
   });
 
   it('renders the backend documentation endpoint with an accessible title', async () => {
@@ -33,7 +68,7 @@ describe('DocumentationComponent', () => {
       imports: [DocumentationComponent],
       providers: [
         { provide: ThemeService, useValue: themeService },
-        { provide: ActivatedRoute, useValue: activatedRoute },
+        { provide: Router, useValue: router },
       ],
     }).compileComponents();
 
@@ -46,16 +81,16 @@ describe('DocumentationComponent', () => {
     fixture.destroy();
   });
 
-  it('uses the backend documentation endpoint and synchronizes the initial theme', () => {
+  it('maps a nested application URL to the matching documentation page', () => {
+    router.url = '/docs/guides/models-and-metrics';
+
     component.ngOnInit();
 
-    expect(component.documentationUrl).toBe('/api/plctestbench-docs/');
-    expect(postMessage).toHaveBeenCalledWith({ type: 'plctestbench-theme', theme: 'light' }, window.location.origin);
+    expect(component.documentationUrl).toBe('/api/plctestbench-docs/guides/models-and-metrics/');
   });
 
-  it('opens a requested API reference section', () => {
-    queryParamMap.next(convertToParamMap({ path: 'reference/plc_algorithm/' }));
-    fragment.next('plctestbench.plc_algorithm.BurgPLC');
+  it('maps API reference fragments to the embedded documentation URL', () => {
+    router.url = '/docs/reference/plc_algorithm#plctestbench.plc_algorithm.BurgPLC';
 
     component.ngOnInit();
 
@@ -64,17 +99,32 @@ describe('DocumentationComponent', () => {
     );
   });
 
-  it('ignores unsafe documentation paths and fragments', () => {
-    queryParamMap.next(convertToParamMap({ path: '../health' }));
-    fragment.next('invalid fragment');
+  it('updates the application URL when the iframe navigates', () => {
+    frameWindow = documentationWindow('/api/plctestbench-docs/guides/models-and-metrics/');
+    component.documentationFrame = new ElementRef({ contentWindow: frameWindow } as unknown as HTMLIFrameElement);
 
-    component.ngOnInit();
+    component.onFrameLoad();
 
-    expect(component.documentationUrl).toBe('/api/plctestbench-docs/');
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/docs/guides/models-and-metrics');
+  });
+
+  it('updates the application fragment when the iframe hash changes', () => {
+    frameWindow = documentationWindow('/api/plctestbench-docs/reference/plc_algorithm/');
+    component.documentationFrame = new ElementRef({ contentWindow: frameWindow } as unknown as HTMLIFrameElement);
+    component.onFrameLoad();
+    router.navigateByUrl.calls.reset();
+
+    (frameWindow.location as unknown as { hash: string }).hash = '#plctestbench.plc_algorithm.BurgPLC';
+    frameWindow.dispatchEvent(new Event('hashchange'));
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith(
+      '/docs/reference/plc_algorithm#plctestbench.plc_algorithm.BurgPLC',
+    );
   });
 
   it('synchronizes theme changes and iframe reloads', () => {
     component.ngOnInit();
+    const postMessage = frameWindow.postMessage as jasmine.Spy;
     postMessage.calls.reset();
 
     themeService.isDarkMode.next(true);
@@ -89,6 +139,7 @@ describe('DocumentationComponent', () => {
   it('stops synchronizing after destruction', () => {
     component.ngOnInit();
     component.ngOnDestroy();
+    const postMessage = frameWindow.postMessage as jasmine.Spy;
     postMessage.calls.reset();
 
     themeService.isDarkMode.next(true);

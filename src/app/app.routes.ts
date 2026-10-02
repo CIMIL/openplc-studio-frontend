@@ -4,6 +4,9 @@ import { RunConfiguratorComponent } from './run-configurator/run-configurator.co
 import { BacklogComponent } from './backlog/backlog.component';
 import { RunProgressComponent } from './run-progress/run-progress.component';
 
+const loadDocumentationComponent = () =>
+  import('./documentation/documentation.component').then((module) => module.DocumentationComponent);
+
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   {
@@ -25,8 +28,10 @@ export const routes: Routes = [
   },
   {
     path: 'docs',
-    loadComponent: () =>
-      import('./documentation/documentation.component').then((module) => module.DocumentationComponent),
+    children: [
+      { path: '', pathMatch: 'full', loadComponent: loadDocumentationComponent },
+      { path: '**', loadComponent: loadDocumentationComponent },
+    ],
   },
   {
     path: 'settings',

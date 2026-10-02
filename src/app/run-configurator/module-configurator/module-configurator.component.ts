@@ -611,8 +611,7 @@ export class ModuleConfiguratorComponent implements OnInit {
 
   public openDocumentation(module: ModuleWithCount): void {
     const target = moduleDocumentationTarget(this.moduleType, module.name);
-    void this.router.navigate(['/docs'], {
-      queryParams: { path: target.path },
+    void this.router.navigate(['/docs', ...target.path.split('/').filter(Boolean)], {
       fragment: target.fragment,
     });
   }

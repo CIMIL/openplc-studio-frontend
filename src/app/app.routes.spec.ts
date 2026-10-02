@@ -11,10 +11,13 @@ describe('application routes', () => {
     expect(fallback?.redirectTo).toBe('dashboard');
   });
 
-  it('lazy-loads the package documentation page', () => {
+  it('lazy-loads the package documentation page and all nested documentation paths', () => {
     const documentation = routes.find((route) => route.path === 'docs');
+    const documentationHome = documentation?.children?.find((route) => route.path === '');
+    const documentationPages = documentation?.children?.find((route) => route.path === '**');
 
-    expect(documentation?.loadComponent).toBeDefined();
+    expect(documentationHome?.loadComponent).toBeDefined();
+    expect(documentationPages?.loadComponent).toBeDefined();
   });
 
   it('defines nested settings pages and keeps the legacy assets redirect', () => {

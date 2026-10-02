@@ -1,7 +1,7 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
-import { combineLatest, Subject, takeUntil } from 'rxjs';
+import { NavigationEnd, PRIMARY_OUTLET, Router } from '@angular/router';
+import { filter, startWith, Subject, takeUntil } from 'rxjs';
 import { ThemeService } from '../shared/services/theme.service';
 
 interface DocumentationThemeMessage {
@@ -16,8 +16,6 @@ interface DocumentationThemeMessage {
 })
 export class DocumentationComponent implements OnInit, OnDestroy {
   private static readonly documentationBaseUrl = '/api/plctestbench-docs/';
-  private static readonly referencePathPattern = /^reference\/[a-z0-9_]+\/$/;
-  private static readonly referenceFragmentPattern = /^plctestbench\.[A-Za-z0-9_.-]+$/;
 
   public documentationUrl = DocumentationComponent.documentationBaseUrl;
   public documentationResourceUrl: SafeResourceUrl;
@@ -26,10 +24,12 @@ export class DocumentationComponent implements OnInit, OnDestroy {
   public documentationFrame?: ElementRef<HTMLIFrameElement>;
 
   private readonly destroy$ = new Subject<void>();
+  private frameWindow?: Window;
+  private readonly onFrameLocationChange = (): void => this.syncBrowserUrlFromFrame();
 
   constructor(
     private readonly themeService: ThemeService,
-    private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly sanitizer: DomSanitizer,
   ) {
     this.documentationResourceUrl = this.trustDocumentationUrl(this.documentationUrl);
@@ -37,31 +37,61 @@ export class DocumentationComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.themeService.isDarkMode.pipe(takeUntil(this.destroy$)).subscribe(() => this.syncTheme());
-    combineLatest([this.route.queryParamMap, this.route.fragment])
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(([queryParams, fragment]) => {
-        this.documentationUrl = this.buildDocumentationUrl(queryParams.get('path'), fragment);
-        this.documentationResourceUrl = this.trustDocumentationUrl(this.documentationUrl);
-      });
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        startWith(null),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => this.syncFrameUrlFromBrowser());
   }
 
   public onFrameLoad(): void {
+    this.frameWindow?.removeEventListener('hashchange', this.onFrameLocationChange);
+    this.frameWindow = this.documentationFrame?.nativeElement.contentWindow ?? undefined;
+    this.frameWindow?.addEventListener('hashchange', this.onFrameLocationChange);
     this.syncTheme();
+    this.syncBrowserUrlFromFrame();
   }
 
   public ngOnDestroy(): void {
+    this.frameWindow?.removeEventListener('hashchange', this.onFrameLocationChange);
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  private buildDocumentationUrl(path: string | null, fragment: string | null): string {
-    if (!path || !DocumentationComponent.referencePathPattern.test(path)) {
-      return DocumentationComponent.documentationBaseUrl;
-    }
+  private syncFrameUrlFromBrowser(): void {
+    const urlTree = this.router.parseUrl(this.router.url);
+    const primarySegments = urlTree.root.children[PRIMARY_OUTLET]?.segments ?? [];
+    const documentationSegments = primarySegments.slice(1);
+    const documentationPath = documentationSegments.length
+      ? `${documentationSegments.map((segment) => encodeURIComponent(segment.path)).join('/')}/`
+      : '';
+    const fragment = urlTree.fragment ? `#${encodeURIComponent(urlTree.fragment)}` : '';
+    const nextUrl = `${DocumentationComponent.documentationBaseUrl}${documentationPath}${fragment}`;
 
-    const safeFragment =
-      fragment && DocumentationComponent.referenceFragmentPattern.test(fragment) ? `#${fragment}` : '';
-    return `${DocumentationComponent.documentationBaseUrl}${path}${safeFragment}`;
+    if (nextUrl === this.documentationUrl) return;
+
+    this.documentationUrl = nextUrl;
+    this.documentationResourceUrl = this.trustDocumentationUrl(nextUrl);
+  }
+
+  private syncBrowserUrlFromFrame(): void {
+    const frameLocation = this.frameWindow?.location;
+    if (!frameLocation?.pathname.startsWith(DocumentationComponent.documentationBaseUrl)) return;
+
+    const relativePath = frameLocation.pathname
+      .slice(DocumentationComponent.documentationBaseUrl.length)
+      .replace(/^\/+|\/+$/g, '');
+    const pathSegments = relativePath ? relativePath.split('/').map((segment) => decodeURIComponent(segment)) : [];
+    const fragment = frameLocation.hash ? decodeURIComponent(frameLocation.hash.slice(1)) : undefined;
+
+    // The iframe has already completed this navigation. Recording its URL before
+    // updating Angular avoids assigning [src] again and loading the page twice.
+    this.documentationUrl = `${frameLocation.pathname}${frameLocation.hash}`;
+    const targetUrl = this.router.serializeUrl(this.router.createUrlTree(['/docs', ...pathSegments], { fragment }));
+
+    if (targetUrl !== this.router.url) void this.router.navigateByUrl(targetUrl);
   }
 
   private trustDocumentationUrl(url: string): SafeResourceUrl {
