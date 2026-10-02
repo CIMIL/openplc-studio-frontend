@@ -210,11 +210,15 @@ export class WavesurferWrapperComponent implements OnDestroy {
       decodeObservable,
       this.analysisService.packetBurstsLeftBounds.asObservable(),
       this.analysisService.packetBurstsRightBounds.asObservable(),
-      this.analysisService.selectedSampleMaskIndex.asObservable(),
+      this.analysisService.selectedTrackPlayback.asObservable(),
+      this.analysisService.sampleMaskMaps.asObservable(),
     ])
       .pipe(
-        tap(([blank, leftBounds, rightBounds, sampleMaskIndex]) => {
+        tap(([_decode, leftBounds, rightBounds, selectedTrack, _sampleMaskMaps]) => {
           lens.clearRegions();
+
+          const sampleMaskIndex = this.analysisService.resolveSampleMaskIndexForTrack(selectedTrack);
+          if (sampleMaskIndex < 0) return;
 
           const left = leftBounds?.[sampleMaskIndex] || [];
           const right = rightBounds?.[sampleMaskIndex] || [];

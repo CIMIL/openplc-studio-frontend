@@ -26,7 +26,12 @@ describe('track selection tree', () => {
 
     expect(tree[0].label).toBe('song.wav');
     expect(tree[0].children[0]).toEqual(
-      jasmine.objectContaining({ kind: 'original-audio', label: 'Original track', contextLabel: 'song.wav' }),
+      jasmine.objectContaining({
+        kind: 'original-audio',
+        label: 'Original track',
+        contextLabel: 'song.wav',
+        sampleMaskKey: null,
+      }),
     );
     expect(tree[0].children[1]).toEqual(
       jasmine.objectContaining({ kind: 'packet-loss', label: 'BinomialPLS', discriminator: 'per=0.1' }),
@@ -44,6 +49,7 @@ describe('track selection tree', () => {
         discriminator: 'fade_in=4',
         contextLabel: 'song.wav · BinomialPLS · per=0.1',
         trackIndex: 0,
+        sampleMaskKey: 'BinomialPLS-first',
         packetLossModuleIndex: 0,
         plcModuleIndex: 0,
       }),

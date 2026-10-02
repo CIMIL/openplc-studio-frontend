@@ -21,6 +21,7 @@ export type TrackSelectionLeaf = {
   discriminator: string | null;
   contextLabel: string;
   trackIndex: number;
+  sampleMaskKey: string | null;
   packetLossModuleIndex: number | null;
   plcModuleIndex: number | null;
 };
@@ -69,6 +70,7 @@ export function buildTrackSelectionTree(
         discriminator: null,
         contextLabel: getFileName(originalTrack.name),
         trackIndex,
+        sampleMaskKey: null,
         packetLossModuleIndex: null,
         plcModuleIndex: null,
       },
@@ -85,6 +87,7 @@ export function buildTrackSelectionTree(
           discriminator: plc.discriminator,
           contextLabel: `${getFileName(originalTrack.name)} · ${packetLoss.displayName}`,
           trackIndex,
+          sampleMaskKey: packetLossKey,
           packetLossModuleIndex: packetLoss.moduleIndex,
           plcModuleIndex: plc.moduleIndex,
         };

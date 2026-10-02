@@ -17,6 +17,12 @@ export type ReconstructedTrackRaw = FileDescription & { index: number };
 
 export type TrackGroup = { originalTrack: string; reconstructedTracks: { name: string }[] };
 
+export type PlaybackTrack = {
+  name: string;
+  kind?: 'original-audio' | 'reconstructed-track';
+  sampleMaskKey?: string | null;
+};
+
 type RunModuleType = Exclude<ModuleType, ModuleType.CrossfadeSettings>;
 
 @Injectable({
@@ -43,11 +49,11 @@ export class AnalysisService {
 
   public originalTrackSampleRates = new BehaviorSubject<number[]>([]);
 
-  public selectedSampleMaskIndex = new BehaviorSubject<number>(0);
+  public selectedSampleMaskIndex = new BehaviorSubject<number>(-1);
 
   public selectedPacketBounds = new BehaviorSubject<number[]>([]);
 
-  public selectedTrackPlayback = new BehaviorSubject<{ name: string } | null>(null);
+  public selectedTrackPlayback = new BehaviorSubject<PlaybackTrack | null>(null);
 
   public selectedTrackPlaybackSampleRate = new BehaviorSubject<number>(-1);
 
@@ -132,6 +138,11 @@ export class AnalysisService {
     };
   }
 
+  public resolveSampleMaskIndexForTrack(track: PlaybackTrack | null): number {
+    if (track?.kind !== 'reconstructed-track' || !track.sampleMaskKey) return -1;
+    return Object.keys(this.sampleMaskMaps.value ?? {}).indexOf(track.sampleMaskKey);
+  }
+
   public setAudioBlob(blob: Blob | null): void {
     this.currentAudioBlobSubject.next(blob);
   }
@@ -194,7 +205,7 @@ export class AnalysisService {
     this.packetBurstsLeftBounds.next([]);
     this.packetBurstsRightBounds.next([]);
     this.originalTrackSampleRates.next([]);
-    this.selectedSampleMaskIndex.next(0);
+    this.selectedSampleMaskIndex.next(-1);
     this.selectedPacketBounds.next([]);
     this.selectedTrackPlayback.next(null);
     this.selectedTrackPlaybackSampleRate.next(-1);

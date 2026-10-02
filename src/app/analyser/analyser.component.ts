@@ -21,6 +21,7 @@ import {
   FileDescriptionWithJson,
   JsonPayload,
   MetricRaw,
+  PlaybackTrack,
   ReconstructedTrackRaw,
 } from './analysis.service';
 import { FormsModule } from '@angular/forms';
@@ -352,7 +353,7 @@ export class AnalyserComponent {
     ].filter((module): module is FocusedRunModule => module !== null);
   }
 
-  public onTrackChange(track: { name: string } | null): void {
+  public onTrackChange(track: PlaybackTrack | null): void {
     if (!track?.name) {
       return;
     }
@@ -368,15 +369,11 @@ export class AnalyserComponent {
     const trackData = this.analysisService.trackMaps.value[track.name];
     this.analysisService.selectedTrackPlaybackSampleRate.next(extractSampleRateFromWavHeader(trackData));
 
+    this.analysisService.selectedSampleMaskIndex.next(this.analysisService.resolveSampleMaskIndexForTrack(track));
+
     const audioBuffer = new Uint8Array(trackData);
     const blob = new Blob([audioBuffer], { type: 'audio/wave' });
     this.analysisService.setAudioBlob(blob);
-
-    if (trackNameSplit.length > 1) {
-      const sampleMaskName = trackNameSplit[1];
-      const sampleMaskIndex = Object.keys(this.analysisService.sampleMaskMaps.value ?? {}).indexOf(sampleMaskName);
-      this.analysisService.selectedSampleMaskIndex.next(sampleMaskIndex);
-    }
   }
 
   public openPanel(value: AccordionPanels): void {
