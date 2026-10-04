@@ -30,20 +30,22 @@ describe('RunProgressComponent', () => {
   let fixture: ComponentFixture<RunProgressComponent>;
   let runsClient: jasmine.SpyObj<RunsClient>;
   let messageService: jasmine.SpyObj<MessageService>;
+  let router: jasmine.SpyObj<Router>;
   const progress$ = new Subject<any>();
   const completion$ = new Subject<any>();
 
   beforeEach(async () => {
-    runsClient = jasmine.createSpyObj<RunsClient>('RunsClient', ['getRun', 'executeRun']);
+    runsClient = jasmine.createSpyObj<RunsClient>('RunsClient', ['getRun', 'executeRun', 'retryRun']);
     runsClient.getRun.and.returnValue(of(run));
     runsClient.executeRun.and.returnValue(of({ ...run, status: RunStatus.QUEUED }));
     messageService = jasmine.createSpyObj<MessageService>('MessageService', ['add']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
       imports: [RunProgressComponent],
       providers: [
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'run-1' } } } },
-        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
+        { provide: Router, useValue: router },
         { provide: RunsClient, useValue: runsClient },
         { provide: MessageService, useValue: messageService },
         {
@@ -127,6 +129,28 @@ describe('RunProgressComponent', () => {
     expect(runsClient.executeRun).toHaveBeenCalledOnceWith(run.id);
     expect(component.run?.status).toBe(RunStatus.QUEUED);
     expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ summary: 'Queued' }));
+  });
+
+  it('creates and opens a new attempt for a failed run', () => {
+    const retriedRun = { ...run, id: 'run-2', status: RunStatus.QUEUED };
+    component.run = { ...run, status: RunStatus.FAILED };
+    runsClient.retryRun.and.returnValue(of(retriedRun));
+
+    component.onRetry();
+
+    expect(runsClient.retryRun).toHaveBeenCalledOnceWith(run.id);
+    expect(router.navigate).toHaveBeenCalledWith(['/run-progress', retriedRun.id]);
+    expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ summary: 'Retry queued' }));
+  });
+
+  it('opens the failed run in the configurator for adjustment', () => {
+    component.run = { ...run, status: RunStatus.FAILED };
+
+    component.onAdjustAndRetry();
+
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/run-configurator'], {
+      queryParams: { retryRunId: run.id },
+    });
   });
 
   it('moves queued runs to running when progress arrives', () => {

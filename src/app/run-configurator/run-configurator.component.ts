@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { ModuleConfiguratorComponent, ModuleWithCount } from './module-configurator/module-configurator.component';
 import { ModuleType } from '../shared/enums/module-type.enum';
+import { RunStatus } from '../shared/enums/run-status.enum';
 import { StepperModule } from 'primeng/stepper';
 import { ButtonModule } from 'primeng/button';
 import { CommonModule } from '@angular/common';
@@ -14,7 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { catchError, finalize, forkJoin, of, switchMap, tap } from 'rxjs';
 import { AudioTrackPickerComponent } from './audio-track-picker/audio-track-picker.component';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ModuleParameter, ModuleParameterSpec } from '../shared/interfaces/module-parameters.interface';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { RunConfiguratorService } from './run-configurator.service';
@@ -45,6 +46,7 @@ export class RunConfiguratorComponent implements OnInit {
 
   public runName: string = this.generateRandomRunName();
   public submitting = false;
+  public retrySourceLoading = false;
 
   private _audioTracksConfig: string[] = [];
 
@@ -54,6 +56,7 @@ export class RunConfiguratorComponent implements OnInit {
     private readonly messageService: MessageService,
     private readonly router: Router,
     public runConfigService: RunConfiguratorService,
+    private readonly route?: ActivatedRoute,
   ) {}
 
   get packetLossSimulatorConfig(): ModuleWithCount[] {
@@ -97,7 +100,43 @@ export class RunConfiguratorComponent implements OnInit {
     return this.packetSizeCompatibilityErrors.length === 0;
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    const retryRunId = this.route?.snapshot.queryParamMap?.get('retryRunId');
+    if (!retryRunId) return;
+
+    this.retrySourceLoading = true;
+    this.runConfigService.resetModuleSelection();
+    this.audioTracksConfig = [];
+    this.runsClient
+      .getRun(retryRunId)
+      .pipe(finalize(() => (this.retrySourceLoading = false)))
+      .subscribe({
+        next: (run) => {
+          if (run.status !== RunStatus.FAILED) {
+            this.showRetryLoadError('Only failed runs can be adjusted and retried.');
+            return;
+          }
+          this.preloadConfiguration(
+            {
+              name: `${run.name} (retry)`,
+              tracks: [...run.tracks],
+              modules: Object.fromEntries(
+                Object.entries(run.modules).map(([type, modules]) => [
+                  type,
+                  modules.map((module) => ({
+                    name: module.name,
+                    settings: module.settings.map((setting) => ({ ...setting })),
+                  })),
+                ]),
+              ),
+            },
+            'Retry configuration loaded',
+            'Could not load retry',
+          );
+        },
+        error: () => this.showRetryLoadError('The failed run could not be loaded.'),
+      });
+  }
 
   private isModuleArray(val: unknown): val is Module[] {
     return Array.isArray(val) && val.every((v) => v && typeof v === 'object' && 'name' in v && 'settings' in v);
@@ -234,79 +273,7 @@ export class RunConfiguratorComponent implements OnInit {
     reader.onload = () => {
       try {
         const config = JSON.parse(reader.result as string);
-        this.runsClient
-          .validateRunConfig(config)
-          .pipe(
-            switchMap((validatedConfig: any) =>
-              forkJoin({
-                [ModuleType.PacketLossSimulator]: this.modulesClient.getModuleTypes(ModuleType.PacketLossSimulator),
-                [ModuleType.PLCAlgorithm]: this.modulesClient.getModuleTypes(ModuleType.PLCAlgorithm),
-                [ModuleType.OutputAnalyser]: this.modulesClient.getModuleTypes(ModuleType.OutputAnalyser),
-                [ModuleType.CrossfadeSettings]: this.modulesClient.getModuleTypes(ModuleType.CrossfadeSettings),
-              }).pipe(
-                tap((specs: any) => {
-                  const hydrateModule = (module: any, moduleType: ModuleType): any => {
-                    const spec = (specs[moduleType] ?? []).find((candidate: any) => candidate.name === module.name);
-                    if (!spec) return module;
-                    return {
-                      ...spec,
-                      settings: spec.settings.map((specParam: any) => {
-                        const configParam = module.settings.find((parameter: any) => parameter.name === specParam.name);
-                        let value = configParam?.value ?? specParam.default;
-                        if (
-                          specParam.type === 'dict_str_list_PLCSettings' &&
-                          value &&
-                          typeof value === 'object' &&
-                          !Array.isArray(value)
-                        ) {
-                          value = Object.fromEntries(
-                            Object.entries(value).map(([channel, modules]) => [
-                              channel,
-                              Array.isArray(modules)
-                                ? modules.map((nestedModule) => hydrateModule(nestedModule, ModuleType.PLCAlgorithm))
-                                : modules,
-                            ]),
-                          );
-                        } else if (specParam.type === 'list_CrossfadeSettings' && Array.isArray(value)) {
-                          value = value.map((nestedModule) =>
-                            hydrateModule(nestedModule, ModuleType.CrossfadeSettings),
-                          );
-                        }
-                        return {
-                          ...specParam,
-                          value,
-                          availableValues: specParam.values,
-                        };
-                      }),
-                    };
-                  };
-
-                  const enriched: any = {};
-                  for (const moduleType of Object.values(ModuleType)) {
-                    const configModules = validatedConfig.modules[moduleType] ?? [];
-                    enriched[moduleType] = configModules.map((module: any) => hydrateModule(module, moduleType));
-                  }
-                  this.runName = validatedConfig.name;
-                  this.audioTracksConfig = validatedConfig.tracks;
-                  this.runConfigService.preloadConfig({ ...validatedConfig, modules: enriched });
-                  this.messageService.add({
-                    severity: 'success',
-                    summary: 'Config loaded',
-                    detail: `Configuration "${validatedConfig.name}" loaded successfully`,
-                  });
-                }),
-              ),
-            ),
-          )
-          .subscribe({
-            error: () => {
-              this.messageService.add({
-                severity: 'error',
-                summary: 'Invalid config',
-                detail: 'The configuration file is invalid or contains unknown modules',
-              });
-            },
-          });
+        this.preloadConfiguration(config, `Configuration "${config.name}" loaded successfully`);
       } catch {
         this.messageService.add({
           severity: 'error',
@@ -316,5 +283,80 @@ export class RunConfiguratorComponent implements OnInit {
       }
     };
     reader.readAsText(file);
+  }
+
+  private preloadConfiguration(
+    config: { name: string; tracks: string[]; modules: Record<string, Module[]> },
+    successDetail: string,
+    errorSummary = 'Invalid config',
+  ): void {
+    this.runsClient
+      .validateRunConfig(config)
+      .pipe(
+        switchMap((validatedConfig: any) =>
+          forkJoin({
+            [ModuleType.PacketLossSimulator]: this.modulesClient.getModuleTypes(ModuleType.PacketLossSimulator),
+            [ModuleType.PLCAlgorithm]: this.modulesClient.getModuleTypes(ModuleType.PLCAlgorithm),
+            [ModuleType.OutputAnalyser]: this.modulesClient.getModuleTypes(ModuleType.OutputAnalyser),
+            [ModuleType.CrossfadeSettings]: this.modulesClient.getModuleTypes(ModuleType.CrossfadeSettings),
+          }).pipe(
+            tap((specs: any) => {
+              const hydrateModule = (module: any, moduleType: ModuleType): any => {
+                const spec = (specs[moduleType] ?? []).find((candidate: any) => candidate.name === module.name);
+                if (!spec) return module;
+                return {
+                  ...spec,
+                  settings: spec.settings.map((specParam: any) => {
+                    const configParam = module.settings.find((parameter: any) => parameter.name === specParam.name);
+                    let value = configParam?.value ?? specParam.default;
+                    if (
+                      specParam.type === 'dict_str_list_PLCSettings' &&
+                      value &&
+                      typeof value === 'object' &&
+                      !Array.isArray(value)
+                    ) {
+                      value = Object.fromEntries(
+                        Object.entries(value).map(([channel, modules]) => [
+                          channel,
+                          Array.isArray(modules)
+                            ? modules.map((nestedModule) => hydrateModule(nestedModule, ModuleType.PLCAlgorithm))
+                            : modules,
+                        ]),
+                      );
+                    } else if (specParam.type === 'list_CrossfadeSettings' && Array.isArray(value)) {
+                      value = value.map((nestedModule) => hydrateModule(nestedModule, ModuleType.CrossfadeSettings));
+                    }
+                    return { ...specParam, value, availableValues: specParam.values };
+                  }),
+                };
+              };
+
+              const enriched: any = {};
+              for (const moduleType of Object.values(ModuleType)) {
+                const configModules = validatedConfig.modules[moduleType] ?? [];
+                enriched[moduleType] = configModules.map((module: any) => hydrateModule(module, moduleType));
+              }
+              this.runName = validatedConfig.name;
+              this.audioTracksConfig = validatedConfig.tracks;
+              this.runConfigService.preloadConfig({ ...validatedConfig, modules: enriched });
+              this.messageService.add({ severity: 'success', summary: 'Config loaded', detail: successDetail });
+            }),
+          ),
+        ),
+      )
+      .subscribe({
+        error: () =>
+          this.messageService.add({
+            severity: 'error',
+            summary: errorSummary,
+            detail: 'The configuration is invalid or contains unknown modules.',
+          }),
+      });
+  }
+
+  private showRetryLoadError(detail: string): void {
+    this.runConfigService.resetModuleSelection();
+    this.audioTracksConfig = [];
+    this.messageService.add({ severity: 'error', summary: 'Could not load retry', detail });
   }
 }

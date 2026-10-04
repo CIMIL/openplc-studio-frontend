@@ -180,6 +180,15 @@ export class BacklogComponent implements OnInit, OnDestroy {
     return run.status === RunStatus.CREATED || run.status === RunStatus.COMPLETED || run.status === RunStatus.FAILED;
   }
 
+  public isRunRetryable(run: Run): boolean {
+    return run.status === RunStatus.FAILED;
+  }
+
+  public onAdjustAndRetry(run: Run): void {
+    if (!this.isRunRetryable(run)) return;
+    this.router.navigate(['/run-configurator'], { queryParams: { retryRunId: run.id } });
+  }
+
   public onDelete(run: Run): void {
     if (!this.isRunDeletable(run) || this.deletingRunId !== null) {
       return;

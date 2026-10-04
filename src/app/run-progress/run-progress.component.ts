@@ -57,6 +57,7 @@ export class RunProgressComponent implements OnInit, OnDestroy {
   public focusedModule: FocusedRunModule | null = null;
   public focusedTrackIndex: number | null = null;
   public executing = false;
+  public retrying = false;
 
   private runId = '';
   private readonly progressByNodeId = new Map<string, NodeProgress>();
@@ -111,6 +112,15 @@ export class RunProgressComponent implements OnInit, OnDestroy {
 
   public get canExecute(): boolean {
     return this.run?.status === RunStatus.CREATED;
+  }
+
+  public get canRetry(): boolean {
+    return this.run?.status === RunStatus.FAILED;
+  }
+
+  public onAdjustAndRetry(): void {
+    if (!this.canRetry) return;
+    this.router.navigate(['/run-configurator'], { queryParams: { retryRunId: this.runId } });
   }
 
   public getNodeProgress(node: ProgressTreeNode): DisplayProgress {
@@ -178,6 +188,45 @@ export class RunProgressComponent implements OnInit, OnDestroy {
 
   public onGoToAnalysis(): void {
     this.router.navigate(['/analyzer', this.runId]);
+  }
+
+  public onRetry(): void {
+    if (!this.canRetry || this.retrying) return;
+
+    this.retrying = true;
+    this.runsClient
+      .retryRun(this.runId)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => (this.retrying = false)),
+      )
+      .subscribe({
+        next: (run) => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Retry queued',
+            detail: `Run ${run.name} was queued for execution`,
+          });
+          this.router.navigate(['/run-progress', run.id]);
+        },
+        error: (error) => {
+          const savedRunId = error.error?.detail?.run_id;
+          if (savedRunId) {
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'Retry saved',
+              detail: 'The retry was saved but could not be queued.',
+            });
+            this.router.navigate(['/run-progress', savedRunId]);
+            return;
+          }
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Could not retry run',
+            detail: error.error?.detail ?? 'Please try again.',
+          });
+        },
+      });
   }
 
   public onExecute(): void {

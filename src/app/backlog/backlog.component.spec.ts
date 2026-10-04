@@ -77,6 +77,16 @@ describe('BacklogComponent run deletion', () => {
     expect(router.navigate).toHaveBeenCalledOnceWith(['analyzer', completedRun.id]);
   });
 
+  it('opens a failed run in the configurator for adjustment', () => {
+    const failedRun = { ...completedRun, status: RunStatus.FAILED };
+
+    component.onAdjustAndRetry(failedRun);
+
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/run-configurator'], {
+      queryParams: { retryRunId: failedRun.id },
+    });
+  });
+
   it('allows deletion for deferred or finished runs', () => {
     expect(component.isRunDeletable(completedRun)).toBeTrue();
     expect(component.isRunDeletable({ ...completedRun, status: RunStatus.FAILED })).toBeTrue();

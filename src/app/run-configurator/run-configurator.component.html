@@ -13,8 +13,8 @@
         size="large"
         class="create-run-button"
         (onClick)="createRun(false)"
-        [disabled]="!isConfigurationValid || submitting"
-        [loading]="submitting"
+        [disabled]="!isConfigurationValid || submitting || retrySourceLoading"
+        [loading]="submitting || retrySourceLoading"
       ></p-button>
       <p-button
         icon="pi pi-play"
@@ -23,8 +23,8 @@
         size="large"
         class="create-run-button"
         (onClick)="createRun(true)"
-        [disabled]="!isConfigurationValid || submitting"
-        [loading]="submitting"
+        [disabled]="!isConfigurationValid || submitting || retrySourceLoading"
+        [loading]="submitting || retrySourceLoading"
       ></p-button>
     </p-inputgroup>
   </div>

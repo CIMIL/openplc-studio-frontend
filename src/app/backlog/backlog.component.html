@@ -137,6 +137,19 @@
                 ariaLabel="Download config"
                 (onClick)="onDownloadConfig(run)"
               ></p-button>
+              @if (isRunRetryable(run)) {
+                <p-button
+                  icon="pi pi-refresh"
+                  severity="warn"
+                  size="small"
+                  [text]="true"
+                  [rounded]="true"
+                  pTooltip="Adjust and retry"
+                  tooltipPosition="top"
+                  ariaLabel="Adjust and retry"
+                  (onClick)="onAdjustAndRetry(run)"
+                ></p-button>
+              }
               <p-button
                 icon="pi pi-trash"
                 severity="danger"

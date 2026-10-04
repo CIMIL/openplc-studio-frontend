@@ -33,6 +33,24 @@
               (onClick)="onExecute()"
             />
           }
+          @if (canRetry) {
+            <div class="plc-retry-split">
+              <p-button
+                label="Retry and run"
+                [icon]="retrying ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
+                severity="warn"
+                [disabled]="retrying"
+                (onClick)="onRetry()"
+              />
+              <details>
+                <summary aria-label="More retry options"><i class="pi pi-chevron-down"></i></summary>
+                <button type="button" (click)="onAdjustAndRetry()">
+                  <i class="pi pi-sliders-h"></i>
+                  Adjust and retry
+                </button>
+              </details>
+            </div>
+          }
           @if (isAnalysisAvailable) {
             <p-button label="Go to analysis" icon="pi pi-chart-bar" (onClick)="onGoToAnalysis()" />
           }

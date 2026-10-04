@@ -31,6 +31,12 @@ export class RunsClient {
       .pipe(switchMap((dto: RunDto) => of(RunMapper.dtoToModel(dto))));
   }
 
+  public retryRun(runId: string): Observable<Run> {
+    return this.http
+      .post<RunDto>(`${this.api}/${runId}/retry`, {}, { headers: this.headers })
+      .pipe(switchMap((dto: RunDto) => of(RunMapper.dtoToModel(dto))));
+  }
+
   public getRun(runId: string): Observable<Run> {
     return this.http
       .get<RunDto>(`${this.api}/${runId}`, { headers: this.headers })

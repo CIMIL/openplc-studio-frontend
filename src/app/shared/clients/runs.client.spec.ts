@@ -33,6 +33,18 @@ describe('RunsClient dashboard summary', () => {
 
   afterEach(() => http.verify());
 
+  it('posts a retry request and maps the new run', () => {
+    let result: any;
+    client.retryRun('failed-run').subscribe((run) => (result = run));
+
+    const request = http.expectOne('/api/runs/failed-run/retry');
+    expect(request.request.method).toBe('POST');
+    request.flush({ ...runDto, id: 'retry-run', status: RunStatus.QUEUED });
+
+    expect(result.id).toBe('retry-run');
+    expect(result.status).toBe(RunStatus.QUEUED);
+  });
+
   it('loads and maps the dashboard snapshot', () => {
     let result: any;
     client.getDashboardSummary().subscribe((summary) => (result = summary));

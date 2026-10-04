@@ -25,12 +25,14 @@ describe('RunConfiguratorComponent submission', () => {
   let runsClient: jasmine.SpyObj<any>;
   let messageService: jasmine.SpyObj<any>;
   let router: jasmine.SpyObj<any>;
+  let modulesClient: jasmine.SpyObj<any>;
   let runConfigService: RunConfiguratorService;
 
   beforeEach(() => {
-    runsClient = jasmine.createSpyObj('RunsClient', ['createRun', 'executeRun']);
+    runsClient = jasmine.createSpyObj('RunsClient', ['createRun', 'executeRun', 'getRun', 'validateRunConfig']);
     messageService = jasmine.createSpyObj('MessageService', ['add']);
     router = jasmine.createSpyObj('Router', ['navigate']);
+    modulesClient = jasmine.createSpyObj('ModulesClient', ['getModuleTypes']);
     runConfigService = new RunConfiguratorService();
     runConfigService.modulesSelection.next({
       [ModuleType.PacketLossSimulator]: [{ id: 0, name: 'PLS', settings: [] }],
@@ -39,15 +41,31 @@ describe('RunConfiguratorComponent submission', () => {
       [ModuleType.CrossfadeSettings]: [],
     });
 
-    component = new RunConfiguratorComponent(
-      runsClient,
-      jasmine.createSpyObj('ModulesClient', ['getModuleTypes']),
-      messageService,
-      router,
-      runConfigService,
-    );
+    component = new RunConfiguratorComponent(runsClient, modulesClient, messageService, router, runConfigService);
     component.runName = createdRun.name;
     component.audioTracksConfig = createdRun.tracks;
+  });
+
+  it('loads a failed run into the configurator for adjustment without generated node IDs', () => {
+    const failedRun = { ...createdRun, status: RunStatus.FAILED };
+    runsClient.getRun.and.returnValue(of(failedRun));
+    runsClient.validateRunConfig.and.callFake((config: unknown) => of(config));
+    modulesClient.getModuleTypes.and.callFake((type: ModuleType) =>
+      of(
+        type === ModuleType.CrossfadeSettings
+          ? []
+          : failedRun.modules[type].map((module) => ({ ...module, node_ids: [], settings: [] })),
+      ),
+    );
+    component = new RunConfiguratorComponent(runsClient, modulesClient, messageService, router, runConfigService, {
+      snapshot: { queryParamMap: { get: () => failedRun.id } },
+    } as any);
+
+    component.ngOnInit();
+
+    expect(component.runName).toBe(`${failedRun.name} (retry)`);
+    expect(component.audioTracksConfig).toEqual(failedRun.tracks);
+    expect(runConfigService.modulesSelection.value[ModuleType.PacketLossSimulator][0].node_ids).toEqual([]);
   });
 
   it('disables creation when a PLC algorithm does not support the simulator packet size', () => {
