@@ -1,6 +1,9 @@
-:host::ng-deep p-button.create-run-button {
+:host ::ng-deep p-splitbutton.create-run-button {
   min-width: 5rem;
-  & > button {
+
+  .p-splitbutton-button {
     min-width: 5rem;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
   }
 }

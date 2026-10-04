@@ -96,7 +96,7 @@ describe('RunConfiguratorComponent submission', () => {
   it('saves without executing', () => {
     runsClient.createRun.and.returnValue(of(createdRun));
 
-    component.createRun(false);
+    component.runActions[0].command!({ originalEvent: new Event('click'), item: component.runActions[0] });
 
     expect(runsClient.createRun).toHaveBeenCalledTimes(1);
     expect(runsClient.executeRun).not.toHaveBeenCalled();

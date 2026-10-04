@@ -6,26 +6,17 @@
   <div class="w-2/4">
     <p-inputgroup>
       <input type="text" pInputText [(ngModel)]="runName" variant="filled" placeholder="Enter run name" size="large" />
-      <p-button
-        icon="pi pi-save"
-        label="Save"
-        severity="secondary"
-        size="large"
-        class="create-run-button"
-        (onClick)="createRun(false)"
-        [disabled]="!isConfigurationValid || submitting || retrySourceLoading"
-        [loading]="submitting || retrySourceLoading"
-      ></p-button>
-      <p-button
-        icon="pi pi-play"
-        label="Save & execute"
+      <p-splitbutton
+        [icon]="submitting || retrySourceLoading ? 'pi pi-spin pi-spinner' : 'pi pi-play'"
+        label="Run"
         severity="success"
         size="large"
         class="create-run-button"
+        [model]="runActions"
         (onClick)="createRun(true)"
         [disabled]="!isConfigurationValid || submitting || retrySourceLoading"
-        [loading]="submitting || retrySourceLoading"
-      ></p-button>
+        expandAriaLabel="More run actions"
+      ></p-splitbutton>
     </p-inputgroup>
   </div>
 </div>

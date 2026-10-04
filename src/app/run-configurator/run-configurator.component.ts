@@ -5,6 +5,7 @@ import { ModuleType } from '../shared/enums/module-type.enum';
 import { RunStatus } from '../shared/enums/run-status.enum';
 import { StepperModule } from 'primeng/stepper';
 import { ButtonModule } from 'primeng/button';
+import { SplitButtonModule } from 'primeng/splitbutton';
 import { CommonModule } from '@angular/common';
 import { Module } from '../shared/interfaces/module.interface';
 import { Run } from '../shared/interfaces/run.interface';
@@ -12,7 +13,7 @@ import { RunsClient } from '../shared/clients/runs.client';
 import { InputTextModule } from 'primeng/inputtext';
 import { LEFT, RIGHT } from './run-names-blueprint';
 import { FormsModule } from '@angular/forms';
-import { MessageService } from 'primeng/api';
+import { MenuItem, MessageService } from 'primeng/api';
 import { catchError, finalize, forkJoin, of, switchMap, tap } from 'rxjs';
 import { AudioTrackPickerComponent } from './audio-track-picker/audio-track-picker.component';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -35,6 +36,7 @@ import {
     FormsModule,
     StepperModule,
     ButtonModule,
+    SplitButtonModule,
     InputTextModule,
     AudioTrackPickerComponent,
     InputGroupModule,
@@ -47,6 +49,7 @@ export class RunConfiguratorComponent implements OnInit {
   public runName: string = this.generateRandomRunName();
   public submitting = false;
   public retrySourceLoading = false;
+  public runActions: MenuItem[] = [{ label: 'Save', icon: 'pi pi-save', command: () => this.createRun(false) }];
 
   private _audioTracksConfig: string[] = [];
 
