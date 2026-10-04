@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { ChartData, ChartOptions } from 'chart.js';
 import { ChartModule } from 'primeng/chart';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -21,6 +21,7 @@ import { ModuleParameter } from '../../shared/interfaces/module-parameters.inter
 import { Module } from '../../shared/interfaces/module.interface';
 import { ThemeService } from '../../shared/services/theme.service';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { TrackSelectionGroup } from '../track-selection';
 
 @Component({
   selector: 'plc-zoom-lens',
@@ -37,6 +38,8 @@ import { SelectButtonModule } from 'primeng/selectbutton';
   //   styleUrls: ['./zoom-lens.component.scss'],
 })
 export class ZoomLensComponent {
+  @Input() trackSelectionTree: TrackSelectionGroup[] = [];
+
   public zoomLensSelectedChannel: string = 'Left';
 
   public zoomSegmentData?: ChartData | null = null;
@@ -170,13 +173,22 @@ export class ZoomLensComponent {
     );
 
     const colorPalette = this.themeService.isDarkMode.value ? DARK_COLORS : LIGHT_COLORS;
+    const trackLabels = new Map<string, string>();
+    this.trackSelectionTree.forEach((originalTrack) => {
+      originalTrack.children.forEach((child) => {
+        if (child.kind !== 'packet-loss') return;
+        child.children.forEach((leaf) => {
+          if (leaf.kind !== 'reconstructed-track') return;
+          trackLabels.set(leaf.name, leaf.discriminator ? `${leaf.label} · ${leaf.discriminator}` : leaf.label);
+        });
+      });
+    });
 
     this.zoomSegmentData = {
       labels: Array.from({ length: this.normalizedSegmentsCache[0][0].length }, (_, i) => i.toString()),
       datasets: this.normalizedSegmentsCache.map((t: any, i: number) => ({
-        label: this.allTracksCache.map((tn) => tn.split('/')[tn.split('/').length - 1] ?? tn)[
-          i % this.normalizedSegmentsCache.length
-        ],
+        label:
+          trackLabels.get(this.allTracksCache[i]) ?? this.allTracksCache[i].split('/').pop() ?? this.allTracksCache[i],
         data: t[this.zoomLensSelectedChannel === 'Right' ? 1 : 0],
         tension: 0.25,
         borderColor: colorPalette[i % colorPalette.length],

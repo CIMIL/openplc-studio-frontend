@@ -76,7 +76,7 @@
         <p-accordion-header>Zoom Lens</p-accordion-header>
         <p-accordion-content>
           @if (analysisService.selectedPacketBounds.value && analysisService.selectedPacketBounds.value.length !== 0) {
-            <plc-zoom-lens></plc-zoom-lens>
+            <plc-zoom-lens [trackSelectionTree]="trackSelectionTree"></plc-zoom-lens>
           } @else {
             <p>Select a packet for analysis</p>
           }

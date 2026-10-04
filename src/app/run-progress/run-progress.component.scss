@@ -292,6 +292,9 @@
       font-weight: 400;
     }
   }
+  &:not(.plc-track-name) .plc-module-label {
+    flex: 0 1 auto;
+  }
   i {
     color: var(--p-text-muted-color);
     font-size: 0.8rem;
