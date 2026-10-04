@@ -11,6 +11,7 @@ import {
   FileUploadHandlerEvent,
   FileUploadModule,
 } from 'primeng/fileupload';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { AssetsClient } from '../../clients/assets.client';
@@ -30,7 +31,7 @@ export interface QueuedTrackView {
 @Component({
   selector: 'plc-track-upload',
   standalone: true,
-  imports: [CommonModule, FileUploadModule, ButtonModule, TooltipModule, ConfirmDialogModule],
+  imports: [CommonModule, FileUploadModule, ButtonModule, TooltipModule, ConfirmDialogModule, ProgressBarModule],
   providers: [ConfirmationService],
   templateUrl: './track-upload.component.html',
   styleUrl: './track-upload.component.scss',
@@ -41,6 +42,7 @@ export class TrackUploadComponent {
 
   public readonly maxFileSize = 100_000_000;
   public readonly queuedFileViews = new Map<string, QueuedTrackView>();
+  public readonly uploadProgress = new Map<File, number>();
   public uploading = false;
 
   constructor(
@@ -57,20 +59,28 @@ export class TrackUploadComponent {
   }
 
   public onRemove(event: FileRemoveEvent): void {
-    this.queuedFileViews.delete(this.fileKey(event.file));
+    const key = this.fileKey(event.file);
+    this.queuedFileViews.delete(key);
+    this.uploadProgress.delete(event.file);
   }
 
   public onClear(): void {
     this.queuedFileViews.clear();
+    this.uploadProgress.clear();
   }
 
   public getView(file: File): QueuedTrackView {
     return this.queuedFileViews.get(this.fileKey(file)) ?? this.toQueuedView(file, null, true);
   }
 
+  public getUploadProgress(file: File): number | null {
+    return this.uploadProgress.get(file) ?? null;
+  }
+
   public async upload(event: FileUploadHandlerEvent): Promise<void> {
     if (this.uploading || event.files.length === 0) return;
     this.uploading = true;
+    this.uploadProgress.clear();
 
     try {
       const existing = new Set(await firstValueFrom(this.assetsClient.getFilenames()));
@@ -81,10 +91,17 @@ export class TrackUploadComponent {
       let failed = 0;
 
       for (const file of files) {
+        this.uploadProgress.set(file, 0);
         try {
-          await firstValueFrom(this.assetsClient.uploadTrack(file, overwrite && existing.has(file.name)));
+          await firstValueFrom(
+            this.assetsClient.uploadTrack(file, overwrite && existing.has(file.name), (progress) => {
+              this.uploadProgress.set(file, progress);
+            }),
+          );
+          this.uploadProgress.set(file, 100);
           uploadedNames.push(file.name);
         } catch (error) {
+          this.uploadProgress.delete(file);
           failed += 1;
           this.showUploadError(file.name, error);
         }
@@ -110,6 +127,7 @@ export class TrackUploadComponent {
       this.showUploadError('tracks', error);
     } finally {
       this.uploading = false;
+      this.uploadProgress.clear();
     }
   }
 

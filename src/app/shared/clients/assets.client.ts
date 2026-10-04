@@ -1,6 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { EMPTY, expand, map, Observable, reduce } from 'rxjs';
+import { EMPTY, expand, filter, map, Observable, reduce, tap } from 'rxjs';
 import { AudioTrackMetadata, AudioTrackMetadataDto } from '../interfaces/audio-track-metadata.interface';
 import {
   SortDirection,
@@ -24,13 +24,29 @@ export class AssetsClient {
     return this.http.post(this.api, formData);
   }
 
-  public uploadTrack(file: File, overwrite = false): Observable<TrackAsset> {
+  public uploadTrack(file: File, overwrite = false, onProgress?: (progress: number) => void): Observable<TrackAsset> {
     const formData = new FormData();
     formData.append('files', file);
     const params = new HttpParams().set('overwrite', overwrite);
     return this.http
-      .post<TrackAssetDto[]>(`${this.api}/tracks`, formData, { params })
-      .pipe(map((tracks) => this.mapTrack(tracks[0])));
+      .post<TrackAssetDto[]>(`${this.api}/tracks`, formData, {
+        params,
+        observe: 'events',
+        reportProgress: true,
+      })
+      .pipe(
+        tap((event) => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            onProgress?.(Math.round((100 * event.loaded) / event.total));
+          }
+        }),
+        filter((event): event is HttpResponse<TrackAssetDto[]> => event.type === HttpEventType.Response),
+        map((event) => {
+          const track = event.body?.[0];
+          if (!track) throw new Error('Track upload returned no track metadata.');
+          return this.mapTrack(track);
+        }),
+      );
   }
 
   public getFilenames(): Observable<string[]> {

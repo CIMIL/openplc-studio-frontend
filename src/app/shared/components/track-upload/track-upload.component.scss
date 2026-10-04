@@ -16,6 +16,27 @@
     display: flex;
     flex-direction: column;
   }
+
+  // PrimeNG positions every progressbar inside FileUpload's content absolutely,
+  // including bars rendered by the custom file template. Keep ours in the row.
+  .p-fileupload-content .plc-upload-progress-bar .p-progressbar {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    height: 0.5rem;
+    background: var(--p-content-border-color);
+  }
+
+  .plc-upload-progress-bar .p-progressbar-value {
+    background: var(--p-primary-color);
+  }
+}
+
+.plc-upload-progress-bar {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .plc-upload-empty {

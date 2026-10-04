@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpEventType, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { AssetsClient } from './assets.client';
@@ -51,6 +51,23 @@ describe('AssetsClient', () => {
     expect(result.pageSize).toBe(25);
     expect(result.items[0].storage.contentType).toBe('audio/wav');
     expect(result.items[0].usage.blocking).toBe(1);
+  });
+
+  it('reports track upload progress', () => {
+    const progress = jasmine.createSpy('progress');
+    let result: any;
+
+    client
+      .uploadTrack(new File(['audio'], 'test.wav', { type: 'audio/wav' }), false, progress)
+      .subscribe((track) => (result = track));
+
+    const request = http.expectOne('/api/assets/tracks?overwrite=false');
+    expect(request.request.reportProgress).toBeTrue();
+    request.event({ type: HttpEventType.UploadProgress, loaded: 25, total: 100 });
+    request.flush([trackDto]);
+
+    expect(progress).toHaveBeenCalledOnceWith(25);
+    expect(result.name).toBe('test track.wav');
   });
 
   it('loads filenames from every page of the consolidated tracks endpoint', () => {

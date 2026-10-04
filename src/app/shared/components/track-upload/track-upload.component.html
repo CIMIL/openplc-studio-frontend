@@ -25,32 +25,47 @@
 
   <ng-template let-file let-i="index" #file>
     @let view = getView(file);
-    <div class="plc-upload-file flex items-center gap-3 w-full min-w-0">
-      <i class="pi pi-wave-pulse text-primary text-xl"></i>
-      <div class="flex flex-col min-w-0 flex-auto">
-        <span class="font-medium truncate">{{ file.name }}</span>
-        <span class="text-xs text-muted-color truncate">
-          @if (view.pending) {
-            <i class="pi pi-spin pi-spinner text-[10px] mr-1"></i>
-            Reading track info…
-          } @else if (view.available) {
-            {{ view.durationLabel }} · {{ view.sampleRateLabel }} · {{ view.channelLabel }} · {{ view.bitDepthLabel }}
-          } @else {
-            WAV metadata unavailable
-          }
-        </span>
+    @let progress = getUploadProgress(file);
+    <div class="plc-upload-file flex flex-col gap-2 w-full min-w-0">
+      <div class="flex items-center gap-3 w-full min-w-0">
+        <i class="pi pi-wave-pulse text-primary text-xl"></i>
+        <div class="flex flex-col min-w-0 flex-auto">
+          <span class="font-medium truncate">{{ file.name }}</span>
+          <span class="text-xs text-muted-color truncate">
+            @if (view.pending) {
+              <i class="pi pi-spin pi-spinner text-[10px] mr-1"></i>
+              Reading track info…
+            } @else if (view.available) {
+              {{ view.durationLabel }} · {{ view.sampleRateLabel }} · {{ view.channelLabel }} · {{ view.bitDepthLabel }}
+            } @else {
+              WAV metadata unavailable
+            }
+          </span>
+        </div>
+        <span class="text-xs text-muted-color whitespace-nowrap">{{ view.sizeLabel }}</span>
+        <p-button
+          icon="pi pi-times"
+          severity="danger"
+          size="small"
+          [text]="true"
+          [rounded]="true"
+          [disabled]="uploading"
+          pTooltip="Remove"
+          ariaLabel="Remove file"
+          (onClick)="fileUpload.remove($event, i)"
+        ></p-button>
       </div>
-      <span class="text-xs text-muted-color whitespace-nowrap">{{ view.sizeLabel }}</span>
-      <p-button
-        icon="pi pi-times"
-        severity="danger"
-        size="small"
-        [text]="true"
-        [rounded]="true"
-        pTooltip="Remove"
-        ariaLabel="Remove file"
-        (onClick)="fileUpload.remove($event, i)"
-      ></p-button>
+      @if (progress !== null) {
+        <div class="plc-upload-progress flex items-center gap-2" role="status" aria-live="polite">
+          <p-progressbar
+            class="plc-upload-progress-bar"
+            [value]="progress"
+            [showValue]="false"
+            [attr.aria-label]="'Uploading ' + file.name"
+          />
+          <span class="text-xs text-muted-color tabular-nums">{{ progress }}%</span>
+        </div>
+      }
     </div>
   </ng-template>
 </p-fileupload>
