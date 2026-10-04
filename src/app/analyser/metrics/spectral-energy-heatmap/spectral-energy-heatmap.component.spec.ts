@@ -48,6 +48,7 @@ describe('SpectralEnergyHeatmapComponent', () => {
 
     expect(fixture.nativeElement.querySelector('canvas')).not.toBeNull();
     expect(fixture.nativeElement.querySelectorAll('p-selectbutton').length).toBe(1);
+    expect(fixture.componentInstance.channelOptions.map((option) => option.label)).toEqual(['Mono']);
     expect(fixture.componentInstance.frequencyScale).toBe('logarithmic');
 
     fixture.destroy();

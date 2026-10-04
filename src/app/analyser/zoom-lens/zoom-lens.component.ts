@@ -42,6 +42,10 @@ export class ZoomLensComponent {
 
   public zoomLensSelectedChannel: string = 'Left';
 
+  public get hasMultipleChannels(): boolean {
+    return (this.normalizedSegmentsCache[0]?.length ?? 0) > 1;
+  }
+
   public zoomSegmentData?: ChartData | null = null;
 
   public zoomSegmentOptions?: ChartOptions | null = null;
@@ -87,7 +91,7 @@ export class ZoomLensComponent {
         takeUntil(this.destroy$),
         debounceTime(150),
         filter((bounds: number[]) => Array.isArray(bounds) && bounds.length === 2),
-        tap(([lb, rb, ...blank]) => this.buildSampleLens(lb, rb)),
+        tap(([lb, rb]) => this.buildSampleLens(lb, rb)),
       )
       .subscribe();
 
@@ -157,6 +161,7 @@ export class ZoomLensComponent {
     let normalizedSegments = segments.map((seg) => normalizePcmSegment(seg, bitDepth, channelNumber));
 
     this.normalizedSegmentsCache = normalizedSegments;
+    if (!this.hasMultipleChannels) this.zoomLensSelectedChannel = 'Left';
 
     this.allTracksCache = allTracks;
 
@@ -166,9 +171,10 @@ export class ZoomLensComponent {
   private buildZoomSegmentData(): void {
     if (!this.normalizedSegmentsCache.length) return;
 
+    const channelIndex = this.hasMultipleChannels && this.zoomLensSelectedChannel === 'Right' ? 1 : 0;
     const maxAbsoluteValue = Math.max(
       ...this.normalizedSegmentsCache.flatMap((segment) =>
-        segment[this.zoomLensSelectedChannel === 'Right' ? 1 : 0].map((value: number) => Math.abs(value)),
+        segment[channelIndex].map((value: number) => Math.abs(value)),
       ),
     );
 
@@ -189,7 +195,7 @@ export class ZoomLensComponent {
       datasets: this.normalizedSegmentsCache.map((t: any, i: number) => ({
         label:
           trackLabels.get(this.allTracksCache[i]) ?? this.allTracksCache[i].split('/').pop() ?? this.allTracksCache[i],
-        data: t[this.zoomLensSelectedChannel === 'Right' ? 1 : 0],
+        data: t[channelIndex],
         tension: 0.25,
         borderColor: colorPalette[i % colorPalette.length],
         pointRadius: 2,

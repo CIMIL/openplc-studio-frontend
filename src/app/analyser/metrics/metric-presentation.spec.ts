@@ -147,6 +147,25 @@ describe('MetricsComponent scalar metric visualization', () => {
     expect(visualization.options.scales.y.display).not.toBeFalse();
   });
 
+  it('labels a single-channel time series Mono and preserves stereo labels', () => {
+    const component = createComponent();
+    const mono = buildPresentations(
+      [createMetric('MSECalculator-mono.json', 0, [[0.1, 0.2]])],
+      [createModule('MSECalculator', {})],
+    )[0];
+    const stereo = buildPresentations(
+      [createMetric('MSECalculator-stereo.json', 0, [[0.1], [0.2]])],
+      [createModule('MSECalculator', {})],
+    )[0];
+
+    expect((component as any).buildVisualization(mono, 0).data.datasets.map((dataset: any) => dataset.label)).toEqual([
+      'Mono',
+    ]);
+    expect((component as any).buildVisualization(stereo, 0).data.datasets.map((dataset: any) => dataset.label)).toEqual(
+      ['Left', 'Right'],
+    );
+  });
+
   it('builds WindowedPEAQ as DI and ODG time series', () => {
     const metric = buildPresentations(
       [

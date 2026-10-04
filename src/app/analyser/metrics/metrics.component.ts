@@ -300,7 +300,7 @@ export class MetricsComponent {
     const data: ChartData = {
       labels: Array.from({ length: channels[0]?.length ?? 0 }, (_, i) => i.toString()),
       datasets: channels.map((channel, index) => ({
-        label: this.getTimeSeriesLabel(metric.calculatorName, index),
+        label: this.getTimeSeriesLabel(metric.calculatorName, index, channels.length),
         data: channel,
         tension: 0.25,
         borderColor: colorPalette[index % colorPalette.length],
@@ -433,10 +433,11 @@ export class MetricsComponent {
     };
   }
 
-  private getTimeSeriesLabel(metricName: string, index: number): string {
+  private getTimeSeriesLabel(metricName: string, index: number, channelCount: number): string {
     if (metricName === 'WindowedPEAQCalculator') {
       return ['DI', 'ODG'][index] ?? `Metric ${index + 1}`;
     }
+    if (channelCount === 1) return 'Mono';
     return ['Left', 'Right'][index] ?? `Channel ${index + 1}`;
   }
 

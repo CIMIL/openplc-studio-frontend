@@ -8,6 +8,21 @@ import { ThemeService } from '../../shared/services/theme.service';
 import { ZoomLensComponent } from './zoom-lens.component';
 
 describe('ZoomLensComponent labels', () => {
+  it('plots mono data without offering a channel switch, even if Right was previously selected', () => {
+    const component = new ZoomLensComponent(
+      {} as AnalysisService,
+      { isDarkMode: new BehaviorSubject(false) } as ThemeService,
+    );
+    component.zoomLensSelectedChannel = 'Right';
+    (component as any).allTracksCache = ['song.wav'];
+    (component as any).normalizedSegmentsCache = [[[0, 0.5]]];
+
+    component.onChannelToggle();
+
+    expect(component.hasMultipleChannels).toBeFalse();
+    expect(component.zoomSegmentData?.datasets[0].data).toEqual([0, 0.5]);
+  });
+
   it('uses the track selection discriminators instead of hashed reconstructed filenames', () => {
     const original = file('song.wav');
     const first = file('song/PLS-mask/PLC-first.wav');
@@ -26,6 +41,7 @@ describe('ZoomLensComponent labels', () => {
 
     component.onChannelToggle();
 
+    expect(component.hasMultipleChannels).toBeFalse();
     expect(component.zoomSegmentData?.datasets.map((dataset) => dataset.label)).toEqual([
       'song.wav',
       'PLC · fade_in=4',

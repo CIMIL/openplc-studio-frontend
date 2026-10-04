@@ -533,6 +533,7 @@ export class SpectralEnergyHeatmapComponent implements OnInit, OnChanges, OnDest
   }
 
   private getChannelLabel(index: number): string {
+    if (this.spectralData?.channels.length === 1) return 'Mono';
     return ['Left', 'Right'][index] ?? `Channel ${index + 1}`;
   }
 
